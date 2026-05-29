@@ -1,0 +1,477 @@
+.AppShell {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: #fafafa;
+  color: #18181b;
+}
+
+.AppShell__loading,
+.AppShell__error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 100vh;
+  width: 100vw;
+  font-size: 14px;
+}
+
+.AppShell__error {
+  color: #b91c1c;
+}
+
+.AppShell__sidebar {
+  flex: 0 0 260px;
+  min-width: 180px;
+  max-width: 40vw;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #e4e4e7;
+  background: #f4f4f5;
+  overflow: hidden;
+}
+
+.AppShell__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.AppShell__mainBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.WorkspaceTree {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.WorkspaceTree__root {
+  flex-shrink: 0;
+  display: block;
+  padding: 6px 8px;
+  border-bottom: 1px solid #e4e4e7;
+}
+
+.WorkspaceTree__rootSelect {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  padding: 4px 24px 4px 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #3f3f46;
+  background: #fff;
+  border: 1px solid #d4d4d8;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.WorkspaceTree__rootSelect:focus {
+  outline: none;
+  border-color: #a1a1aa;
+}
+
+.WorkspaceTree__search {
+  flex-shrink: 0;
+  display: block;
+  padding: 6px 8px;
+  border-bottom: 1px solid #e4e4e7;
+}
+
+.WorkspaceTree__searchInput {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #18181b;
+  background: #fff;
+  border: 1px solid #d4d4d8;
+  border-radius: 4px;
+}
+
+.WorkspaceTree__searchInput:focus {
+  outline: none;
+  border-color: #a1a1aa;
+}
+
+.WorkspaceTree__searchInput::placeholder {
+  color: #a1a1aa;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.WorkspaceTree__tree {
+  flex: 1;
+  min-height: 0;
+  display: block;
+  --trees-font-size-override: 12px;
+  --trees-padding-inline-override: 12px;
+}
+
+.TabBar {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  border-bottom: 1px solid #e4e4e7;
+  background: #fff;
+}
+
+.TabBar__list {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.TabBar__tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 200px;
+  padding: 0 10px;
+  height: 36px;
+  border: none;
+  border-right: 1px solid #e4e4e7;
+  background: #f4f4f5;
+  color: #52525b;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.TabBar__tab--active {
+  background: #fff;
+  color: #18181b;
+  box-shadow: inset 0 -2px 0 #3b82f6;
+}
+
+.TabBar__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.TabBar__close {
+  flex-shrink: 0;
+  opacity: 0.5;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.TabBar__close:hover {
+  opacity: 1;
+}
+
+.TabBar__add {
+  flex-shrink: 0;
+  width: 36px;
+  border: none;
+  border-left: 1px solid #e4e4e7;
+  background: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  color: #52525b;
+}
+
+.TabContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: #fff;
+}
+
+.TabContent--empty {
+  align-items: center;
+  justify-content: center;
+  color: #a1a1aa;
+  font-size: 14px;
+}
+
+.TabContent__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-bottom: 1px solid #f4f4f5;
+  font-size: 12px;
+}
+
+.TabContent__headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.TabContent__headerRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.TabContent__title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.TabContent__truncated {
+  color: #b45309;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.TabContent__truncatedBanner {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 12px;
+  line-height: 1.45;
+  border-bottom: 1px solid #fde68a;
+}
+
+.TabContent__save {
+  padding: 4px 10px;
+  font-size: 12px;
+  border: 1px solid #e4e4e7;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.TabContent__save:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.EditorViewSwitch {
+  display: inline-flex;
+  border: 1px solid #e4e4e7;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.EditorViewSwitch__btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  border: none;
+  background: #f4f4f5;
+  color: #52525b;
+  cursor: pointer;
+}
+
+.EditorViewSwitch__btn--active {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.EditorViewSwitch__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 外层滚动容器：高度由 flex 约束，正文在内部撑开并滚动 */
+.MuledMDXEditorHost {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.MuledSourceEditor {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.MuledSourceEditor__lang {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #71717a;
+  background: #f4f4f5;
+  border-bottom: 1px solid #e4e4e7;
+}
+
+.MuledSourceEditor__cm {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.MuledSourceEditor__cm .cm-editor {
+  height: 100%;
+}
+
+.MuledSourceEditor__cm .cm-scroller,
+.MuledSourceEditor__cm .cm-gutters {
+  font-family: var(
+    --muled-source-font-family,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    monospace
+  );
+  font-size: var(--muled-source-font-size, 13px);
+}
+
+.TabContent__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.TabContent__editorPane {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.TabContent__editorPane > * {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.PlaceholderEditor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.PlaceholderEditor__banner {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 12px;
+}
+
+.PlaceholderEditor__area {
+  flex: 1;
+  width: 100%;
+  border: none;
+  resize: none;
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  outline: none;
+  background: #fff;
+  color: #18181b;
+}
+
+.ImagePreview {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fafafa;
+}
+
+.ImagePreview__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e4e4e7;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.ImagePreview__name {
+  font-size: 12px;
+  color: #52525b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ImagePreview__zoom {
+  display: flex;
+  gap: 4px;
+}
+
+.ImagePreview__zoom button {
+  min-width: 32px;
+  padding: 4px 8px;
+  border: 1px solid #e4e4e7;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ImagePreview__zoom button:nth-child(2) {
+  min-width: 52px;
+}
+
+.ImagePreview__zoom button:hover {
+  background: #f4f4f5;
+}
+
+.ImagePreview__viewport {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.ImagePreview__viewport img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transform-origin: center center;
+  transition: transform 0.1s ease-out;
+}
+
+.ImagePreview--empty {
+  color: #a1a1aa;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}

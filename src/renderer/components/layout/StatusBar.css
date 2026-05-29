@@ -1,0 +1,86 @@
+.StatusBar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  height: 28px;
+  border-top: 1px solid #e4e4e7;
+  background: #fafafa;
+  font-size: 11px;
+  color: #71717a;
+  min-width: 0;
+}
+
+.StatusBar__segment {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.StatusBar__workspace {
+  flex-shrink: 1;
+  max-width: 28%;
+  color: #52525b;
+}
+
+.StatusBar__file {
+  flex: 1;
+  color: #3f3f46;
+}
+
+.StatusBar__file--dirty {
+  color: #b45309;
+}
+
+.StatusBar__dirtyDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #f59e0b;
+  vertical-align: middle;
+}
+
+.StatusBar__spacer {
+  flex: 0 0 8px;
+}
+
+.StatusBar__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.StatusBar__badge {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #f4f4f5;
+  color: #52525b;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.StatusBar__badge--warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.StatusBar__badge--muted {
+  background: transparent;
+  color: #a1a1aa;
+  font-weight: 400;
+}
+
+.StatusBar__hints {
+  flex-shrink: 0;
+  color: #a1a1aa;
+}
+
+.StatusBar__sep {
+  flex-shrink: 0;
+  color: #d4d4d8;
+}

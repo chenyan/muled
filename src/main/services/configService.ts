@@ -1,0 +1,212 @@
+import fs from 'fs';
+import os from 'os';
+import yaml from 'js-yaml';
+import type {
+  EditorMode,
+  EditorViewMode,
+  MuledConfig,
+  PublicConfig,
+} from '../../shared/types/config';
+import {
+  DEFAULT_BUFFER_BYTES,
+  DEFAULT_TREE_INITIAL_EXPANSION_DEPTH,
+} from '../../shared/constants';
+import {
+  DEFAULT_SOURCE_FONT,
+  DEFAULT_WYSIWYG_FONT,
+  parseEditorFontSettings,
+} from '../../shared/editorFontConfig';
+import {
+  ensureParentDir,
+  expandTilde,
+  getConfigFilePath,
+  resolvePath,
+} from '../../shared/pathUtils';
+
+const DEFAULT_CONFIG: MuledConfig = {
+  openai: {
+    api_key: '',
+    model: 'gpt-4o-mini',
+    base_url: null,
+  },
+  editor: {
+    buffer_bytes: DEFAULT_BUFFER_BYTES,
+    mode: 'vim',
+    default_view: null,
+    source: DEFAULT_SOURCE_FONT,
+    wysiwyg: DEFAULT_WYSIWYG_FONT,
+  },
+  workspace: {
+    path: os.homedir(),
+  },
+  ui: {
+    sidebar_width: 260,
+    tree_initial_expansion_depth: DEFAULT_TREE_INITIAL_EXPANSION_DEPTH,
+  },
+};
+
+function parseTreeInitialExpansionDepth(value: unknown): number {
+  if (
+    typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= 0
+  ) {
+    return value;
+  }
+  return DEFAULT_TREE_INITIAL_EXPANSION_DEPTH;
+}
+
+function deriveDefaultView(
+  mode: EditorMode,
+  explicit: EditorViewMode | null,
+): EditorViewMode {
+  if (explicit === 'source' || explicit === 'rich-text') {
+    return explicit;
+  }
+  return mode === 'vim' ? 'source' : 'rich-text';
+}
+
+function parseConfig(raw: unknown): MuledConfig {
+  const data = (raw && typeof raw === 'object' ? raw : {}) as Record<
+    string,
+    unknown
+  >;
+  const openai = (data.openai ?? {}) as Record<string, unknown>;
+  const editor = (data.editor ?? {}) as Record<string, unknown>;
+  const workspace = (data.workspace ?? {}) as Record<string, unknown>;
+  const ui = (data.ui ?? {}) as Record<string, unknown>;
+
+  const mode =
+    editor.mode === 'normal' || editor.mode === 'vim' ? editor.mode : 'vim';
+  const defaultView =
+    editor.default_view === 'source' || editor.default_view === 'rich-text'
+      ? editor.default_view
+      : null;
+
+  const bufferBytes =
+    typeof editor.buffer_bytes === 'number' && editor.buffer_bytes > 0
+      ? editor.buffer_bytes
+      : DEFAULT_BUFFER_BYTES;
+
+  const workspacePath =
+    typeof workspace.path === 'string' && workspace.path.length > 0
+      ? expandTilde(workspace.path)
+      : DEFAULT_CONFIG.workspace.path;
+
+  return {
+    openai: {
+      api_key: typeof openai.api_key === 'string' ? openai.api_key : '',
+      model:
+        typeof openai.model === 'string' && openai.model.length > 0
+          ? openai.model
+          : DEFAULT_CONFIG.openai.model,
+      base_url: typeof openai.base_url === 'string' ? openai.base_url : null,
+    },
+    editor: {
+      buffer_bytes: bufferBytes,
+      mode,
+      default_view: defaultView,
+      source: parseEditorFontSettings(editor.source, DEFAULT_SOURCE_FONT),
+      wysiwyg: parseEditorFontSettings(editor.wysiwyg, DEFAULT_WYSIWYG_FONT),
+    },
+    workspace: {
+      path: workspacePath,
+    },
+    ui: {
+      sidebar_width:
+        typeof ui.sidebar_width === 'number' && ui.sidebar_width > 0
+          ? ui.sidebar_width
+          : DEFAULT_CONFIG.ui.sidebar_width,
+      tree_initial_expansion_depth: parseTreeInitialExpansionDepth(
+        ui.tree_initial_expansion_depth,
+      ),
+    },
+  };
+}
+
+export function ensureConfigFile(): void {
+  const configPath = getConfigFilePath();
+  if (fs.existsSync(configPath)) {
+    return;
+  }
+  ensureParentDir(configPath);
+  const template = yaml.dump({
+    openai: {
+      api_key: '',
+      model: 'gpt-4o-mini',
+      base_url: null,
+    },
+    editor: {
+      buffer_bytes: DEFAULT_BUFFER_BYTES,
+      mode: 'vim',
+      default_view: 'source',
+      source: DEFAULT_SOURCE_FONT,
+      wysiwyg: DEFAULT_WYSIWYG_FONT,
+    },
+    workspace: {
+      path: '~/projects',
+    },
+    ui: {
+      sidebar_width: 260,
+      tree_initial_expansion_depth: DEFAULT_TREE_INITIAL_EXPANSION_DEPTH,
+    },
+  });
+  fs.writeFileSync(configPath, template, 'utf8');
+}
+
+export default class ConfigService {
+  private config: MuledConfig = DEFAULT_CONFIG;
+
+  load(): MuledConfig {
+    const configPath = getConfigFilePath();
+    if (!fs.existsSync(configPath)) {
+      this.config = {
+        ...DEFAULT_CONFIG,
+        workspace: {
+          path: resolvePath(DEFAULT_CONFIG.workspace.path),
+        },
+      };
+      return this.config;
+    }
+
+    const raw = fs.readFileSync(configPath, 'utf8');
+    const parsed = parseConfig(yaml.load(raw));
+    this.config = {
+      ...parsed,
+      workspace: {
+        path: resolvePath(parsed.workspace.path),
+      },
+    };
+    return this.config;
+  }
+
+  get(): MuledConfig {
+    return this.config;
+  }
+
+  getBufferBytes(): number {
+    return this.config.editor.buffer_bytes;
+  }
+
+  getPublicConfig(): PublicConfig {
+    const { editor, workspace, ui, openai } = this.config;
+    return {
+      editor: {
+        buffer_bytes: editor.buffer_bytes,
+        mode: editor.mode,
+        default_view: deriveDefaultView(editor.mode, editor.default_view),
+        source: editor.source,
+        wysiwyg: editor.wysiwyg,
+      },
+      workspace: { path: workspace.path },
+      ui,
+      openai: {
+        model: openai.model,
+        has_api_key: openai.api_key.length > 0,
+      },
+      system: {
+        homedir: os.homedir(),
+      },
+    };
+  }
+}

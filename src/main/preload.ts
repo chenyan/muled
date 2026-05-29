@@ -1,29 +1,54 @@
-// Disable no-unused-vars, broken for spread args
-/* eslint no-unused-vars: off */
-import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
+import type { IpcChannel, IpcArgs, IpcResult } from '../shared/types/ipc';
 
-export type Channels = 'ipc-example';
+async function invoke<C extends IpcChannel>(
+  channel: C,
+  arg?: IpcArgs<C>,
+): Promise<IpcResult<C>> {
+  return ipcRenderer.invoke(channel, arg) as Promise<IpcResult<C>>;
+}
 
-const electronHandler = {
-  ipcRenderer: {
-    sendMessage(channel: Channels, ...args: unknown[]) {
-      ipcRenderer.send(channel, ...args);
-    },
-    on(channel: Channels, func: (...args: unknown[]) => void) {
-      const subscription = (_event: IpcRendererEvent, ...args: unknown[]) =>
-        func(...args);
-      ipcRenderer.on(channel, subscription);
-
+const muled = {
+  config: {
+    get: () => invoke('config:get'),
+    getWysiwygCss: () => invoke('config:getWysiwygCss'),
+    onWysiwygThemeChanged: (
+      listener: (payload: {
+        css: string;
+        theme: 'light' | 'dark';
+      }) => void,
+    ) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        payload: { css: string; theme: 'light' | 'dark' },
+      ) => {
+        listener(payload);
+      };
+      ipcRenderer.on('config:wysiwygThemeChanged', handler);
       return () => {
-        ipcRenderer.removeListener(channel, subscription);
+        ipcRenderer.removeListener('config:wysiwygThemeChanged', handler);
       };
     },
-    once(channel: Channels, func: (...args: unknown[]) => void) {
-      ipcRenderer.once(channel, (_event, ...args) => func(...args));
-    },
+  },
+  workspace: {
+    get: () => invoke('workspace:get'),
+    list: () => invoke('workspace:list'),
+    cd: (path: string) => invoke('workspace:cd', { path }),
+    completeCd: (partial: string) =>
+      invoke('workspace:completeCd', { partial }),
+  },
+  file: {
+    read: (path: string) => invoke('file:read', { path }),
+    readBinary: (path: string) => invoke('file:readBinary', { path }),
+    write: (path: string, content: string) =>
+      invoke('file:write', { path, content }),
+  },
+  ai: {
+    complete: (args: { prompt: string; selection: string }) =>
+      invoke('ai:complete', args),
   },
 };
 
-contextBridge.exposeInMainWorld('electron', electronHandler);
+contextBridge.exposeInMainWorld('muled', muled);
 
-export type ElectronHandler = typeof electronHandler;
+export type MuledAPI = typeof muled;

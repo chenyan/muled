@@ -96,6 +96,20 @@ const configuration: webpack.Configuration = {
     minimizer: [new TerserPlugin(), new CssMinimizerPlugin()],
   },
 
+  resolve: {
+    conditionNames: ['import', 'require', 'browser', 'default'],
+    alias: {
+      '@pierre/trees/react': path.join(
+        webpackPaths.rootPath,
+        'node_modules/@pierre/trees/dist/react/index.js',
+      ),
+      'uvu/assert': path.join(
+        webpackPaths.rootPath,
+        '.erb/mocks/uvuAssertMock.js',
+      ),
+    },
+  },
+
   plugins: [
     /**
      * Create global constants which can be configured at compile time.

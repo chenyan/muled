@@ -9,9 +9,10 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain } from 'electron';
+import { app, BrowserWindow, shell } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
+import { createServices, registerIpc, registerWysiwygThemeWatcher } from './ipc/registerIpc';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 
@@ -24,12 +25,6 @@ class AppUpdater {
 }
 
 let mainWindow: BrowserWindow | null = null;
-
-ipcMain.on('ipc-example', async (event, arg) => {
-  const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
-  console.log(msgTemplate(arg));
-  event.reply('ipc-example', msgTemplate('pong'));
-});
 
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
@@ -127,6 +122,9 @@ app.on('window-all-closed', () => {
 app
   .whenReady()
   .then(() => {
+    const services = createServices();
+    registerIpc(services);
+    registerWysiwygThemeWatcher(() => mainWindow);
     createWindow();
     app.on('activate', () => {
       // On macOS it's common to re-create a window in the app when the
