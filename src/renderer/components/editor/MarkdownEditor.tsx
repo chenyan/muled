@@ -42,6 +42,11 @@ import mdxEditorInlineMathPlugin from './inlineMath/mdxEditorInlineMathPlugin';
 import mdxEditorWikiImagePlugin from './mdxEditorWikiImagePlugin';
 import MULED_CODE_BLOCK_DESCRIPTORS from './codeBlocks/muledCodeBlockDescriptors';
 import MarkdownEditorErrorBoundary from './MarkdownEditorErrorBoundary';
+import {
+  getSelectionBoundingRect,
+  selectSentenceAtPointInRoot,
+  type WysiwygSentenceSelection,
+} from '../../lib/wysiwygSentenceSelection';
 
 export interface MarkdownEditorProps {
   tabKey: string;
@@ -49,14 +54,22 @@ export interface MarkdownEditorProps {
   relativePath?: string | null;
   readOnly: boolean;
   onChange: (markdown: string) => void;
+  /** 载入期编辑器被动改写（如 AutoLink）后同步 baseline，不触发 dirty */
+  onBaselineSync?: (markdown: string) => void;
 }
 
-export type MarkdownEditorHandle = MDXEditorMethods;
+export type MarkdownEditorHandle = MDXEditorMethods & {
+  selectSentenceAtPoint: (
+    clientX: number,
+    clientY: number,
+  ) => WysiwygSentenceSelection | null;
+  getSelectionRect: () => DOMRect | null;
+};
 
 /** 仅 WYSIWYG；Source 由 {@link SourceCodeEditor} 按后缀高亮 */
 const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
   function MarkdownEditor(
-    { tabKey, markdown, relativePath, readOnly, onChange },
+    { tabKey, markdown, relativePath, readOnly, onChange, onBaselineSync },
     ref,
   ) {
     const innerRef = useRef<MDXEditorMethods>(null);
@@ -65,8 +78,30 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
     documentRelativePathRef.current = relativePath;
     const recoveryAttemptRef = useRef(0);
     const [editorEpoch, setEditorEpoch] = useState(0);
+    const hydratingRef = useRef(false);
+    const hydrationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pendingBaselineRef = useRef<string | null>(null);
+    const onChangeRef = useRef(onChange);
+    onChangeRef.current = onChange;
+    const onBaselineSyncRef = useRef(onBaselineSync);
+    onBaselineSyncRef.current = onBaselineSync;
 
-    useImperativeHandle(ref, () => innerRef.current as MDXEditorMethods);
+    useImperativeHandle(ref, () => {
+      const editor = innerRef.current as MDXEditorMethods;
+      return {
+        ...editor,
+        selectSentenceAtPoint(clientX: number, clientY: number) {
+          const root = scrollHostRef.current?.querySelector(
+            '.mdxeditor-root-contenteditable [contenteditable="true"]',
+          );
+          if (!(root instanceof HTMLElement)) return null;
+          return selectSentenceAtPointInRoot(root, clientX, clientY);
+        },
+        getSelectionRect() {
+          return getSelectionBoundingRect();
+        },
+      };
+    });
 
     const imagePreviewHandler = useCallback(
       (src: string) =>
@@ -107,14 +142,39 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
       );
     }, []);
 
+    const finishHydration = useCallback(() => {
+      hydratingRef.current = false;
+      const pending = pendingBaselineRef.current;
+      pendingBaselineRef.current = null;
+      if (pending !== null) {
+        onBaselineSyncRef.current?.(pending);
+      }
+    }, []);
+
+    const scheduleHydrationFinish = useCallback(() => {
+      if (hydrationTimerRef.current) {
+        clearTimeout(hydrationTimerRef.current);
+      }
+      hydrationTimerRef.current = setTimeout(() => {
+        hydrationTimerRef.current = null;
+        finishHydration();
+      }, 100);
+    }, [finishHydration]);
+
     const handleChange = useCallback(
       (nextMarkdown: string, isInitialNormalize?: boolean) => {
         if (isInitialNormalize) {
           return;
         }
-        onChange(exportMarkdownFromWysiwyg(nextMarkdown));
+        const exported = exportMarkdownFromWysiwyg(nextMarkdown);
+        if (hydratingRef.current) {
+          pendingBaselineRef.current = exported;
+          scheduleHydrationFinish();
+          return;
+        }
+        onChangeRef.current(exported);
       },
-      [onChange],
+      [scheduleHydrationFinish],
     );
 
     const loadMarkdown = useCallback(
@@ -140,10 +200,23 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
     useEffect(() => {
       recoveryAttemptRef.current = 0;
       clearWikiImagePreviewCache();
+      hydratingRef.current = true;
+      pendingBaselineRef.current = null;
       loadMarkdown(markdown, { prepare: true, notifyRecovery: true });
+      scheduleHydrationFinish();
       // tabKey / editorEpoch：切换 Tab 或重置；组件 remount 时也会执行
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tabKey, editorEpoch, loadMarkdown]);
+    }, [tabKey, editorEpoch, loadMarkdown, scheduleHydrationFinish]);
+
+    useEffect(
+      () => () => {
+        if (hydrationTimerRef.current) {
+          clearTimeout(hydrationTimerRef.current);
+          hydrationTimerRef.current = null;
+        }
+      },
+      [tabKey, editorEpoch],
+    );
 
     const handleParseError = useCallback(
       ({ error, source }: { error: string; source: string }) => {

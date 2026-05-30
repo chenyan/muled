@@ -1,4 +1,6 @@
 import type { PublicConfig } from './config';
+import type { SettingsForm, SettingsGetResult } from './settings';
+import type { SearchStartResult } from './search';
 
 export interface FileReadResult {
   content: string;
@@ -24,6 +26,8 @@ export interface WorkspaceInfo {
 
 export type IpcChannel =
   | 'config:get'
+  | 'config:getSettings'
+  | 'config:save'
   | 'config:getWysiwygCss'
   | 'workspace:get'
   | 'workspace:cd'
@@ -32,7 +36,10 @@ export type IpcChannel =
   | 'file:read'
   | 'file:readBinary'
   | 'file:write'
-  | 'ai:complete';
+  | 'ai:complete'
+  | 'ai:translate'
+  | 'search:start'
+  | 'search:cancel';
 
 export interface WysiwygCssResult {
   css: string;
@@ -45,6 +52,8 @@ export interface WysiwygCssResult {
 
 export interface IpcInvokeMap {
   'config:get': { args: void; result: PublicConfig };
+  'config:getSettings': { args: void; result: SettingsGetResult };
+  'config:save': { args: SettingsForm; result: PublicConfig };
   'config:getWysiwygCss': { args: void; result: WysiwygCssResult };
   'workspace:get': { args: void; result: WorkspaceInfo };
   'workspace:cd': { args: { path: string }; result: WorkspaceState };
@@ -65,6 +74,18 @@ export interface IpcInvokeMap {
   'ai:complete': {
     args: { prompt: string; selection: string };
     result: { text: string } | { error: string };
+  };
+  'ai:translate': {
+    args: { sentence: string };
+    result: { text: string } | { error: string };
+  };
+  'search:start': {
+    args: { searchId: number; command: 'rg' | 'fd'; query: string };
+    result: SearchStartResult;
+  };
+  'search:cancel': {
+    args: { searchId: number };
+    result: { ok: boolean };
   };
 }
 

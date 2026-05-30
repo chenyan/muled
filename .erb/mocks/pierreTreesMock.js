@@ -10,6 +10,7 @@ function useFileTree() {
       resetPaths: () => {},
       getSelectedPaths: () => [],
       getItem: () => null,
+      scrollToPath: () => {},
     },
   };
 }

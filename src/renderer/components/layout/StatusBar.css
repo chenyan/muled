@@ -30,8 +30,69 @@
   color: #3f3f46;
 }
 
-.StatusBar__file--dirty {
+.StatusBar__breadcrumb {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  color: #3f3f46;
+  overflow: hidden;
+}
+
+.StatusBar__crumbGroup {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.StatusBar__crumbGroup:last-of-type {
+  flex-shrink: 0;
+}
+
+.StatusBar__crumbSep {
+  flex-shrink: 0;
+  margin: 0 1px;
+  color: #a1a1aa;
+  user-select: none;
+}
+
+.StatusBar__crumb {
+  border: none;
+  padding: 0 2px;
+  margin: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 3px;
+  max-width: 14em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.StatusBar__crumb:hover:not(:disabled) {
+  background: #e4e4e7;
+  color: #18181b;
+}
+
+.StatusBar__crumb:disabled {
+  cursor: default;
+}
+
+.StatusBar__dirtyHint {
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+
+.StatusBar__file--dirty,
+.StatusBar__breadcrumb.StatusBar__file--dirty {
   color: #b45309;
+}
+
+.StatusBar__breadcrumb.StatusBar__file--dirty .StatusBar__crumb:hover:not(:disabled) {
+  color: #92400e;
 }
 
 .StatusBar__dirtyDot {
@@ -73,6 +134,21 @@
   background: transparent;
   color: #a1a1aa;
   font-weight: 400;
+}
+
+.StatusBar__badge--clickable {
+  border: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.StatusBar__badge--clickable:hover:not(:disabled) {
+  background: #e4e4e7;
+}
+
+.StatusBar__badge--clickable:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .StatusBar__hints {

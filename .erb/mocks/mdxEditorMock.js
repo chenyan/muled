@@ -9,6 +9,8 @@ const MarkdownEditor = React.forwardRef(function MockMDXEditor(props, ref) {
     focus: () => {},
     getContentEditableHTML: () => '',
     getSelectionMarkdown: () => '',
+    selectSentenceAtPoint: () => null,
+    getSelectionRect: () => null,
   }));
 
   return React.createElement('textarea', {

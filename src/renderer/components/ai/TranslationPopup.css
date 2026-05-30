@@ -1,0 +1,201 @@
+.TranslationPopup {
+  position: fixed;
+  z-index: 1060;
+  width: min(420px, calc(100vw - 16px));
+  max-height: min(320px, calc(100vh - 16px));
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  border: 1px solid #d4d4d8;
+  background: #fff;
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.14),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.TranslationPopup__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px 0;
+}
+
+.TranslationPopup__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #18181b;
+}
+
+.TranslationPopup__close {
+  border: none;
+  background: transparent;
+  color: #71717a;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.TranslationPopup__close:hover {
+  color: #18181b;
+}
+
+.TranslationPopup__sentence {
+  margin: 6px 12px 0;
+  font-size: 12px;
+  color: #71717a;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.TranslationPopup__body {
+  margin: 8px 0 0;
+  padding: 0 12px 12px;
+  overflow: auto;
+}
+
+.TranslationPopup__loading {
+  margin: 0;
+  font-size: 13px;
+  color: #52525b;
+}
+
+.TranslationPopup__error {
+  margin: 0;
+  font-size: 13px;
+  color: #dc2626;
+  white-space: pre-wrap;
+}
+
+.TranslationPopup__content {
+  margin: 0;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #18181b;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.TranslationPopup__markdown {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #18181b;
+  word-break: break-word;
+}
+
+.TranslationPopup__markdown > :first-child {
+  margin-top: 0;
+}
+
+.TranslationPopup__markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.TranslationPopup__markdown p {
+  margin: 0.5em 0;
+}
+
+.TranslationPopup__markdown h1,
+.TranslationPopup__markdown h2,
+.TranslationPopup__markdown h3,
+.TranslationPopup__markdown h4 {
+  margin: 0.75em 0 0.35em;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.TranslationPopup__markdown h1 {
+  font-size: 1.15em;
+}
+
+.TranslationPopup__markdown h2 {
+  font-size: 1.08em;
+}
+
+.TranslationPopup__markdown h3,
+.TranslationPopup__markdown h4 {
+  font-size: 1em;
+}
+
+.TranslationPopup__markdown ul,
+.TranslationPopup__markdown ol {
+  margin: 0.45em 0;
+  padding-left: 1.35em;
+}
+
+.TranslationPopup__markdown li {
+  margin: 0.2em 0;
+}
+
+.TranslationPopup__markdown li > p {
+  margin: 0.15em 0;
+}
+
+.TranslationPopup__markdown strong {
+  font-weight: 600;
+}
+
+.TranslationPopup__markdown code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.92em;
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: #f4f4f5;
+}
+
+.TranslationPopup__markdown pre {
+  margin: 0.5em 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #f4f4f5;
+  overflow: auto;
+}
+
+.TranslationPopup__markdown pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.TranslationPopup__markdown blockquote {
+  margin: 0.5em 0;
+  padding-left: 0.75em;
+  border-left: 3px solid #d4d4d8;
+  color: #52525b;
+}
+
+.TranslationPopup__markdown table {
+  width: 100%;
+  margin: 0.5em 0;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.TranslationPopup__markdown th,
+.TranslationPopup__markdown td {
+  border: 1px solid #e4e4e7;
+  padding: 4px 8px;
+  text-align: left;
+}
+
+.TranslationPopup__markdown th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+.TranslationPopup__markdown a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.TranslationPopup__markdown a:hover {
+  text-decoration: underline;
+}
+
+.TranslationPopup__markdown hr {
+  margin: 0.65em 0;
+  border: none;
+  border-top: 1px solid #e4e4e7;
+}

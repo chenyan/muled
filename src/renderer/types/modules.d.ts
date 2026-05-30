@@ -1,3 +1,8 @@
+declare module '*.wasm' {
+  const url: string;
+  export default url;
+}
+
 declare module 'cm6-theme-basic-light' {
   import type { Extension } from '@codemirror/state';
 

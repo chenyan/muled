@@ -9,6 +9,11 @@ import {
 } from 'react';
 import type { EditorMode } from '../../../shared/types/config';
 import buildSourceCodeMirrorExtensions from '../../lib/codemirrorExtensions';
+import {
+  applyEditorReveal,
+  buildEditorRevealExtension,
+  type EditorRevealRequest,
+} from '../../lib/editorReveal';
 import languageExtensionForId from '../../lib/codemirrorLanguage';
 import { buildCommonSourceUiExtensions } from '../../lib/codemirrorSetup';
 import { setActiveEditorSelection } from '../../lib/editorSelectionBridge';
@@ -24,6 +29,7 @@ export interface SourceCodeEditorProps {
   relativePath: string | null;
   keybindingMode: EditorMode;
   readOnly: boolean;
+  reveal?: EditorRevealRequest | null;
   onChange: (value: string) => void;
 }
 
@@ -39,7 +45,7 @@ const SourceCodeEditor = forwardRef<
   SourceCodeEditorHandle,
   SourceCodeEditorProps
 >(function SourceCodeEditor(
-  { tabId, tabKey, value, relativePath, keybindingMode, readOnly, onChange },
+  { tabId, tabKey, value, relativePath, keybindingMode, readOnly, reveal, onChange },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -90,6 +96,7 @@ const SourceCodeEditor = forwardRef<
     const lang = languageExtensionForId(languageId);
     return [
       ...buildSourceCodeMirrorExtensions(keybindingMode),
+      ...buildEditorRevealExtension(),
       ...buildCommonSourceUiExtensions(),
       lineNumbers(),
       EditorView.lineWrapping,
@@ -130,6 +137,16 @@ const SourceCodeEditor = forwardRef<
     // value 仅作挂载时初始文档；编辑中由 CodeMirror 持有，避免父级 onChange 导致重建
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabKey, extensions]);
+
+  useEffect(() => {
+    if (!reveal) return undefined;
+    const view = viewRef.current;
+    if (!view) return undefined;
+    const id = window.requestAnimationFrame(() => {
+      applyEditorReveal(view, reveal);
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [reveal]);
 
   return (
     <div className="MuledSourceEditor">

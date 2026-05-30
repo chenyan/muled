@@ -1,9 +1,22 @@
-import { useCallback, useEffect, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+} from 'react';
 import type { AiApplyMode } from '../../../shared/buildAiPrompt';
+import { DEFAULT_PUBLIC_CONFIG } from '../../../shared/defaultPublicConfig';
 import type { PublicConfig } from '../../../shared/types/config';
+import type { SettingsForm } from '../../../shared/types/settings';
+import type { ShellSearchMatch } from '../../../shared/types/search';
+import { newId } from '../../../shared/id';
 import PromptDialog from '../ai/PromptDialog';
+import SettingsDialog from '../dialog/SettingsDialog';
+import UnsavedChangesDialog from '../dialog/UnsavedChangesDialog';
 import CommandPalette from '../command/CommandPalette';
 import { useEditorTabs } from '../../hooks/useEditorTabs';
+import { useUnsavedChangesDialog } from '../../hooks/useUnsavedChangesDialog';
 import { useWorkspace } from '../../hooks/useWorkspace';
 import { registerCommandPaletteOpen } from '../../lib/commandPaletteBridge';
 import {
@@ -17,8 +30,11 @@ import { getCdPaletteCompletion } from '../../../shared/paletteAutoCompletion';
 import { pushStatusToast } from '../../lib/statusToast';
 import { isEditableTextTab } from '../../types/tab';
 import TabBar from '../tabs/TabBar';
+import PdfEngineProvider from '../editor/pdf/PdfEngineProvider';
 import TabContent from '../tabs/TabContent';
-import WorkspaceTree from '../tree/WorkspaceTree';
+import WorkspaceTree, {
+  type WorkspaceTreeRevealRequest,
+} from '../tree/WorkspaceTree';
 import StatusBar from './StatusBar';
 import StatusToast from './StatusToast';
 import './AppShell.css';
@@ -27,15 +43,28 @@ export default function AppShell() {
   const [config, setConfig] = useState<PublicConfig | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
   const workspace = useWorkspace();
-  const editor = useEditorTabs(config);
+  const unsavedDialog = useUnsavedChangesDialog();
+  const editor = useEditorTabs(config, {
+    confirmUnsaved: unsavedDialog.confirmUnsaved,
+  });
   const [treeSelectionResetKey, setTreeSelectionResetKey] = useState(0);
+  const [treeRevealRequest, setTreeRevealRequest] =
+    useState<WorkspaceTreeRevealRequest | null>(null);
   const resetTreeSelection = useCallback(() => {
     setTreeSelectionResetKey((key) => key + 1);
   }, []);
+  const revealPathInTree = useCallback((treePath: string) => {
+    setTreeRevealRequest({ treePath, nonce: Date.now() });
+  }, []);
+
+  const hasPdfTab = useMemo(
+    () => editor.tabs.some((t) => t.kind === 'pdf'),
+    [editor.tabs],
+  );
 
   const handleSwitchWorkspace = useCallback(
     async (targetPath: string) => {
-      if (!config || targetPath === workspace.root) {
+      if (!config || targetPath === workspace.root || workspace.loading) {
         return;
       }
       try {
@@ -53,6 +82,7 @@ export default function AppShell() {
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteInitialValue, setPaletteInitialValue] = useState('');
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [aiDialog, setAiDialog] = useState<{
     mode: AiApplyMode;
@@ -96,7 +126,7 @@ export default function AppShell() {
 
       const result = await window.muled.ai.complete({
         prompt,
-        selection: aiDialog.snapshot.selection,
+        selection: aiDialog.snapshot.selection.trim(),
       });
 
       if ('error' in result) {
@@ -137,6 +167,26 @@ export default function AppShell() {
       return getCdPaletteCompletion(line, labels, cycleIndex);
     },
     [],
+  );
+
+  const handleOpenSearchResult = useCallback(
+    (match: ShellSearchMatch) => {
+      if (match.kind === 'rg') {
+        editor.openPathWithReveal(match.path, {
+          id: newId(),
+          line: match.line,
+          column: match.column,
+          length: match.length,
+        }).catch(() => {
+          /* toast in openPathWithReveal */
+        });
+        return;
+      }
+      editor.openPath(match.path).catch(() => {
+        /* toast in openPath */
+      });
+    },
+    [editor],
   );
 
   const handlePaletteSubmit = useCallback(
@@ -185,20 +235,50 @@ export default function AppShell() {
     [editor, handleSwitchWorkspace],
   );
 
+  const handleSettingsSaved = useCallback(
+    async (form: SettingsForm) => {
+      if (!window.muled?.config?.save) {
+        throw new Error('应用 API 未就绪');
+      }
+      const next = await window.muled.config.save(form);
+      setConfig(next);
+      const newRoot = next.workspace.path;
+      if (newRoot && newRoot !== workspace.root) {
+        try {
+          await workspace.cd(newRoot);
+          editor.initFromConfig(next);
+          resetTreeSelection();
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          pushStatusToast(`工作区路径无效: ${message}`, 'error');
+        }
+      }
+      pushStatusToast('设置已保存', 'success');
+    },
+    [editor, resetTreeSelection, workspace],
+  );
+
+  const notifySaveFailure = useCallback((reason: string) => {
+    if (reason === 'truncated') {
+      pushStatusToast('文件已截断，无法保存', 'error');
+    } else if (reason === 'no_path') {
+      pushStatusToast('请先打开文件再保存', 'error');
+    } else {
+      pushStatusToast('无法保存', 'error');
+    }
+  }, []);
+
   const handleSave = useCallback(
     async (tabId: string) => {
       const result = await editor.saveTab(tabId);
       if (result.ok) {
         pushStatusToast('已保存', 'success');
-        return;
+        return true;
       }
-      if (result.reason === 'truncated') {
-        pushStatusToast('文件已截断，无法保存', 'error');
-      } else if (result.reason === 'no_path') {
-        pushStatusToast('请先打开文件再保存', 'error');
-      }
+      notifySaveFailure(result.reason);
+      return false;
     },
-    [editor],
+    [editor, notifySaveFailure],
   );
 
   const toggleMarkdownViewMode = useCallback(() => {
@@ -277,20 +357,31 @@ export default function AppShell() {
     return <div className="AppShell__error">配置加载失败: {configError}</div>;
   }
 
-  if (!config || workspace.loading) {
-    return <div className="AppShell__loading">加载中…</div>;
-  }
+  const uiConfig = config ?? DEFAULT_PUBLIC_CONFIG;
+  const sidebarStyle = {
+    ['--app-sidebar-width' as string]: `${uiConfig.ui.sidebar_width}px`,
+  } as CSSProperties;
 
-  if (workspace.error) {
-    return (
-      <div className="AppShell__error">
-        工作区错误: {workspace.error}
-        <button type="button" onClick={() => workspace.refresh()}>
-          重试
-        </button>
-      </div>
-    );
-  }
+  const tabContent = (
+    <TabContent
+      tab={editor.activeTab}
+      sourceFont={uiConfig.editor.source}
+      wysiwygFont={uiConfig.editor.wysiwyg}
+      hasApiKey={uiConfig.openai.has_api_key}
+      onContentChange={editor.updateActiveContent}
+      onBaselineSync={editor.syncActiveContent}
+      onAiOpen={openAiDialog}
+      onViewModeChange={(tabId, viewMode, content) => {
+        editor.setViewMode(tabId, viewMode, content);
+      }}
+      onSave={(tabId) => {
+        handleSave(tabId).catch((err) => {
+          const message = err instanceof Error ? err.message : String(err);
+          pushStatusToast(`保存失败: ${message}`, 'error');
+        });
+      }}
+    />
+  );
 
   return (
     <div className="AppShell">
@@ -300,25 +391,45 @@ export default function AppShell() {
         initialValue={paletteInitialValue}
         onClose={closeCommandPalette}
         onSubmit={handlePaletteSubmit}
+        onOpenSearchResult={handleOpenSearchResult}
         resolveCompletion={resolvePaletteCompletion}
       />
       <PromptDialog
         open={aiDialog !== null}
         mode={aiDialog?.mode ?? 'replace'}
         selectionPreview={aiDialog?.snapshot.selection ?? ''}
-        hasApiKey={config.openai.has_api_key}
+        hasApiKey={uiConfig.openai.has_api_key}
         onClose={closeAiDialog}
         onSubmit={handleAiSubmit}
       />
-      <aside className="AppShell__sidebar">
+      <UnsavedChangesDialog
+        tab={unsavedDialog.dialogTab}
+        onSave={unsavedDialog.chooseSave}
+        onDiscard={unsavedDialog.chooseDiscard}
+        onCancel={unsavedDialog.chooseCancel}
+      />
+      <SettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onSaved={handleSettingsSaved}
+      />
+      <aside className="AppShell__sidebar" style={sidebarStyle}>
         <WorkspaceTree
-          key={config.ui.tree_initial_expansion_depth}
+          key={uiConfig.ui.tree_initial_expansion_depth}
           paths={workspace.paths}
           workspaceRoot={workspace.root}
-          homeDir={config.system.homedir}
+          homeDir={uiConfig.system.homedir}
           recentWorkspaces={workspace.recent}
-          initialExpansionDepth={config.ui.tree_initial_expansion_depth}
+          initialExpansionDepth={uiConfig.ui.tree_initial_expansion_depth}
+          pathsLoading={workspace.loading}
+          workspaceError={workspace.error}
+          onRetryWorkspace={() => {
+            workspace.refresh().catch(() => {
+              /* setState in refresh */
+            });
+          }}
           selectionResetKey={treeSelectionResetKey}
+          revealRequest={treeRevealRequest}
           onSwitchWorkspace={(path) => {
             handleSwitchWorkspace(path).catch(() => {
               /* toast in handleSwitchWorkspace */
@@ -338,40 +449,35 @@ export default function AppShell() {
             activeTabId={editor.activeTabId}
             onSelect={editor.setActiveTab}
             onClose={(tabId) => {
-              editor.closeTab(tabId);
-              resetTreeSelection();
+              editor
+                .closeTab(tabId)
+                .then(() => resetTreeSelection())
+                .catch(() => undefined);
             }}
             onAdd={() => {
               editor.addTab();
               resetTreeSelection();
             }}
+            onOpenSettings={() => setSettingsOpen(true)}
           />
-          <TabContent
-            tab={editor.activeTab}
-            sourceFont={config.editor.source}
-            wysiwygFont={config.editor.wysiwyg}
-            hasApiKey={config.openai.has_api_key}
-            onContentChange={editor.updateActiveContent}
-            onAiOpen={openAiDialog}
-            onViewModeChange={(tabId, viewMode, content) => {
-              editor.setViewMode(tabId, viewMode, content);
-            }}
-            onKeybindingModeChange={(tabId, mode) => {
-              editor.setKeybindingMode(tabId, mode);
-            }}
-            onSave={(tabId) => {
-              handleSave(tabId).catch((err) => {
-                const message =
-                  err instanceof Error ? err.message : String(err);
-                pushStatusToast(`保存失败: ${message}`, 'error');
-              });
-            }}
-          />
+          {hasPdfTab ? (
+            <PdfEngineProvider>{tabContent}</PdfEngineProvider>
+          ) : (
+            tabContent
+          )}
         </div>
         <StatusBar
           workspaceRoot={workspace.root}
           tab={editor.activeTab}
-          hasApiKey={config.openai.has_api_key}
+          hasApiKey={uiConfig.openai.has_api_key}
+          onRevealPathInTree={revealPathInTree}
+          onKeybindingModeToggle={(tabId, mode) => {
+            editor.setKeybindingMode(tabId, mode);
+            pushStatusToast(
+              `键位: ${mode === 'vim' ? 'Vim' : 'Normal'}`,
+              'info',
+            );
+          }}
         />
       </main>
     </div>

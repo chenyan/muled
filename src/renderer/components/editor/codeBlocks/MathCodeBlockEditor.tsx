@@ -1,44 +1,34 @@
-import {
-  type CodeBlockEditorProps,
-  useCodeBlockEditorContext,
-} from '@mdxeditor/editor';
+import { type CodeBlockEditorProps } from '@mdxeditor/editor';
 import { useMemo, useRef } from 'react';
 import renderMathBlock from '../../../lib/renderMath';
-import useCodeBlockFocus, {
-  useTextareaAutoHeight,
-} from './useCodeBlockFocus';
+import useCodeBlockFocus from './useCodeBlockFocus';
 
 export default function MathCodeBlockEditor({
   code,
   focusEmitter,
 }: CodeBlockEditorProps) {
-  const { setCode } = useCodeBlockEditorContext();
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
   const { html, error } = useMemo(() => renderMathBlock(code), [code]);
 
-  useCodeBlockFocus(focusEmitter, textareaRef);
-  useTextareaAutoHeight(textareaRef, code);
+  useCodeBlockFocus(focusEmitter, previewRef);
 
   return (
-    <div className="MuledCodeBlockWithPreview">
-      <div className="MuledCodeBlockWithPreview__editor">
-        <div className="MuledCodeBlockWithPreview__label">LaTeX 公式</div>
-        <textarea
-          ref={textareaRef}
-          className="MuledCodeBlockWithPreview__textarea"
-          value={code}
-          spellCheck={false}
-          onChange={(e) => setCode(e.target.value)}
-        />
-      </div>
-      <div className="MuledCodeBlockWithPreview__preview MuledCodeBlockWithPreview__preview--math">
-        {error && <p className="MuledCodeBlockWithPreview__error">{error}</p>}
-        {!error && !html && !code.trim() && (
-          <p className="MuledCodeBlockWithPreview__empty">
-            输入 LaTeX（块级公式，无需 $$ 包裹）
-          </p>
+    <div className="MuledCodeBlockWithPreview MuledCodeBlockWithPreview--mathOnly">
+      <div
+        ref={previewRef}
+        className="MuledCodeBlockWithPreview__preview MuledCodeBlockWithPreview__preview--mathOnly"
+        tabIndex={0}
+        role="img"
+        aria-label="LaTeX 公式"
+        title={error ?? undefined}
+      >
+        {error && !html && (
+          <p className="MuledCodeBlockWithPreview__error">{error}</p>
         )}
-        {!error && html && (
+        {!error && !html && !code.trim() && (
+          <p className="MuledCodeBlockWithPreview__empty">空公式</p>
+        )}
+        {html && (
           // eslint-disable-next-line react/no-danger -- KaTeX HTML
           <div dangerouslySetInnerHTML={{ __html: html }} />
         )}

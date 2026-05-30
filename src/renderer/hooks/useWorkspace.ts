@@ -13,7 +13,7 @@ export function useWorkspace() {
     root: '',
     paths: [],
     recent: [],
-    loading: true,
+    loading: false,
     error: null,
   });
 

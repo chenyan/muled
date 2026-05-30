@@ -1,4 +1,5 @@
 import type { EditorMode, EditorViewMode } from '../../../shared/types/config';
+import { buildPathBreadcrumbs } from '../../lib/workspaceTreeReveal';
 import type { EditorTab } from '../../types/tab';
 import { isEditableTextTab, tabLabel } from '../../types/tab';
 import './StatusBar.css';
@@ -7,6 +8,9 @@ interface StatusBarProps {
   workspaceRoot: string;
   tab: EditorTab | null;
   hasApiKey: boolean;
+  onKeybindingModeToggle?: (tabId: string, mode: EditorMode) => void;
+  /** 点击路径分段时在文件树中展开并选中 */
+  onRevealPathInTree?: (treePath: string) => void;
 }
 
 function shortenPath(path: string, maxLen = 48): string {
@@ -24,6 +28,8 @@ export default function StatusBar({
   workspaceRoot,
   tab,
   hasApiKey,
+  onKeybindingModeToggle,
+  onRevealPathInTree,
 }: StatusBarProps) {
   const workspaceLabel = shortenPath(workspaceRoot);
 
@@ -32,6 +38,11 @@ export default function StatusBar({
   let viewMode: EditorViewMode | null = null;
   let keyMode: EditorMode | null = null;
   let truncated = false;
+
+  const pathBreadcrumbs =
+    tab?.relativePath != null
+      ? buildPathBreadcrumbs(tab.relativePath)
+      : null;
 
   if (tab) {
     fileHint = tab.relativePath ?? tabLabel(tab);
@@ -45,6 +56,43 @@ export default function StatusBar({
     }
   }
 
+  const fileSegment = pathBreadcrumbs ? (
+    <span
+      className={`StatusBar__breadcrumb${dirty ? ' StatusBar__file--dirty' : ''}`}
+      title={tab?.relativePath ?? undefined}
+    >
+      {dirty && <span className="StatusBar__dirtyDot" aria-label="未保存" />}
+      {pathBreadcrumbs.map((crumb, index) => (
+        <span key={crumb.treePath} className="StatusBar__crumbGroup">
+          {index > 0 ? (
+            <span className="StatusBar__crumbSep" aria-hidden>
+              /
+            </span>
+          ) : null}
+          <button
+            type="button"
+            className="StatusBar__crumb"
+            disabled={!onRevealPathInTree}
+            title={crumb.treePath}
+            onClick={() => onRevealPathInTree?.(crumb.treePath)}
+          >
+            {crumb.label}
+          </button>
+        </span>
+      ))}
+      {dirty ? <span className="StatusBar__dirtyHint"> · 未保存</span> : null}
+    </span>
+  ) : (
+    <span
+      className={`StatusBar__segment StatusBar__file${dirty ? ' StatusBar__file--dirty' : ''}`}
+      title={tab?.relativePath ?? undefined}
+    >
+      {dirty && <span className="StatusBar__dirtyDot" aria-label="未保存" />}
+      {shortenPath(fileHint, 40)}
+      {dirty ? ' · 未保存' : ''}
+    </span>
+  );
+
   return (
     <footer className="StatusBar" aria-label="状态栏">
       <span
@@ -56,14 +104,7 @@ export default function StatusBar({
       <span className="StatusBar__sep" aria-hidden>
         ·
       </span>
-      <span
-        className={`StatusBar__segment StatusBar__file${dirty ? ' StatusBar__file--dirty' : ''}`}
-        title={tab?.relativePath ?? undefined}
-      >
-        {dirty && <span className="StatusBar__dirtyDot" aria-label="未保存" />}
-        {shortenPath(fileHint, 40)}
-        {dirty ? ' · 未保存' : ''}
-      </span>
+      {fileSegment}
       <span className="StatusBar__spacer" />
       <span className="StatusBar__segment StatusBar__meta">
         {truncated && (
@@ -74,10 +115,24 @@ export default function StatusBar({
         {viewMode && (
           <span className="StatusBar__badge">{viewModeLabel(viewMode)}</span>
         )}
-        {keyMode && (
-          <span className="StatusBar__badge">
+        {keyMode && tab && isEditableTextTab(tab) && (
+          <button
+            type="button"
+            className="StatusBar__badge StatusBar__badge--clickable"
+            disabled={tab.truncated}
+            title={
+              tab.truncated
+                ? '截断文件不可切换键位'
+                : `键位: ${keyMode === 'vim' ? 'Vim' : 'Normal'}（点击切换）`
+            }
+            onClick={() => {
+              if (tab.truncated || !onKeybindingModeToggle) return;
+              const next: EditorMode = keyMode === 'vim' ? 'normal' : 'vim';
+              onKeybindingModeToggle(tab.id, next);
+            }}
+          >
             {keyMode === 'vim' ? 'Vim' : 'Normal'}
-          </span>
+          </button>
         )}
         {!hasApiKey && (
           <span

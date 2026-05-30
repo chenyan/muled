@@ -77,6 +77,13 @@ export function runPaletteCommand(
     return { ok: false, error: sub.error };
   }
 
+  if (line === 'rg' || line.startsWith('rg ')) {
+    return { ok: false, error: '输入 rg 关键词后从下方结果中选择' };
+  }
+  if (line === 'fd' || line.startsWith('fd ')) {
+    return { ok: false, error: '输入 fd 关键词后从下方结果中选择' };
+  }
+
   const head = line.split(/\s+/)[0] ?? line;
   return { ok: false, error: `未知命令: ${head}` };
 }

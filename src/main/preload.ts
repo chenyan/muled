@@ -1,5 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type { SettingsForm } from '../shared/types/settings';
 import type { IpcChannel, IpcArgs, IpcResult } from '../shared/types/ipc';
+import type { SearchStreamEvent } from '../shared/types/search';
 
 async function invoke<C extends IpcChannel>(
   channel: C,
@@ -11,6 +13,8 @@ async function invoke<C extends IpcChannel>(
 const muled = {
   config: {
     get: () => invoke('config:get'),
+    getSettings: () => invoke('config:getSettings'),
+    save: (settings: SettingsForm) => invoke('config:save', settings),
     getWysiwygCss: () => invoke('config:getWysiwygCss'),
     onWysiwygThemeChanged: (
       listener: (payload: {
@@ -46,6 +50,28 @@ const muled = {
   ai: {
     complete: (args: { prompt: string; selection: string }) =>
       invoke('ai:complete', args),
+    translate: (args: { sentence: string }) =>
+      invoke('ai:translate', args),
+  },
+  search: {
+    start: (args: {
+      searchId: number;
+      command: 'rg' | 'fd';
+      query: string;
+    }) => invoke('search:start', args),
+    cancel: (searchId: number) => invoke('search:cancel', { searchId }),
+    onStream: (listener: (event: SearchStreamEvent) => void) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        payload: SearchStreamEvent,
+      ) => {
+        listener(payload);
+      };
+      ipcRenderer.on('search:stream', handler);
+      return () => {
+        ipcRenderer.removeListener('search:stream', handler);
+      };
+    },
   },
 };
 

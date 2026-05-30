@@ -19,7 +19,7 @@ function renderKatex(source: string, displayMode: boolean): MathRenderResult {
       strict: 'ignore',
     });
     if (hasKatexError(html)) {
-      return { html: '', error: '公式语法有误' };
+      return { html, error: '公式语法有误' };
     }
     return { html, error: null };
   } catch (e) {

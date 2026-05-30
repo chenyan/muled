@@ -3,6 +3,16 @@ import { render, screen } from '@testing-library/react';
 import type { PublicConfig } from '../shared/types/config';
 import App from '../renderer/App';
 
+jest.mock('../renderer/components/editor/pdf/PdfEngineProvider', () => ({
+  __esModule: true,
+  default: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+jest.mock('../renderer/components/editor/pdf/PdfViewer', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
 const mockConfig: PublicConfig = {
   editor: {
     buffer_bytes: 16777216,
@@ -29,6 +39,17 @@ beforeEach(() => {
   window.muled = {
     config: {
       get: async () => mockConfig,
+      getSettings: async () => ({
+        configPath: '/tmp/muled.yaml',
+        openai_key_configured: false,
+        settings: {
+          openai: { api_key: '', model: 'gpt-4o-mini', base_url: null },
+          editor: mockConfig.editor,
+          workspace: mockConfig.workspace,
+          ui: mockConfig.ui,
+        },
+      }),
+      save: async () => mockConfig,
       getWysiwygCss: async () => ({
         css: '',
         theme: 'light' as const,
@@ -56,6 +77,12 @@ beforeEach(() => {
     },
     ai: {
       complete: async () => ({ text: '' }),
+      translate: async () => ({ text: '' }),
+    },
+    search: {
+      start: async () => ({ ok: true as const }),
+      cancel: async () => ({ ok: true }),
+      onStream: () => () => undefined,
     },
   };
 });

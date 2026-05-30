@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import './EditorContextMenu.css';
 
-export type EditorContextMenuAction = 'append' | 'replace';
+export type EditorContextMenuAction = 'append' | 'replace' | 'translate';
 
 export interface EditorContextMenuProps {
   open: boolean;
@@ -9,6 +9,7 @@ export interface EditorContextMenuProps {
   y: number;
   hasSelection: boolean;
   hasApiKey: boolean;
+  wysiwygMode?: boolean;
   onSelect: (action: EditorContextMenuAction) => void;
   onClose: () => void;
 }
@@ -19,6 +20,7 @@ export default function EditorContextMenu({
   y,
   hasSelection,
   hasApiKey,
+  wysiwygMode = false,
   onSelect,
   onClose,
 }: EditorContextMenuProps) {
@@ -48,6 +50,7 @@ export default function EditorContextMenu({
   if (!open) return null;
 
   const aiDisabled = !hasSelection || !hasApiKey;
+  const translateDisabled = !hasSelection || !hasApiKey;
   const aiTitle = (() => {
     if (!hasSelection) return '请先选中文字';
     if (!hasApiKey) return '未配置 OpenAI API Key';
@@ -61,6 +64,21 @@ export default function EditorContextMenu({
       style={{ left: x, top: y }}
       role="menu"
     >
+      {wysiwygMode && (
+        <>
+          <button
+            type="button"
+            role="menuitem"
+            className="EditorContextMenu__item"
+            disabled={translateDisabled}
+            title={aiTitle}
+            onClick={() => onSelect('translate')}
+          >
+            翻译该句
+          </button>
+          <div className="EditorContextMenu__separator" role="separator" />
+        </>
+      )}
       <button
         type="button"
         role="menuitem"

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   EditorMode,
   EditorViewMode,
@@ -6,11 +6,25 @@ import type {
 } from '../../shared/types/config';
 import { isMarkdownPath } from '../lib/fileLanguage';
 import { exportWikiImagesFromMarkdown } from '../lib/normalizeMarkdownWikiImages';
-import { isDirectoryPath, isImagePath } from '../lib/mime';
+import { isDirectoryPath, isImagePath, isPdfPath } from '../lib/mime';
 import keybindingModePatch from '../lib/keybindingMode';
 import { pushStatusToast } from '../lib/statusToast';
+import {
+  needsBinaryHydration,
+  releaseTabBinaryPayload,
+  releaseTabResources,
+} from '../lib/tabResources';
 import { newId } from '../../shared/id';
-import type { EditorTab, TabKind } from '../types/tab';
+import {
+  resolveUnsavedProceed,
+  type SaveTabResult,
+  type UnsavedChangesChoice,
+} from '../lib/unsavedChanges';
+import type { EditorTab, EditorRevealTarget, TabKind } from '../types/tab';
+
+export type ConfirmUnsavedChanges = (
+  tab: EditorTab,
+) => Promise<UnsavedChangesChoice>;
 
 function createEmptyTab(config: PublicConfig): EditorTab {
   return {
@@ -37,8 +51,24 @@ async function loadFileIntoTab(
     | 'truncated'
     | 'fileSize'
     | 'imageSrc'
+    | 'pdfSrc'
   >,
 ): Promise<EditorTab> {
+  if (isPdfPath(relativePath)) {
+    const { base64, mime } = await window.muled.file.readBinary(relativePath);
+    return {
+      ...base,
+      id: newId(),
+      relativePath,
+      kind: 'pdf',
+      content: '',
+      truncated: false,
+      fileSize: 0,
+      pdfSrc: `data:${mime};base64,${base64}`,
+      dirty: false,
+    };
+  }
+
   if (isImagePath(relativePath)) {
     const { base64, mime } = await window.muled.file.readBinary(relativePath);
     return {
@@ -106,7 +136,11 @@ export function resolveActiveAfterClose(
   return resolveTargetTabId(finalTabs, currentActive);
 }
 
-export function useEditorTabs(config: PublicConfig | null) {
+export function useEditorTabs(
+  config: PublicConfig | null,
+  options?: { confirmUnsaved?: ConfirmUnsavedChanges },
+) {
+  const confirmUnsaved = options?.confirmUnsaved;
   const [tabs, setTabs] = useState<EditorTab[]>(() =>
     config ? [createEmptyTab(config)] : [],
   );
@@ -119,6 +153,18 @@ export function useEditorTabs(config: PublicConfig | null) {
     [tabs, activeTabId],
   );
 
+  const activeTabIdRef = useRef(activeTabId);
+  activeTabIdRef.current = activeTabId;
+
+  const tabsRef = useRef(tabs);
+  tabsRef.current = tabs;
+
+  const configRef = useRef(config);
+  configRef.current = config;
+
+  const confirmUnsavedRef = useRef(confirmUnsaved);
+  confirmUnsavedRef.current = confirmUnsaved;
+
   useEffect(() => {
     if (tabs.length === 0) {
       if (activeTabId !== null) setActiveTabId(null);
@@ -129,44 +175,184 @@ export function useEditorTabs(config: PublicConfig | null) {
     }
   }, [tabs, activeTabId]);
 
-  const openPath = useCallback(
-    async (relativePath: string) => {
-      if (!config || isDirectoryPath(relativePath)) {
+  const saveTab = useCallback(async (tabId: string): Promise<SaveTabResult> => {
+    const tab = tabsRef.current.find((t) => t.id === tabId);
+    if (!tab) return { ok: false, reason: 'not_found' };
+    if (!tab.relativePath) {
+      return { ok: false, reason: 'no_path' };
+    }
+    if (tab.truncated) {
+      return { ok: false, reason: 'truncated' };
+    }
+    if (tab.kind === 'image' || tab.kind === 'pdf') {
+      return { ok: false, reason: 'image' };
+    }
+
+    await window.muled.file.write(tab.relativePath, tab.content);
+    setTabs((prev) =>
+      prev.map((t) => (t.id === tabId ? { ...t, dirty: false } : t)),
+    );
+    return { ok: true };
+  }, []);
+
+  const saveTabRef = useRef(saveTab);
+  saveTabRef.current = saveTab;
+
+  const ensureCanProceed = useCallback(async (tab: EditorTab | undefined) => {
+    return resolveUnsavedProceed(
+      tab,
+      confirmUnsavedRef.current,
+      (tabId) => saveTabRef.current(tabId),
+      (reason) => {
+        if (reason === 'truncated') {
+          pushStatusToast('文件已截断，无法保存', 'error');
+        } else if (reason === 'no_path') {
+          pushStatusToast('请先打开文件再保存', 'error');
+        } else {
+          pushStatusToast('无法保存', 'error');
+        }
+      },
+      () => pushStatusToast('已保存', 'success'),
+    );
+  }, []);
+
+  const activateTabId = useCallback(
+    async (tabId: string) => {
+      if (tabId === activeTabIdRef.current) return;
+
+      const leaving = tabsRef.current.find(
+        (t) => t.id === activeTabIdRef.current,
+      );
+      if (!(await ensureCanProceed(leaving))) return;
+
+      setTabs((prev) =>
+        prev.map((t) => {
+          if (
+            t.id === activeTabIdRef.current &&
+            activeTabIdRef.current !== tabId
+          ) {
+            return releaseTabBinaryPayload(t);
+          }
+          return t;
+        }),
+      );
+      setActiveTabId(tabId);
+    },
+    [ensureCanProceed],
+  );
+
+  const openPath = useCallback(async (relativePath: string) => {
+    const cfg = configRef.current;
+    if (!cfg || isDirectoryPath(relativePath)) {
+      return;
+    }
+
+    const currentTabs = tabsRef.current;
+    const existing = currentTabs.find((t) => t.relativePath === relativePath);
+    if (existing) {
+      await activateTabId(existing.id);
+      return;
+    }
+
+    const targetId = resolveTargetTabId(currentTabs, activeTabIdRef.current);
+    const target = targetId
+      ? currentTabs.find((t) => t.id === targetId)
+      : undefined;
+    if (!(await ensureCanProceed(target))) return;
+
+    const base = {
+      dirty: false,
+      keybindingMode: cfg.editor.mode,
+      viewMode: cfg.editor.default_view,
+    } as const;
+
+    try {
+      const loaded = await loadFileIntoTab(relativePath, base);
+      let nextActiveId: string | null = null;
+
+      setTabs((prev) => {
+        const nextTargetId = resolveTargetTabId(prev, activeTabIdRef.current);
+        if (!nextTargetId) {
+          const id = newId();
+          nextActiveId = id;
+          return [{ ...loaded, id }];
+        }
+        nextActiveId = nextTargetId;
+        return prev.map((t) => {
+          if (t.id !== nextTargetId) return t;
+          releaseTabResources(t);
+          return { ...loaded, id: t.id };
+        });
+      });
+
+      if (nextActiveId) setActiveTabId(nextActiveId);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      pushStatusToast(`无法打开文件: ${message}`, 'error');
+    }
+  }, [activateTabId, ensureCanProceed]);
+
+  const openPathWithReveal = useCallback(
+    async (relativePath: string, reveal: EditorRevealTarget) => {
+      const cfg = configRef.current;
+      if (!cfg || isDirectoryPath(relativePath)) {
         return;
       }
 
-      let openedExistingId: string | null = null;
-      setTabs((prev) => {
-        const existing = prev.find((t) => t.relativePath === relativePath);
-        if (existing) openedExistingId = existing.id;
-        return prev;
-      });
-      if (openedExistingId) {
-        setActiveTabId(openedExistingId);
+      const currentTabs = tabsRef.current;
+      const existing = currentTabs.find((t) => t.relativePath === relativePath);
+      if (existing) {
+        setTabs((prev) =>
+          prev.map((t) =>
+            t.id === existing.id
+              ? {
+                  ...t,
+                  reveal,
+                  ...(t.kind === 'markdown'
+                    ? { viewMode: 'source' as const }
+                    : {}),
+                }
+              : t,
+          ),
+        );
+        await activateTabId(existing.id);
         return;
       }
+
+      const targetId = resolveTargetTabId(currentTabs, activeTabIdRef.current);
+      const target = targetId
+        ? currentTabs.find((t) => t.id === targetId)
+        : undefined;
+      if (!(await ensureCanProceed(target))) return;
 
       const base = {
         dirty: false,
-        keybindingMode: config.editor.mode,
-        viewMode: config.editor.default_view,
+        keybindingMode: cfg.editor.mode,
+        viewMode: cfg.editor.default_view,
       } as const;
 
       try {
         const loaded = await loadFileIntoTab(relativePath, base);
-        let nextActiveId: string | null = null;
+        const withReveal = {
+          ...loaded,
+          reveal,
+          ...(loaded.kind === 'markdown' ? { viewMode: 'source' as const } : {}),
+        };
 
+        let nextActiveId: string | null = null;
         setTabs((prev) => {
-          const targetId = resolveTargetTabId(prev, activeTabId);
-          if (!targetId) {
+          const nextTargetId = resolveTargetTabId(prev, activeTabIdRef.current);
+          if (!nextTargetId) {
             const id = newId();
             nextActiveId = id;
-            return [{ ...loaded, id }];
+            return [{ ...withReveal, id }];
           }
-          nextActiveId = targetId;
-          return prev.map((t) =>
-            t.id === targetId ? { ...loaded, id: t.id } : t,
-          );
+          nextActiveId = nextTargetId;
+          return prev.map((t) => {
+            if (t.id !== nextTargetId) return t;
+            releaseTabResources(t);
+            return { ...withReveal, id: t.id };
+          });
         });
 
         if (nextActiveId) setActiveTabId(nextActiveId);
@@ -175,7 +361,7 @@ export function useEditorTabs(config: PublicConfig | null) {
         pushStatusToast(`无法打开文件: ${message}`, 'error');
       }
     },
-    [config, activeTabId],
+    [activateTabId, ensureCanProceed],
   );
 
   const addTab = useCallback(() => {
@@ -186,25 +372,20 @@ export function useEditorTabs(config: PublicConfig | null) {
   }, [config]);
 
   const closeTab = useCallback(
-    (tabId: string) => {
+    async (tabId: string) => {
+      const target = tabsRef.current.find((t) => t.id === tabId);
+      if (!target) return;
+      if (!(await ensureCanProceed(target))) return;
+
+      releaseTabResources(target);
+
       setTabs((prev) => {
-        const target = prev.find((t) => t.id === tabId);
-        if (!target) return prev;
-
-        if (target.dirty) {
-          // eslint-disable-next-line no-alert
-          const ok = window.confirm(
-            `关闭「${target.relativePath ?? 'Untitled'}」？未保存的更改将丢失。`,
-          );
-          if (!ok) return prev;
-        }
-
         const nextTabs = prev.filter((t) => t.id !== tabId);
         let finalTabs = nextTabs;
         let freshTab: EditorTab | null = null;
 
-        if (nextTabs.length === 0 && config) {
-          freshTab = createEmptyTab(config);
+        if (nextTabs.length === 0 && configRef.current) {
+          freshTab = createEmptyTab(configRef.current);
           finalTabs = [freshTab];
         }
 
@@ -221,20 +402,66 @@ export function useEditorTabs(config: PublicConfig | null) {
         return finalTabs;
       });
     },
-    [config],
+    [ensureCanProceed],
   );
 
-  const setActiveTab = useCallback((tabId: string) => {
-    setActiveTabId(tabId);
-  }, []);
+  const setActiveTab = useCallback(
+    (tabId: string) => {
+      activateTabId(tabId).catch(() => undefined);
+    },
+    [activateTabId],
+  );
+
+  useEffect(() => {
+    if (!activeTab || !needsBinaryHydration(activeTab)) return undefined;
+
+    const tabId = activeTab.id;
+    const relativePath = activeTab.relativePath;
+    if (!relativePath) return undefined;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { base64, mime } =
+          await window.muled.file.readBinary(relativePath);
+        if (cancelled) return;
+        const dataUrl = `data:${mime};base64,${base64}`;
+        setTabs((prev) =>
+          prev.map((t) => {
+            if (t.id !== tabId) return t;
+            if (t.kind === 'pdf') return { ...t, pdfSrc: dataUrl };
+            if (t.kind === 'image') return { ...t, imageSrc: dataUrl };
+            return t;
+          }),
+        );
+      } catch (e) {
+        if (cancelled) return;
+        const message = e instanceof Error ? e.message : String(e);
+        pushStatusToast(`无法加载预览: ${message}`, 'error');
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeTab?.id,
+    activeTab?.kind,
+    activeTab?.relativePath,
+    activeTab?.pdfSrc,
+    activeTab?.imageSrc,
+  ]);
 
   const updateActiveContent = useCallback(
     (content: string) => {
       if (!activeTabId) return;
       setTabs((prev) =>
-        prev.map((t) =>
-          t.id === activeTabId ? { ...t, content, dirty: true } : t,
-        ),
+        prev.map((t) => {
+          if (t.id !== activeTabId) return t;
+          if (t.content === content) return t;
+          return { ...t, content, dirty: true };
+        }),
       );
     },
     [activeTabId],
@@ -242,9 +469,28 @@ export function useEditorTabs(config: PublicConfig | null) {
 
   const updateTabContent = useCallback((tabId: string, content: string) => {
     setTabs((prev) =>
-      prev.map((t) => (t.id === tabId ? { ...t, content, dirty: true } : t)),
+      prev.map((t) => {
+        if (t.id !== tabId) return t;
+        if (t.content === content) return t;
+        return { ...t, content, dirty: true };
+      }),
     );
   }, []);
+
+  /** WYSIWYG 载入完成后同步编辑器 baseline，不标记 dirty（AutoLink 等被动改写） */
+  const syncActiveContent = useCallback(
+    (content: string) => {
+      if (!activeTabId) return;
+      setTabs((prev) =>
+        prev.map((t) => {
+          if (t.id !== activeTabId) return t;
+          if (t.dirty || t.content === content) return t;
+          return { ...t, content };
+        }),
+      );
+    },
+    [activeTabId],
+  );
 
   const setViewMode = useCallback(
     (tabId: string, viewMode: EditorViewMode, content?: string) => {
@@ -271,32 +517,12 @@ export function useEditorTabs(config: PublicConfig | null) {
     );
   }, []);
 
-  const saveTab = useCallback(
-    async (tabId: string) => {
-      const tab = tabs.find((t) => t.id === tabId);
-      if (!tab) return { ok: false as const, reason: 'not_found' };
-      if (!tab.relativePath) {
-        return { ok: false as const, reason: 'no_path' };
-      }
-      if (tab.truncated) {
-        return { ok: false as const, reason: 'truncated' };
-      }
-      if (tab.kind === 'image') {
-        return { ok: false as const, reason: 'image' };
-      }
-
-      await window.muled.file.write(tab.relativePath, tab.content);
-      setTabs((prev) =>
-        prev.map((t) => (t.id === tabId ? { ...t, dirty: false } : t)),
-      );
-      return { ok: true as const };
-    },
-    [tabs],
-  );
-
   const initFromConfig = useCallback((nextConfig: PublicConfig) => {
     const tab = createEmptyTab(nextConfig);
-    setTabs([tab]);
+    setTabs((prev) => {
+      prev.forEach((t) => releaseTabResources(t));
+      return [tab];
+    });
     setActiveTabId(tab.id);
   }, []);
 
@@ -305,11 +531,13 @@ export function useEditorTabs(config: PublicConfig | null) {
     activeTab,
     activeTabId,
     openPath,
+    openPathWithReveal,
     addTab,
     closeTab,
     setActiveTab,
     updateActiveContent,
     updateTabContent,
+    syncActiveContent,
     setViewMode,
     setKeybindingMode,
     saveTab,

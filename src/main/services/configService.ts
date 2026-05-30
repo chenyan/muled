@@ -16,7 +16,9 @@ import {
   DEFAULT_WYSIWYG_FONT,
   parseEditorFontSettings,
 } from '../../shared/editorFontConfig';
+import type { SettingsForm, SettingsGetResult } from '../../shared/types/settings';
 import {
+  compressTilde,
   ensureParentDir,
   expandTilde,
   getConfigFilePath,
@@ -208,5 +210,76 @@ export default class ConfigService {
         homedir: os.homedir(),
       },
     };
+  }
+
+  getSettings(): SettingsGetResult {
+    const { openai, editor, workspace, ui } = this.config;
+    return {
+      configPath: getConfigFilePath(),
+      openai_key_configured: openai.api_key.length > 0,
+      settings: {
+        openai: {
+          api_key: '',
+          model: openai.model,
+          base_url: openai.base_url,
+        },
+        editor: {
+          buffer_bytes: editor.buffer_bytes,
+          mode: editor.mode,
+          default_view: editor.default_view,
+          source: { ...editor.source },
+          wysiwyg: { ...editor.wysiwyg },
+        },
+        workspace: {
+          path: compressTilde(workspace.path),
+        },
+        ui: { ...ui },
+      },
+    };
+  }
+
+  saveSettings(input: SettingsForm): PublicConfig {
+    const previousKey = this.config.openai.api_key;
+    const parsed = parseConfig(input);
+    const apiKey =
+      typeof input.openai?.api_key === 'string' &&
+      input.openai.api_key.trim().length > 0
+        ? input.openai.api_key.trim()
+        : previousKey;
+
+    this.config = {
+      ...parsed,
+      openai: { ...parsed.openai, api_key: apiKey },
+      workspace: {
+        path: resolvePath(parsed.workspace.path),
+      },
+    };
+    this.persist();
+    return this.getPublicConfig();
+  }
+
+  private persist(): void {
+    const configPath = getConfigFilePath();
+    ensureParentDir(configPath);
+    const { openai, editor, workspace, ui } = this.config;
+    const doc = {
+      openai: {
+        api_key: openai.api_key,
+        model: openai.model,
+        base_url: openai.base_url,
+      },
+      editor: {
+        buffer_bytes: editor.buffer_bytes,
+        mode: editor.mode,
+        default_view: editor.default_view,
+        source: editor.source,
+        wysiwyg: editor.wysiwyg,
+      },
+      workspace: {
+        path: compressTilde(workspace.path),
+      },
+      ui,
+    };
+    fs.writeFileSync(configPath, yaml.dump(doc), 'utf8');
   }
 }

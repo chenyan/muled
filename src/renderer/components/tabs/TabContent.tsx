@@ -5,18 +5,23 @@ import {
   useState,
   type MouseEvent,
 } from 'react';
-import type { AiApplyMode } from '../../../shared/buildAiPrompt';
+import {
+  findSelectionSpan,
+  type AiApplyMode,
+} from '../../../shared/buildAiPrompt';
 import type {
   EditorFontSettings,
-  EditorMode,
   EditorViewMode,
 } from '../../../shared/types/config';
 import EditorContextMenu, {
   type EditorContextMenuAction,
 } from '../ai/EditorContextMenu';
+import TranslationPopup, {
+  type TranslationPopupState,
+} from '../ai/TranslationPopup';
 import EditorViewSwitch from '../editor/EditorViewSwitch';
-import KeybindingModeSwitch from '../editor/KeybindingModeSwitch';
 import ImagePreview from '../editor/ImagePreview';
+import PdfViewer from '../editor/pdf/PdfViewer';
 import MarkdownEditor, {
   type MarkdownEditorHandle,
 } from '../editor/MarkdownEditor';
@@ -42,12 +47,12 @@ interface TabContentProps {
   wysiwygFont: EditorFontSettings;
   hasApiKey: boolean;
   onContentChange: (content: string) => void;
+  onBaselineSync?: (content: string) => void;
   onViewModeChange: (
     tabId: string,
     viewMode: EditorViewMode,
     content: string,
   ) => void;
-  onKeybindingModeChange: (tabId: string, mode: EditorMode) => void;
   onSave: (tabId: string) => void;
   onAiOpen: (mode: AiApplyMode, snapshot: EditorAiSnapshot) => void;
 }
@@ -58,8 +63,8 @@ export default function TabContent({
   wysiwygFont,
   hasApiKey,
   onContentChange,
+  onBaselineSync,
   onViewModeChange,
-  onKeybindingModeChange,
   onSave,
   onAiOpen,
 }: TabContentProps) {
@@ -69,21 +74,31 @@ export default function TabContent({
     x: number;
     y: number;
     snapshot: EditorAiSnapshot;
+    anchorRect: DOMRect | null;
+    wysiwyg: boolean;
   } | null>(null);
+  const [translationPopup, setTranslationPopup] =
+    useState<TranslationPopupState | null>(null);
 
   const captureSnapshot = useCallback((): EditorAiSnapshot | null => {
     if (!tab || !isEditableTextTab(tab)) return null;
 
     const showWysiwyg = tab.kind === 'markdown' && tab.viewMode === 'rich-text';
     if (showWysiwyg) {
-      const selection = mdxRef.current?.getSelectionMarkdown()?.trim() ?? '';
-      if (!selection) return null;
-      return { selection, sourceRange: null };
+      const selection = mdxRef.current?.getSelectionMarkdown() ?? '';
+      if (!selection.trim()) return null;
+      const current = exportMarkdownFromWysiwyg(
+        mdxRef.current?.getMarkdown() ?? tab.content,
+      );
+      return {
+        selection,
+        sourceRange: findSelectionSpan(current, selection),
+      };
     }
 
     const range = sourceRef.current?.getSelectionRange() ?? null;
-    const selection = sourceRef.current?.getSelectionText()?.trim() ?? '';
-    if (!selection || !range) return null;
+    const selection = sourceRef.current?.getSelectionText() ?? '';
+    if (!selection.trim() || !range) return null;
     return { selection, sourceRange: range };
   }, [tab]);
 
@@ -164,25 +179,88 @@ export default function TabContent({
   const handleEditorContextMenu = useCallback(
     (e: MouseEvent) => {
       if (!tab || !isEditableTextTab(tab) || tab.truncated) return;
-      const snap = captureSnapshot();
-      if (!snap?.selection) return;
+
+      const showWysiwyg =
+        tab.kind === 'markdown' && tab.viewMode === 'rich-text';
+
+      if (showWysiwyg) {
+        e.preventDefault();
+
+        const picked = mdxRef.current?.selectSentenceAtPoint(
+          e.clientX,
+          e.clientY,
+        );
+        if (!picked?.text.trim()) return;
+
+        const current = exportMarkdownFromWysiwyg(
+          mdxRef.current?.getMarkdown() ?? tab.content,
+        );
+        const snapshot: EditorAiSnapshot = {
+          selection: picked.text,
+          sourceRange: findSelectionSpan(current, picked.text),
+        };
+
+        setContextMenu({
+          x: e.clientX,
+          y: e.clientY,
+          snapshot,
+          anchorRect: picked.rect,
+          wysiwyg: true,
+        });
+        return;
+      }
+
+      const snapshot = captureSnapshot();
+      if (!snapshot?.selection) return;
 
       e.preventDefault();
       setContextMenu({
         x: e.clientX,
         y: e.clientY,
-        snapshot: snap,
+        snapshot,
+        anchorRect: null,
+        wysiwyg: false,
       });
     },
     [captureSnapshot, tab],
   );
 
   const handleContextMenuSelect = useCallback(
-    (action: EditorContextMenuAction) => {
-      const { snapshot } = contextMenu ?? {};
+    async (action: EditorContextMenuAction) => {
+      const menu = contextMenu;
       setContextMenu(null);
-      if (!snapshot?.selection) return;
-      onAiOpen(action, snapshot);
+      if (!menu?.snapshot?.selection) return;
+
+      if (action === 'translate') {
+        const rect = menu.anchorRect;
+        if (!rect) return;
+
+        const sentence = menu.snapshot.selection.trim();
+        setTranslationPopup({
+          rect,
+          sentence,
+          status: 'loading',
+        });
+
+        const result = await window.muled.ai.translate({ sentence });
+        if ('error' in result) {
+          setTranslationPopup((current) =>
+            current
+              ? { ...current, status: 'error', error: result.error }
+              : null,
+          );
+          return;
+        }
+
+        setTranslationPopup((current) =>
+          current
+            ? { ...current, status: 'done', content: result.text }
+            : null,
+        );
+        return;
+      }
+
+      onAiOpen(action, menu.snapshot);
     },
     [contextMenu, onAiOpen],
   );
@@ -207,8 +285,13 @@ export default function TabContent({
         y={contextMenu?.y ?? 0}
         hasSelection={Boolean(contextMenu?.snapshot.selection)}
         hasApiKey={hasApiKey}
+        wysiwygMode={contextMenu?.wysiwyg ?? false}
         onClose={() => setContextMenu(null)}
         onSelect={handleContextMenuSelect}
+      />
+      <TranslationPopup
+        popup={translationPopup}
+        onClose={() => setTranslationPopup(null)}
       />
       <header className="TabContent__header">
         <div className="TabContent__headerLeft">
@@ -218,13 +301,6 @@ export default function TabContent({
           )}
         </div>
         <div className="TabContent__headerRight">
-          {isEditableTextTab(tab) && (
-            <KeybindingModeSwitch
-              mode={tab.keybindingMode}
-              disabled={tab.truncated}
-              onChange={(mode) => onKeybindingModeChange(tab.id, mode)}
-            />
-          )}
           {tab.kind === 'markdown' && (
             <EditorViewSwitch
               viewMode={tab.viewMode}
@@ -258,6 +334,8 @@ export default function TabContent({
         )}
         {tab.kind === 'image' ? (
           <ImagePreview tab={tab} />
+        ) : tab.kind === 'pdf' ? (
+          <PdfViewer tab={tab} />
         ) : (
           <div
             className="TabContent__editorPane"
@@ -272,6 +350,7 @@ export default function TabContent({
                 relativePath={tab.relativePath}
                 readOnly={tab.truncated}
                 onChange={onContentChange}
+                onBaselineSync={onBaselineSync}
               />
             )}
             {showSource && (
@@ -283,6 +362,7 @@ export default function TabContent({
                 relativePath={tab.relativePath}
                 keybindingMode={tab.keybindingMode}
                 readOnly={tab.truncated}
+                reveal={tab.reveal ?? null}
                 onChange={onContentChange}
               />
             )}

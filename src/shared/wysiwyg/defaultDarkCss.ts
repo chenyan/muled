@@ -153,11 +153,26 @@ export default `
   border-radius: 4px;
 }
 
-.MuledCodeBlockWithPreview__preview--math {
+.MuledCodeBlockWithPreview--mathOnly {
+  border: none;
+  background: transparent;
+}
+
+.MuledCodeBlockWithPreview__preview--mathOnly {
+  border-top: none;
+  padding: 8px 0;
+  background: transparent;
+  outline: none;
   text-align: center;
 }
 
-.MuledCodeBlockWithPreview__preview--math .katex-display {
+.MuledCodeBlockWithPreview__preview--mathOnly:focus-visible {
+  outline: 2px solid #71717a;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.MuledCodeBlockWithPreview__preview--mathOnly .katex-display {
   margin: 0.5em 0;
 }
 
@@ -173,16 +188,12 @@ export default `
 }
 
 .MuledInlineMath--error {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.9em;
   color: #fca5a5;
-  background: #450a0a;
-  padding: 0 0.2em;
-  border-radius: 3px;
 }
 
 .MuledInlineMath--empty {
-  color: #71717a;
+  display: inline-block;
+  min-width: 0.5em;
 }
 
 .MuledCodeBlockWithPreview__preview svg {

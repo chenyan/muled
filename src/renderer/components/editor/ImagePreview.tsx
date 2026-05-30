@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { EditorTab } from '../../types/tab';
 import { tabLabel } from '../../types/tab';
 
@@ -12,10 +12,19 @@ const MAX_SCALE = 4;
 
 export default function ImagePreview({ tab }: ImagePreviewProps) {
   const [scale, setScale] = useState(1);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     setScale(1);
   }, [tab.id, tab.imageSrc]);
+
+  useEffect(
+    () => () => {
+      const img = imgRef.current;
+      if (img) img.removeAttribute('src');
+    },
+    [tab.id],
+  );
 
   const zoomIn = useCallback(() => {
     setScale((s) => Math.min(MAX_SCALE, s + ZOOM_STEP));
@@ -30,7 +39,11 @@ export default function ImagePreview({ tab }: ImagePreviewProps) {
   }, []);
 
   if (!tab.imageSrc) {
-    return <div className="ImagePreview ImagePreview--empty">无法加载图片</div>;
+    return (
+      <div className="ImagePreview ImagePreview--empty">
+        {tab.relativePath ? '正在加载图片…' : '无法加载图片'}
+      </div>
+    );
   }
 
   const name = tab.relativePath ? tabLabel(tab) : 'image';
@@ -58,6 +71,7 @@ export default function ImagePreview({ tab }: ImagePreviewProps) {
       </div>
       <div className="ImagePreview__viewport">
         <img
+          ref={imgRef}
           src={tab.imageSrc}
           alt={name}
           style={{ transform: `scale(${scale})` }}

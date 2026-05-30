@@ -33,3 +33,9 @@
   color: #a1a1aa;
   cursor: not-allowed;
 }
+
+.EditorContextMenu__separator {
+  height: 1px;
+  margin: 4px 8px;
+  background: #e4e4e7;
+}

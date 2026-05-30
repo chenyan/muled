@@ -8,7 +8,7 @@ import type {
 import type { ConfigService } from './configService';
 import type { WorkspaceService } from './workspaceService';
 
-const IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|ico)$/i;
+const BINARY_PREVIEW_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|ico|pdf)$/i;
 
 const MIME_BY_EXT: Record<string, string> = {
   '.png': 'image/png',
@@ -19,6 +19,7 @@ const MIME_BY_EXT: Record<string, string> = {
   '.svg': 'image/svg+xml',
   '.bmp': 'image/bmp',
   '.ico': 'image/x-icon',
+  '.pdf': 'application/pdf',
 };
 
 function guessMime(filePath: string): string {
@@ -75,8 +76,8 @@ export default class FileService {
     if (!stat.isFile()) {
       throw new Error(`Not a file: ${filePath}`);
     }
-    if (!IMAGE_EXT.test(absolutePath)) {
-      throw new Error(`Not an image file: ${filePath}`);
+    if (!BINARY_PREVIEW_EXT.test(absolutePath)) {
+      throw new Error(`Not a previewable binary file: ${filePath}`);
     }
     const data = fs.readFileSync(absolutePath);
     return {

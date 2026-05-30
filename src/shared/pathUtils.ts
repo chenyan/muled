@@ -12,6 +12,19 @@ export function expandTilde(inputPath: string): string {
   return inputPath;
 }
 
+/** 将绝对路径写回配置时尽量使用 ~ 简写 */
+export function compressTilde(absolutePath: string): string {
+  const homedir = os.homedir();
+  if (absolutePath === homedir) {
+    return '~';
+  }
+  const prefix = `${homedir}${path.sep}`;
+  if (absolutePath.startsWith(prefix)) {
+    return `~/${absolutePath.slice(prefix.length)}`;
+  }
+  return absolutePath;
+}
+
 export function getConfigDir(): string {
   return path.dirname(getConfigFilePath());
 }
@@ -67,6 +80,21 @@ export function assertPathInsideRoot(root: string, target: string): string {
     throw new Error(`Path escapes workspace: ${target}`);
   }
   return resolved;
+}
+
+/** 将 rg/fd 等工具输出的路径转为相对 workspace 根的路径 */
+export function toWorkspaceRelativePath(
+  workspaceRoot: string,
+  filePath: string,
+): string | null {
+  const root = path.resolve(workspaceRoot);
+  const absolute = path.isAbsolute(filePath)
+    ? path.normalize(filePath)
+    : path.resolve(root, filePath);
+  if (!isPathInsideRoot(root, absolute)) {
+    return null;
+  }
+  return path.relative(root, absolute).split(path.sep).join('/');
 }
 
 export function ensureParentDir(filePath: string): void {

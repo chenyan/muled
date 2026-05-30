@@ -23,7 +23,8 @@
 }
 
 .AppShell__sidebar {
-  flex: 0 0 260px;
+  flex: 0 0 var(--app-sidebar-width, 260px);
+  width: var(--app-sidebar-width, 260px);
   min-width: 180px;
   max-width: 40vw;
   display: flex;
@@ -124,6 +125,55 @@
   border: 0;
 }
 
+.WorkspaceTree__error {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #b91c1c;
+  background: #fef2f2;
+  border-bottom: 1px solid #fecaca;
+}
+
+.WorkspaceTree__error button {
+  flex-shrink: 0;
+  font-size: 11px;
+  padding: 2px 8px;
+  border: 1px solid #fca5a5;
+  border-radius: 4px;
+  background: #fff;
+  color: #b91c1c;
+  cursor: pointer;
+}
+
+.WorkspaceTree__treeHost {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.WorkspaceTree__treeHost--loading .WorkspaceTree__tree {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.WorkspaceTree__treeLoading {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #71717a;
+  pointer-events: none;
+}
+
 .WorkspaceTree__tree {
   flex: 1;
   min-height: 0;
@@ -185,15 +235,32 @@
   opacity: 1;
 }
 
-.TabBar__add {
+.TabBar__add,
+.TabBar__settings {
   flex-shrink: 0;
   width: 36px;
   border: none;
   border-left: 1px solid #e4e4e7;
   background: #fff;
-  font-size: 18px;
   cursor: pointer;
   color: #52525b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.TabBar__add {
+  font-size: 18px;
+}
+
+.TabBar__settings:hover,
+.TabBar__add:hover {
+  background: #f4f4f5;
+  color: #18181b;
+}
+
+.TabBar__settingsIcon {
+  display: block;
 }
 
 .TabContent {
@@ -350,6 +417,11 @@
   font-size: var(--muled-source-font-size, 13px);
 }
 
+.MuledSourceEditor__cm .cm-searchMatch {
+  background: #fef08a;
+  border-radius: 2px;
+}
+
 .TabContent__body {
   flex: 1;
   min-height: 0;
@@ -468,6 +540,174 @@
 }
 
 .ImagePreview--empty {
+  color: #a1a1aa;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.PdfPreview {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fafafa;
+}
+
+.PdfPreview__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e4e4e7;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.PdfPreview__name {
+  font-size: 12px;
+  color: #52525b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.PdfPreview__embed {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.PdfPreview__documentArea {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.PdfPreview__documentArea > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.PdfPreview__contextHost {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.PdfPreview__viewportSurface {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 选择模式：禁止拖动手势滚动，避免与文本拖选冲突；滚轮仍可滚动 */
+.PdfPreview__viewportSurface--select {
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+  cursor: text;
+}
+
+.PdfPreview__viewportSurface--pan {
+  overflow: auto;
+  touch-action: auto;
+  cursor: grab;
+}
+
+.PdfPreview__viewportSurface--pan:active {
+  cursor: grabbing;
+}
+
+.PdfPreview__toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.PdfPreview__toolbarSep {
+  width: 1px;
+  height: 20px;
+  background: #e4e4e7;
+  flex-shrink: 0;
+}
+
+.PdfPreview__tools {
+  display: flex;
+  gap: 2px;
+}
+
+.PdfPreview__toolBtn {
+  min-width: auto !important;
+  padding: 4px 10px !important;
+  font-size: 12px !important;
+}
+
+.PdfPreview__toolBtn--active {
+  background: #eef2ff !important;
+  border-color: #a5b4fc !important;
+  color: #3730a3;
+}
+
+.PdfPreview__zoom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.PdfPreview__zoom button {
+  min-width: 32px;
+  padding: 4px 8px;
+  border: 1px solid #e4e4e7;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.PdfPreview__zoom button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.PdfPreview__zoom button:hover:not(:disabled) {
+  background: #f4f4f5;
+}
+
+.PdfPreview__zoomLevel {
+  min-width: 52px !important;
+}
+
+.PdfPreview__actualSize {
+  min-width: auto !important;
+  padding: 4px 10px !important;
+  font-size: 12px !important;
+}
+
+.PdfPreview__viewport {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.PdfPreview__viewport > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.PdfPreview--empty,
+.PdfPreview--loading {
   color: #a1a1aa;
   padding: 24px;
   display: flex;

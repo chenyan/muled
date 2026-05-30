@@ -1,6 +1,7 @@
 import {
   applyAiToContent,
   buildAiUserContent,
+  findSelectionSpan,
   textAfterAi,
 } from '../shared/buildAiPrompt';
 import { applyAiInEditor } from '../renderer/lib/applyAiInEditor';
@@ -31,6 +32,19 @@ describe('applyAiToContent', () => {
   });
 });
 
+describe('findSelectionSpan', () => {
+  it('finds trimmed selection when stored text had outer whitespace', () => {
+    expect(findSelectionSpan('aa  hello  bb', 'hello')).toEqual({
+      from: 4,
+      to: 9,
+    });
+  });
+
+  it('matches across CRLF vs LF', () => {
+    expect(findSelectionSpan('a\r\nb', 'a\nb')).toEqual({ from: 0, to: 3 });
+  });
+});
+
 describe('applyAiInEditor', () => {
   it('uses source range when provided', () => {
     const result = applyAiInEditor(
@@ -40,5 +54,65 @@ describe('applyAiInEditor', () => {
       'there',
     );
     expect(result).toBe('hello there');
+  });
+
+  it('appends at source range using live document slice', () => {
+    const result = applyAiInEditor(
+      'hello world',
+      { selection: 'world', sourceRange: { from: 6, to: 11 } },
+      'append',
+      '!',
+    );
+    expect(result).toBe('hello world!');
+  });
+
+  it('appends using live slice at source range when snapshot text was trimmed', () => {
+    const result = applyAiInEditor(
+      'aa  hello  bb',
+      { selection: 'hello', sourceRange: { from: 2, to: 10 } },
+      'append',
+      '!',
+    );
+    expect(result).toBe('aa  hello ! bb');
+  });
+
+  it('clamps range when document shrank after AI request (append)', () => {
+    const result = applyAiInEditor(
+      'hi',
+      { selection: 'hello world', sourceRange: { from: 0, to: 11 } },
+      'append',
+      '!',
+    );
+    expect(result).toBe('hi!');
+  });
+
+  it('replaces full source range slice (including padding)', () => {
+    const result = applyAiInEditor(
+      'aa  hello  bb',
+      { selection: 'hello', sourceRange: { from: 2, to: 10 } },
+      'replace',
+      'bye',
+    );
+    expect(result).toBe('aabye bb');
+  });
+
+  it('clamps range when document shrank after AI request (replace)', () => {
+    const result = applyAiInEditor(
+      'hi',
+      { selection: 'hello world', sourceRange: { from: 0, to: 11 } },
+      'replace',
+      'ok',
+    );
+    expect(result).toBe('ok');
+  });
+
+  it('replace via findSelectionSpan when sourceRange missing', () => {
+    const result = applyAiInEditor(
+      'aa  hello  bb',
+      { selection: 'hello', sourceRange: null },
+      'replace',
+      'bye',
+    );
+    expect(result).toBe('aa  bye  bb');
   });
 });

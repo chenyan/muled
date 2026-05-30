@@ -1,6 +1,13 @@
 import type { EditorMode, EditorViewMode } from '../../shared/types/config';
 
-export type TabKind = 'markdown' | 'text' | 'image';
+export type TabKind = 'markdown' | 'text' | 'image' | 'pdf';
+
+export interface EditorRevealTarget {
+  id: string;
+  line: number;
+  column: number;
+  length: number;
+}
 
 export interface EditorTab {
   id: string;
@@ -15,6 +22,10 @@ export interface EditorTab {
   fileSize: number;
   /** 图片 Tab：data URL */
   imageSrc?: string;
+  /** PDF Tab：data URL */
+  pdfSrc?: string;
+  /** 打开后定位并高亮匹配 */
+  reveal?: EditorRevealTarget;
 }
 
 /** 可在编辑器中修改并保存的文本类 Tab */
