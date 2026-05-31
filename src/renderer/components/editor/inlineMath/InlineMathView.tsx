@@ -27,7 +27,7 @@ export default function InlineMathView({ latex }: { latex: string }) {
   }
 
   return (
-    // eslint-disable-next-line react/no-danger -- KaTeX HTML
+    // eslint-disable-next-line react/no-danger -- MathJax HTML
     <span
       className={`MuledInlineMath${error ? ' MuledInlineMath--error' : ''}`}
       contentEditable={false}

@@ -47,6 +47,10 @@ export function recoverMarkdownForWysiwyg(
   return recovered.join('\n\n');
 }
 
+/**
+ * @deprecated 载入时不再调用；仅保留供测试与 parse-error 降级路径参考。
+ * 预包裹 txt 代码块会污染磁盘内容，载入应只做可逆的 wiki/math 归一化。
+ */
 export function prepareMarkdownForWysiwyg(
   source: string,
   canParse: (block: string) => boolean,

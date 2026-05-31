@@ -369,7 +369,6 @@ export default function AppShell() {
       wysiwygFont={uiConfig.editor.wysiwyg}
       hasApiKey={uiConfig.openai.has_api_key}
       onContentChange={editor.updateActiveContent}
-      onBaselineSync={editor.syncActiveContent}
       onAiOpen={openAiDialog}
       onViewModeChange={(tabId, viewMode, content) => {
         editor.setViewMode(tabId, viewMode, content);

@@ -1,5 +1,6 @@
 import type { PublicConfig } from './config';
 import type { SettingsForm, SettingsGetResult } from './settings';
+import type { ResolvedThemeConfig, ThemeConfig } from './theme';
 import type { SearchStartResult } from './search';
 
 export interface FileReadResult {
@@ -43,11 +44,18 @@ export type IpcChannel =
 
 export interface WysiwygCssResult {
   css: string;
-  theme: 'light' | 'dark';
+  theme: 'light' | 'dark' | 'acme';
   paths: {
     light: string;
     dark: string;
+    acme: string;
   };
+}
+
+export interface ThemeChangedPayload {
+  theme: ThemeConfig;
+  resolved: ResolvedThemeConfig;
+  wysiwyg: WysiwygCssResult;
 }
 
 export interface IpcInvokeMap {

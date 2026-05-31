@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useWheelScrollOnlyWhenGestureStartsIn } from '../../lib/wheelScrollOnlyWhenGestureStartsIn';
 import { FileTree, useFileTree } from '@pierre/trees/react';
 import { formatWorkspacePathLabel } from '../../lib/formatWorkspacePathLabel';
 import {
@@ -118,6 +119,8 @@ export default function WorkspaceTree({
   onOpenFile,
   onSwitchWorkspace,
 }: WorkspaceTreeProps) {
+  const treeHostRef = useRef<HTMLDivElement>(null);
+  useWheelScrollOnlyWhenGestureStartsIn(treeHostRef);
   const [searchQuery, setSearchQuery] = useState('');
 
   const workspaceOptions = useMemo(() => {
@@ -182,6 +185,7 @@ export default function WorkspaceTree({
         </div>
       ) : null}
       <div
+        ref={treeHostRef}
         className={`WorkspaceTree__treeHost${pathsLoading ? ' WorkspaceTree__treeHost--loading' : ''}`}
       >
         {pathsLoading ? (

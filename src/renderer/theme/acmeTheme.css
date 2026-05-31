@@ -1,0 +1,371 @@
+/**
+ * Acme 硬核 UI 覆盖：直角、纯黑边框、tag bar 分区、左侧滚动条。
+ * 仅在 data-muled-ui-theme='acme' 时生效。
+ */
+
+[data-muled-ui-theme='acme'] {
+  --muled-editor-bg: #ffffea;
+  --muled-chrome-bg: #eaffff;
+  --muled-radius: 0;
+  --muled-chrome-font: 'Lucida Grande', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+/* ── 全局：禁圆角 / 阴影 ── */
+[data-muled-ui-theme='acme'] .TabBar,
+[data-muled-ui-theme='acme'] .TabBar__tab,
+[data-muled-ui-theme='acme'] .TabBar__add,
+[data-muled-ui-theme='acme'] .TabBar__settings,
+[data-muled-ui-theme='acme'] .TabContent__save,
+[data-muled-ui-theme='acme'] .EditorViewSwitch,
+[data-muled-ui-theme='acme'] .EditorViewSwitch__btn,
+[data-muled-ui-theme='acme'] .WorkspaceTree__rootSelect,
+[data-muled-ui-theme='acme'] .WorkspaceTree__searchInput,
+[data-muled-ui-theme='acme'] .StatusBar__crumb,
+[data-muled-ui-theme='acme'] .StatusBar__badge,
+[data-muled-ui-theme='acme'] .StatusBar__dirtyDot,
+[data-muled-ui-theme='acme'] .SettingsDialog,
+[data-muled-ui-theme='acme'] .SettingsDialog__input,
+[data-muled-ui-theme='acme'] .SettingsDialog__select,
+[data-muled-ui-theme='acme'] .SettingsDialog__btn,
+[data-muled-ui-theme='acme'] .CommandPalette,
+[data-muled-ui-theme='acme'] .CommandPalette__input,
+[data-muled-ui-theme='acme'] .UnsavedChangesDialog,
+[data-muled-ui-theme='acme'] .UnsavedChangesDialog__btn,
+[data-muled-ui-theme='acme'] .PromptDialog,
+[data-muled-ui-theme='acme'] .PromptDialog__textarea,
+[data-muled-ui-theme='acme'] .PromptDialog__btn,
+[data-muled-ui-theme='acme'] .EditorContextMenu,
+[data-muled-ui-theme='acme'] .EditorContextMenu__item,
+[data-muled-ui-theme='acme'] .WorkspaceTreeContextMenu,
+[data-muled-ui-theme='acme'] .WorkspaceTreeContextMenu__item,
+[data-muled-ui-theme='acme'] .TranslationPopup,
+[data-muled-ui-theme='acme'] .StatusToast,
+[data-muled-ui-theme='acme'] .ImagePreview__zoom button,
+[data-muled-ui-theme='acme'] .MuledSourceEditor__cm .cm-searchMatch {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ── 壳层布局 ── */
+[data-muled-ui-theme='acme'] .AppShell {
+  background: var(--muled-editor-bg);
+}
+
+[data-muled-ui-theme='acme'] .AppShell__sidebar {
+  background: var(--muled-editor-bg);
+  border-right: 1px solid #000;
+}
+
+[data-muled-ui-theme='acme'] .WorkspaceTree__root,
+[data-muled-ui-theme='acme'] .WorkspaceTree__search {
+  background: var(--muled-chrome-bg);
+  border-bottom: 1px solid #000;
+  font-family: var(--muled-chrome-font);
+  font-size: 11px;
+}
+
+[data-muled-ui-theme='acme'] .WorkspaceTree__rootSelect,
+[data-muled-ui-theme='acme'] .WorkspaceTree__searchInput {
+  border: 1px solid #000;
+  background: var(--muled-editor-bg);
+  font-family: inherit;
+  font-size: 11px;
+}
+
+[data-muled-ui-theme='acme'] .WorkspaceTree__rootSelect:focus,
+[data-muled-ui-theme='acme'] .WorkspaceTree__searchInput:focus {
+  outline: 1px solid #000;
+  outline-offset: -1px;
+  border-color: #000;
+}
+
+[data-muled-ui-theme='acme'] .WorkspaceTree__treeHost {
+  background: var(--muled-editor-bg);
+}
+
+[data-muled-ui-theme='acme'] .WorkspaceTree__tree {
+  color-scheme: light;
+  background: var(--muled-editor-bg);
+  --trees-bg-override: var(--muled-editor-bg);
+  --trees-bg-muted-override: var(--muled-hover);
+  --trees-fg-override: #000000;
+  --trees-fg-muted-override: #333333;
+  --trees-border-color-override: #000000;
+  --trees-accent-override: #336699;
+  --trees-selected-fg-override: #000000;
+  --trees-selected-bg-override: #e8d882;
+  --trees-focus-ring-color-override: #000000;
+  --trees-search-bg-override: var(--muled-editor-bg);
+  --trees-input-bg-override: var(--muled-editor-bg);
+}
+
+/* ── Tag bar：标签栏 ── */
+[data-muled-ui-theme='acme'] .TabBar {
+  height: 24px;
+  min-height: 24px;
+  background: var(--muled-chrome-bg);
+  border-bottom: 1px solid #000;
+  font-family: var(--muled-chrome-font);
+}
+
+[data-muled-ui-theme='acme'] .TabBar__tab {
+  height: 24px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: normal;
+  color: #000;
+  background: var(--muled-chrome-bg);
+  border-right: 1px solid #000;
+}
+
+[data-muled-ui-theme='acme'] .TabBar__tab--active {
+  background: var(--muled-editor-bg);
+  color: #000;
+  font-weight: bold;
+  box-shadow: none;
+}
+
+[data-muled-ui-theme='acme'] .TabBar__tab:not(.TabBar__tab--active)::after {
+  content: ' |';
+  color: #000;
+  font-weight: normal;
+}
+
+[data-muled-ui-theme='acme'] .TabBar__add,
+[data-muled-ui-theme='acme'] .TabBar__settings {
+  width: 28px;
+  height: 24px;
+  background: var(--muled-chrome-bg);
+  border-left: 1px solid #000;
+  color: #000;
+  font-family: var(--muled-chrome-font);
+  font-size: 14px;
+}
+
+[data-muled-ui-theme='acme'] .TabBar__add:hover,
+[data-muled-ui-theme='acme'] .TabBar__settings:hover {
+  background: var(--muled-hover);
+}
+
+/* ── 编辑区 ── */
+[data-muled-ui-theme='acme'] .TabContent {
+  background: var(--muled-editor-bg);
+}
+
+[data-muled-ui-theme='acme'] .TabContent__header {
+  padding: 2px 8px;
+  min-height: 22px;
+  background: var(--muled-chrome-bg);
+  border-bottom: 1px solid #000;
+  font-family: var(--muled-chrome-font);
+  font-size: 11px;
+}
+
+[data-muled-ui-theme='acme'] .TabContent__title {
+  font-weight: bold;
+}
+
+[data-muled-ui-theme='acme'] .TabContent__save {
+  padding: 1px 8px;
+  font-size: 11px;
+  font-family: var(--muled-chrome-font);
+  border: 1px solid #000;
+  background: var(--muled-chrome-bg);
+  color: #000;
+}
+
+[data-muled-ui-theme='acme'] .EditorViewSwitch {
+  border: 1px solid #000;
+}
+
+[data-muled-ui-theme='acme'] .EditorViewSwitch__btn {
+  padding: 1px 8px;
+  font-size: 11px;
+  font-family: var(--muled-chrome-font);
+  border-right: 1px solid #000;
+  background: var(--muled-chrome-bg);
+  color: #000;
+}
+
+[data-muled-ui-theme='acme'] .EditorViewSwitch__btn:last-child {
+  border-right: none;
+}
+
+[data-muled-ui-theme='acme'] .EditorViewSwitch__btn--active {
+  background: var(--muled-editor-bg);
+  color: #000;
+  font-weight: bold;
+}
+
+[data-muled-ui-theme='acme'] .MuledMDXEditorHost,
+[data-muled-ui-theme='acme'] .PlaceholderEditor__area,
+[data-muled-ui-theme='acme'] .TabContent__editorPane {
+  background: var(--muled-editor-bg);
+}
+
+[data-muled-ui-theme='acme'] .MuledSourceEditor__lang {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: var(--muled-chrome-font);
+  font-weight: bold;
+  color: #000;
+  background: var(--muled-chrome-bg);
+  border-bottom: 1px solid #000;
+}
+
+/* ── 状态栏（底部 tag bar） ── */
+[data-muled-ui-theme='acme'] .StatusBar {
+  height: 22px;
+  padding: 0 8px;
+  background: var(--muled-chrome-bg);
+  border-top: 1px solid #000;
+  font-family: var(--muled-chrome-font);
+  font-size: 11px;
+  color: #000;
+}
+
+[data-muled-ui-theme='acme'] .StatusBar__crumb:hover:not(:disabled) {
+  background: var(--muled-hover);
+  color: #000;
+}
+
+[data-muled-ui-theme='acme'] .StatusBar__dirtyDot {
+  border-radius: 0;
+  width: 6px;
+  height: 6px;
+  background: #000;
+}
+
+[data-muled-ui-theme='acme'] .StatusBar__badge {
+  padding: 0 4px;
+  border: 1px solid #000;
+  background: var(--muled-editor-bg);
+  color: #000;
+  font-family: var(--muled-chrome-font);
+}
+
+/* ── 对话框 / 浮层：直角黑框，无阴影 ── */
+[data-muled-ui-theme='acme'] .SettingsDialog__backdrop,
+[data-muled-ui-theme='acme'] .CommandPalette__backdrop,
+[data-muled-ui-theme='acme'] .UnsavedChangesDialog__backdrop,
+[data-muled-ui-theme='acme'] .PromptDialog__backdrop {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+[data-muled-ui-theme='acme'] .SettingsDialog,
+[data-muled-ui-theme='acme'] .CommandPalette,
+[data-muled-ui-theme='acme'] .UnsavedChangesDialog,
+[data-muled-ui-theme='acme'] .PromptDialog,
+[data-muled-ui-theme='acme'] .TranslationPopup,
+[data-muled-ui-theme='acme'] .EditorContextMenu,
+[data-muled-ui-theme='acme'] .WorkspaceTreeContextMenu,
+[data-muled-ui-theme='acme'] .PdfContextMenu,
+[data-muled-ui-theme='acme'] .StatusToast {
+  border: 1px solid #000;
+  box-shadow: none;
+  font-family: var(--muled-chrome-font);
+}
+
+[data-muled-ui-theme='acme'] .SettingsDialog__header,
+[data-muled-ui-theme='acme'] .UnsavedChangesDialog__header,
+[data-muled-ui-theme='acme'] .PromptDialog__header,
+[data-muled-ui-theme='acme'] .CommandPalette__inputWrap {
+  background: var(--muled-chrome-bg);
+  border-bottom: 1px solid #000;
+}
+
+[data-muled-ui-theme='acme'] .SettingsDialog__input,
+[data-muled-ui-theme='acme'] .SettingsDialog__select,
+[data-muled-ui-theme='acme'] .CommandPalette__input,
+[data-muled-ui-theme='acme'] .PromptDialog__input {
+  border: 1px solid #000;
+  background: var(--muled-editor-bg);
+  font-family: var(--muled-chrome-font);
+  font-size: 12px;
+}
+
+[data-muled-ui-theme='acme'] .SettingsDialog__btn,
+[data-muled-ui-theme='acme'] .UnsavedChangesDialog__btn,
+[data-muled-ui-theme='acme'] .PromptDialog__btn {
+  border: 1px solid #000;
+  background: var(--muled-chrome-bg);
+  color: #000;
+  font-family: var(--muled-chrome-font);
+  font-size: 11px;
+}
+
+[data-muled-ui-theme='acme'] .SettingsDialog__btn--primary,
+[data-muled-ui-theme='acme'] .UnsavedChangesDialog__btn--primary,
+[data-muled-ui-theme='acme'] .PromptDialog__btn--primary {
+  background: var(--muled-editor-bg);
+  font-weight: bold;
+}
+
+[data-muled-ui-theme='acme'] .EditorContextMenu__item:hover,
+[data-muled-ui-theme='acme'] .WorkspaceTreeContextMenu__item:hover {
+  background: var(--muled-hover);
+  color: #000;
+}
+
+/* ── 左侧滚动条（Acme 经典布局） ── */
+[data-muled-ui-theme='acme'] .MuledMDXEditorHost,
+[data-muled-ui-theme='acme'] .WorkspaceTree__treeHost {
+  direction: rtl;
+}
+
+[data-muled-ui-theme='acme'] .MuledMDXEditorHost > *,
+[data-muled-ui-theme='acme'] .WorkspaceTree__treeHost > * {
+  direction: ltr;
+}
+
+[data-muled-ui-theme='acme'] ::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+[data-muled-ui-theme='acme'] ::-webkit-scrollbar-track {
+  background: #c8b898;
+  border-left: 1px solid #000;
+}
+
+[data-muled-ui-theme='acme'] ::-webkit-scrollbar-thumb {
+  background: #336699;
+  border: 1px solid #000;
+}
+
+[data-muled-ui-theme='acme'] ::-webkit-scrollbar-corner {
+  background: #c8b898;
+}
+
+/* ── 源码编辑器：左侧行号 gutter 仿 Acme 滚动槽 ── */
+[data-muled-ui-theme='acme'] .MuledSourceEditor__cm .cm-gutters {
+  display: flex !important;
+  background: #c8b898 !important;
+  color: #000 !important;
+  border-right: 1px solid #000 !important;
+}
+
+[data-muled-ui-theme='acme'] .MuledSourceEditor__cm .cm-activeLineGutter {
+  background: #e8d882 !important;
+}
+
+[data-muled-ui-theme='acme'] .MuledSourceEditor__cm .cm-editor {
+  background: var(--muled-editor-bg);
+}
+
+[data-muled-ui-theme='acme'] .MuledSourceEditor__cm .cm-cursor {
+  border-left-width: 2px !important;
+}
+
+[data-muled-ui-theme='acme'] .ImagePreview__toolbar,
+[data-muled-ui-theme='acme'] .PdfPreview__toolbar {
+  background: var(--muled-chrome-bg);
+  border-bottom: 1px solid #000;
+  font-family: var(--muled-chrome-font);
+  font-size: 11px;
+}
+
+[data-muled-ui-theme='acme'] .ImagePreview,
+[data-muled-ui-theme='acme'] .PdfPreview {
+  background: var(--muled-editor-bg);
+}

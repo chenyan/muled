@@ -16,21 +16,18 @@ const muled = {
     getSettings: () => invoke('config:getSettings'),
     save: (settings: SettingsForm) => invoke('config:save', settings),
     getWysiwygCss: () => invoke('config:getWysiwygCss'),
-    onWysiwygThemeChanged: (
-      listener: (payload: {
-        css: string;
-        theme: 'light' | 'dark';
-      }) => void,
+    onThemeChanged: (
+      listener: (payload: import('../shared/types/ipc').ThemeChangedPayload) => void,
     ) => {
       const handler = (
         _event: Electron.IpcRendererEvent,
-        payload: { css: string; theme: 'light' | 'dark' },
+        payload: import('../shared/types/ipc').ThemeChangedPayload,
       ) => {
         listener(payload);
       };
-      ipcRenderer.on('config:wysiwygThemeChanged', handler);
+      ipcRenderer.on('config:themeChanged', handler);
       return () => {
-        ipcRenderer.removeListener('config:wysiwygThemeChanged', handler);
+        ipcRenderer.removeListener('config:themeChanged', handler);
       };
     },
   },

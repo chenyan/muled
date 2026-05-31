@@ -73,10 +73,10 @@ export default function PlainCodeBlockEditor({
 
   return (
     <div className="MuledPlainCodeBlock">
-      <div className="MuledCodeBlockWithPreview__label">
+      <div ref={containerRef} className="MuledPlainCodeBlock__cm" />
+      <div className="MuledPlainCodeBlock__label" aria-hidden="true">
         {codeBlockLanguageLabel(language)}
       </div>
-      <div ref={containerRef} className="MuledPlainCodeBlock__cm" />
     </div>
   );
 }

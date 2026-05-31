@@ -1,5 +1,5 @@
 import { EditorState } from '@codemirror/state';
-import { EditorView, lineNumbers } from '@codemirror/view';
+import { EditorView } from '@codemirror/view';
 import {
   forwardRef,
   useEffect,
@@ -16,6 +16,7 @@ import {
 } from '../../lib/editorReveal';
 import languageExtensionForId from '../../lib/codemirrorLanguage';
 import { buildCommonSourceUiExtensions } from '../../lib/codemirrorSetup';
+import { useSourceEditorTheme } from '../../hooks/useAppTheme';
 import { setActiveEditorSelection } from '../../lib/editorSelectionBridge';
 import {
   getSourceLanguageId,
@@ -55,6 +56,7 @@ const SourceCodeEditor = forwardRef<
 
   const languageId = getSourceLanguageId(relativePath);
   const languageLabel = getSourceLanguageLabel(languageId);
+  const sourceTheme = useSourceEditorTheme();
 
   useImperativeHandle(ref, () => ({
     getValue: () => viewRef.current?.state.doc.toString() ?? value,
@@ -97,8 +99,7 @@ const SourceCodeEditor = forwardRef<
     return [
       ...buildSourceCodeMirrorExtensions(keybindingMode),
       ...buildEditorRevealExtension(),
-      ...buildCommonSourceUiExtensions(),
-      lineNumbers(),
+      ...buildCommonSourceUiExtensions(sourceTheme),
       EditorView.lineWrapping,
       EditorView.updateListener.of((update) => {
         const { state, docChanged } = update;
@@ -116,7 +117,7 @@ const SourceCodeEditor = forwardRef<
       ...(lang ? [lang] : []),
       ...(readOnly ? [EditorState.readOnly.of(true)] : []),
     ];
-  }, [languageId, keybindingMode, readOnly, tabId]);
+  }, [languageId, keybindingMode, readOnly, tabId, sourceTheme]);
 
   useEffect(() => {
     const parent = containerRef.current;

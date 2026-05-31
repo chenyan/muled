@@ -2,6 +2,7 @@ import {
   type CodeBlockEditorProps,
 } from '@mdxeditor/editor';
 import { useEffect, useId, useRef, useState } from 'react';
+import { useWysiwygTheme } from '../../../hooks/useAppTheme';
 import { renderMermaidDiagram } from '../../../lib/mermaidRuntime';
 import useCodeBlockFocus from './useCodeBlockFocus';
 
@@ -13,6 +14,7 @@ export default function MermaidCodeBlockEditor({
   const [svg, setSvg] = useState('');
   const [error, setError] = useState<string | null>(null);
   const renderId = useId().replace(/:/g, '');
+  const wysiwygTheme = useWysiwygTheme();
 
   useCodeBlockFocus(focusEmitter, previewRef);
 
@@ -20,7 +22,7 @@ export default function MermaidCodeBlockEditor({
     let cancelled = false;
     const id = `muled-mermaid-${renderId}-${Date.now()}`;
     (async () => {
-      const result = await renderMermaidDiagram(code, id);
+      const result = await renderMermaidDiagram(code, id, wysiwygTheme);
       if (cancelled) return;
       setSvg(result.svg);
       setError(result.error);
@@ -28,7 +30,7 @@ export default function MermaidCodeBlockEditor({
     return () => {
       cancelled = true;
     };
-  }, [code, renderId]);
+  }, [code, renderId, wysiwygTheme]);
 
   return (
     <div className="MuledCodeBlockWithPreview MuledCodeBlockWithPreview--mermaidOnly">

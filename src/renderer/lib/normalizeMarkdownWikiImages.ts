@@ -1,3 +1,5 @@
+import { denormalizeInlineMathSpans, denormalizeMarkdownMath } from './denormalizeMarkdownMath';
+import { denormalizeMarkdownHtmlTags } from './denormalizeMarkdownHtmlTags';
 import { isImagePath } from './mime';
 
 /**
@@ -118,6 +120,14 @@ export function exportWikiImagesFromMarkdown(source: string): string {
 }
 
 /** 从编辑器读取 markdown 时统一走此函数，避免内部前缀泄漏到 tab / 磁盘 */
-export function exportMarkdownFromWysiwyg(source: string): string {
-  return exportWikiImagesFromMarkdown(source);
+export function exportMarkdownFromWysiwyg(
+  source: string,
+  original?: string,
+): string {
+  return denormalizeMarkdownMath(
+    denormalizeInlineMathSpans(
+      denormalizeMarkdownHtmlTags(exportWikiImagesFromMarkdown(source)),
+    ),
+    original,
+  );
 }

@@ -1,11 +1,13 @@
 import AppShell from './components/layout/AppShell';
-import { WysiwygThemeProvider } from './hooks/useWysiwygStyles';
+import { AppThemeProvider } from './hooks/useAppTheme';
+import './theme/uiTheme.css';
+import './theme/acmeTheme.css';
 import './App.css';
 
 export default function App() {
   return (
-    <WysiwygThemeProvider>
+    <AppThemeProvider>
       <AppShell />
-    </WysiwygThemeProvider>
+    </AppThemeProvider>
   );
 }

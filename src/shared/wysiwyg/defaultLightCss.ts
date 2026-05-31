@@ -172,7 +172,7 @@ export default `
   border-radius: 4px;
 }
 
-.MuledCodeBlockWithPreview__preview--mathOnly .katex-display {
+.MuledCodeBlockWithPreview__preview--mathOnly mjx-container[display='true'] {
   margin: 0.5em 0;
 }
 
@@ -183,7 +183,7 @@ export default `
   max-width: 100%;
 }
 
-.MuledInlineMath .katex {
+.MuledInlineMath mjx-container {
   font-size: 1em;
 }
 
@@ -194,6 +194,16 @@ export default `
 .MuledInlineMath--empty {
   display: inline-block;
   min-width: 0.5em;
+}
+
+.MuledHtmlBlock {
+  display: block;
+  margin: 0.75em 0;
+  max-width: 100%;
+}
+
+.MuledInlineHtml {
+  display: inline;
 }
 
 .MuledCodeBlockWithPreview__preview svg {
@@ -217,11 +227,30 @@ export default `
 }
 
 .MuledPlainCodeBlock {
+  position: relative;
   margin: 8px 0;
   border: 1px solid #e4e4e7;
   border-radius: 6px;
   overflow: hidden;
   background: #fafafa;
+}
+
+.MuledPlainCodeBlock__label {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 1;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #71717a;
+  background: rgba(244, 244, 245, 0.88);
+  border: 1px solid #e4e4e7;
+  border-radius: 4px;
+  pointer-events: none;
+  user-select: none;
 }
 
 .MuledPlainCodeBlock__cm {

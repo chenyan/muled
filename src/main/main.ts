@@ -12,7 +12,7 @@ import path from 'path';
 import { app, BrowserWindow, shell } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-import { createServices, registerIpc, registerWysiwygThemeWatcher } from './ipc/registerIpc';
+import { createServices, registerIpc, registerThemeWatcher } from './ipc/registerIpc';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 
@@ -123,8 +123,8 @@ app
   .whenReady()
   .then(() => {
     const services = createServices();
-    registerIpc(services);
-    registerWysiwygThemeWatcher(() => mainWindow);
+    registerIpc(services, () => mainWindow);
+    registerThemeWatcher(services, () => mainWindow);
     createWindow();
     app.on('activate', () => {
       // On macOS it's common to re-create a window in the app when the

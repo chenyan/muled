@@ -17,7 +17,7 @@ describe('codemirrorSetup', () => {
   });
 
   it('buildCommonSourceUiExtensions returns non-empty flat list', () => {
-    const exts = buildCommonSourceUiExtensions();
+    const exts = buildCommonSourceUiExtensions('light');
     expect(exts.length).toBeGreaterThan(0);
     expect(exts.every((e) => e != null)).toBe(true);
   });

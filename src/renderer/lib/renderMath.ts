@@ -1,26 +1,20 @@
-import katex from 'katex';
-import { hasKatexError, normalizeMathSource } from './normalizeMathSource';
+import { getMathJaxDocument } from './mathjaxDocument';
+import { normalizeMathSource } from './normalizeMathSource';
 
 export interface MathRenderResult {
   html: string;
   error: string | null;
 }
 
-function renderKatex(source: string, displayMode: boolean): MathRenderResult {
+function renderMathJax(source: string, displayMode: boolean): MathRenderResult {
   const latex = normalizeMathSource(source);
   if (!latex) {
     return { html: '', error: null };
   }
   try {
-    const html = katex.renderToString(latex, {
-      displayMode,
-      throwOnError: false,
-      errorColor: '#dc2626',
-      strict: 'ignore',
-    });
-    if (hasKatexError(html)) {
-      return { html, error: '公式语法有误' };
-    }
+    const { doc, adaptor } = getMathJaxDocument();
+    const node = doc.convert(latex, { display: displayMode });
+    const html = adaptor.outerHTML(node);
     return { html, error: null };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
@@ -28,12 +22,12 @@ function renderKatex(source: string, displayMode: boolean): MathRenderResult {
   }
 }
 
-/** 块级公式预览（KaTeX） */
+/** 块级公式预览（MathJax） */
 export default function renderMathBlock(source: string): MathRenderResult {
-  return renderKatex(source, true);
+  return renderMathJax(source, true);
 }
 
-/** 行内公式预览（KaTeX） */
+/** 行内公式预览（MathJax） */
 export function renderMathInline(source: string): MathRenderResult {
-  return renderKatex(source, false);
+  return renderMathJax(source, false);
 }

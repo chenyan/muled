@@ -29,7 +29,7 @@ export default function MathCodeBlockEditor({
           <p className="MuledCodeBlockWithPreview__empty">空公式</p>
         )}
         {html && (
-          // eslint-disable-next-line react/no-danger -- KaTeX HTML
+          // eslint-disable-next-line react/no-danger -- MathJax HTML
           <div dangerouslySetInnerHTML={{ __html: html }} />
         )}
       </div>

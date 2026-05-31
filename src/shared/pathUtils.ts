@@ -48,7 +48,7 @@ export function getWysiwygStyleDir(): string {
   return path.join(getConfigDir(), 'wysiwyg');
 }
 
-export type WysiwygTheme = 'light' | 'dark';
+export type WysiwygTheme = 'light' | 'dark' | 'acme';
 
 export function getWysiwygStylePath(theme: WysiwygTheme): string {
   return path.join(getWysiwygStyleDir(), `${theme}.css`);

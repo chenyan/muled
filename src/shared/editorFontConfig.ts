@@ -5,7 +5,7 @@ export interface EditorFontSettings {
 
 export const DEFAULT_SOURCE_FONT: EditorFontSettings = {
   font_family:
-    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+    'ui-monospace, SFMono-Regular, "Sarasa Mono SC", "Source Han Mono SC", Menlo, Monaco, Consolas, monospace',
   font_size: 13,
 };
 

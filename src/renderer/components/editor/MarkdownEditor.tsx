@@ -11,7 +11,6 @@ import {
   tablePlugin,
   thematicBreakPlugin,
 } from '@mdxeditor/editor';
-import 'katex/dist/katex.min.css';
 import '@mdxeditor/editor/style.css';
 import {
   forwardRef,
@@ -23,21 +22,21 @@ import {
   useState,
 } from 'react';
 import mdxEditorFaultTolerancePlugin from '../../lib/mdxEditorFaultTolerancePlugin';
+import mdxEditorHtmlPlugin from './html/mdxEditorHtmlPlugin';
 import { canParseMarkdownBlock } from '../../lib/markdownBlockParser';
+import normalizeMarkdownHtmlTags from '../../lib/normalizeMarkdownHtmlTags';
 import normalizeMarkdownMath from '../../lib/normalizeMarkdownMath';
 import {
   exportMarkdownFromWysiwyg,
   normalizeMarkdownWikiImages,
 } from '../../lib/normalizeMarkdownWikiImages';
-import {
-  prepareMarkdownForWysiwyg,
-  recoverMarkdownForWysiwyg,
-} from '../../lib/recoverMarkdownForWysiwyg';
+import { recoverMarkdownForWysiwyg } from '../../lib/recoverMarkdownForWysiwyg';
 import {
   clearWikiImagePreviewCache,
   resolveWikiImagePreview,
 } from '../../lib/resolveWikiImagePreview';
 import { pushStatusToast } from '../../lib/statusToast';
+import { useWysiwygTheme } from '../../hooks/useAppTheme';
 import mdxEditorInlineMathPlugin from './inlineMath/mdxEditorInlineMathPlugin';
 import mdxEditorWikiImagePlugin from './mdxEditorWikiImagePlugin';
 import MULED_CODE_BLOCK_DESCRIPTORS from './codeBlocks/muledCodeBlockDescriptors';
@@ -54,11 +53,13 @@ export interface MarkdownEditorProps {
   relativePath?: string | null;
   readOnly: boolean;
   onChange: (markdown: string) => void;
-  /** 载入期编辑器被动改写（如 AutoLink）后同步 baseline，不触发 dirty */
-  onBaselineSync?: (markdown: string) => void;
 }
 
 export type MarkdownEditorHandle = MDXEditorMethods & {
+  /** 未手动编辑时返回磁盘原文，避免 WYSIWYG 被动序列化改写文件 */
+  getPersistedMarkdown: () => string;
+  markUserEdited: () => void;
+  hasUserEdited: () => boolean;
   selectSentenceAtPoint: (
     clientX: number,
     clientY: number,
@@ -69,7 +70,7 @@ export type MarkdownEditorHandle = MDXEditorMethods & {
 /** 仅 WYSIWYG；Source 由 {@link SourceCodeEditor} 按后缀高亮 */
 const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
   function MarkdownEditor(
-    { tabKey, markdown, relativePath, readOnly, onChange, onBaselineSync },
+    { tabKey, markdown, relativePath, readOnly, onChange },
     ref,
   ) {
     const innerRef = useRef<MDXEditorMethods>(null);
@@ -78,18 +79,33 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
     documentRelativePathRef.current = relativePath;
     const recoveryAttemptRef = useRef(0);
     const [editorEpoch, setEditorEpoch] = useState(0);
+    const wysiwygTheme = useWysiwygTheme();
     const hydratingRef = useRef(false);
     const hydrationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const pendingBaselineRef = useRef<string | null>(null);
+    const originalMarkdownRef = useRef(markdown);
+    const userEditedRef = useRef(false);
     const onChangeRef = useRef(onChange);
     onChangeRef.current = onChange;
-    const onBaselineSyncRef = useRef(onBaselineSync);
-    onBaselineSyncRef.current = onBaselineSync;
 
     useImperativeHandle(ref, () => {
       const editor = innerRef.current as MDXEditorMethods;
       return {
         ...editor,
+        getPersistedMarkdown() {
+          if (!userEditedRef.current) {
+            return originalMarkdownRef.current;
+          }
+          return exportMarkdownFromWysiwyg(
+            editor.getMarkdown?.() ?? originalMarkdownRef.current,
+            originalMarkdownRef.current,
+          );
+        },
+        markUserEdited() {
+          userEditedRef.current = true;
+        },
+        hasUserEdited() {
+          return userEditedRef.current;
+        },
         selectSentenceAtPoint(clientX: number, clientY: number) {
           const root = scrollHostRef.current?.querySelector(
             '.mdxeditor-root-contenteditable [contenteditable="true"]',
@@ -129,6 +145,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
           defaultCodeBlockLanguage: 'txt',
           codeBlockEditorDescriptors: MULED_CODE_BLOCK_DESCRIPTORS,
         }),
+        mdxEditorHtmlPlugin(),
         mdxEditorFaultTolerancePlugin(),
         mdxEditorInlineMathPlugin(),
       ],
@@ -136,19 +153,13 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
     );
 
     const prepareForEditor = useCallback((raw: string): string => {
-      return prepareMarkdownForWysiwyg(
-        normalizeMarkdownWikiImages(normalizeMarkdownMath(raw)),
-        canParseMarkdownBlock,
+      return normalizeMarkdownWikiImages(
+        normalizeMarkdownMath(normalizeMarkdownHtmlTags(raw)),
       );
     }, []);
 
     const finishHydration = useCallback(() => {
       hydratingRef.current = false;
-      const pending = pendingBaselineRef.current;
-      pendingBaselineRef.current = null;
-      if (pending !== null) {
-        onBaselineSyncRef.current?.(pending);
-      }
     }, []);
 
     const scheduleHydrationFinish = useCallback(() => {
@@ -166,13 +177,16 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
         if (isInitialNormalize) {
           return;
         }
-        const exported = exportMarkdownFromWysiwyg(nextMarkdown);
         if (hydratingRef.current) {
-          pendingBaselineRef.current = exported;
           scheduleHydrationFinish();
           return;
         }
-        onChangeRef.current(exported);
+        if (!userEditedRef.current) {
+          return;
+        }
+        onChangeRef.current(
+          exportMarkdownFromWysiwyg(nextMarkdown, originalMarkdownRef.current),
+        );
       },
       [scheduleHydrationFinish],
     );
@@ -200,13 +214,43 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
     useEffect(() => {
       recoveryAttemptRef.current = 0;
       clearWikiImagePreviewCache();
+      originalMarkdownRef.current = markdown;
+      userEditedRef.current = false;
       hydratingRef.current = true;
-      pendingBaselineRef.current = null;
       loadMarkdown(markdown, { prepare: true, notifyRecovery: true });
       scheduleHydrationFinish();
       // tabKey / editorEpoch：切换 Tab 或重置；组件 remount 时也会执行
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tabKey, editorEpoch, loadMarkdown, scheduleHydrationFinish]);
+
+    useEffect(() => {
+      const host = scrollHostRef.current;
+      if (!host || readOnly) return undefined;
+
+      const markUserEdited = () => {
+        userEditedRef.current = true;
+      };
+
+      const onBeforeInput = (event: Event) => {
+        const inputEvent = event as InputEvent;
+        // IME 组合输入过程中不标记；最终提交由 compositionend 处理
+        if (inputEvent.inputType === 'insertCompositionText') {
+          return;
+        }
+        markUserEdited();
+      };
+
+      host.addEventListener('beforeinput', onBeforeInput);
+      host.addEventListener('compositionend', markUserEdited);
+      host.addEventListener('paste', markUserEdited);
+      host.addEventListener('cut', markUserEdited);
+      return () => {
+        host.removeEventListener('beforeinput', onBeforeInput);
+        host.removeEventListener('compositionend', markUserEdited);
+        host.removeEventListener('paste', markUserEdited);
+        host.removeEventListener('cut', markUserEdited);
+      };
+    }, [readOnly, tabKey, editorEpoch]);
 
     useEffect(
       () => () => {
@@ -296,7 +340,11 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
             trim={false}
             onChange={handleChange}
             onError={handleParseError}
-            className="MuledMDXEditor"
+            className={
+              wysiwygTheme === 'dark'
+                ? 'MuledMDXEditor dark-theme'
+                : 'MuledMDXEditor'
+            }
           />
         </MarkdownEditorErrorBoundary>
       </div>

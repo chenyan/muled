@@ -6,7 +6,7 @@
   align-items: flex-start;
   justify-content: center;
   padding: 8vh 16px 16px;
-  background: rgba(24, 24, 27, 0.4);
+  background: var(--muled-backdrop);
 }
 
 .SettingsDialog {
@@ -15,10 +15,10 @@
   display: flex;
   flex-direction: column;
   border-radius: 10px;
-  border: 1px solid #d4d4d8;
-  background: #fff;
+  border: 1px solid var(--muled-input-border);
+  background: var(--muled-surface);
   box-shadow:
-    0 16px 48px rgba(0, 0, 0, 0.14),
+    0 16px 48px var(--muled-shadow),
     0 2px 8px rgba(0, 0, 0, 0.06);
   overflow: hidden;
 }
@@ -29,14 +29,14 @@
   justify-content: space-between;
   flex-shrink: 0;
   padding: 12px 16px;
-  border-bottom: 1px solid #e4e4e7;
+  border-bottom: 1px solid var(--muled-border);
 }
 
 .SettingsDialog__title {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
-  color: #18181b;
+  color: var(--muled-fg);
 }
 
 .SettingsDialog__close {
@@ -44,13 +44,13 @@
   background: transparent;
   font-size: 22px;
   line-height: 1;
-  color: #71717a;
+  color: var(--muled-muted-fg);
   cursor: pointer;
   padding: 0 4px;
 }
 
 .SettingsDialog__close:hover:not(:disabled) {
-  color: #18181b;
+  color: var(--muled-fg);
 }
 
 .SettingsDialog__body {
@@ -63,7 +63,7 @@
 .SettingsDialog__pathHint {
   margin: 0 0 12px;
   font-size: 11px;
-  color: #71717a;
+  color: var(--muled-muted-fg);
   word-break: break-all;
 }
 
@@ -79,7 +79,7 @@
   margin: 0 0 8px;
   font-size: 12px;
   font-weight: 600;
-  color: #3f3f46;
+  color: var(--muled-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -107,7 +107,7 @@
 
 .SettingsDialog__label {
   font-size: 12px;
-  color: #52525b;
+  color: var(--muled-subtle-fg);
 }
 
 .SettingsDialog__input,
@@ -117,23 +117,23 @@
   padding: 6px 8px;
   font-size: 13px;
   line-height: 1.4;
-  color: #18181b;
-  background: #fff;
-  border: 1px solid #d4d4d8;
+  color: var(--muled-fg);
+  background: var(--muled-input-bg);
+  border: 1px solid var(--muled-input-border);
   border-radius: 6px;
 }
 
 .SettingsDialog__input:focus,
 .SettingsDialog__select:focus {
   outline: none;
-  border-color: #a1a1aa;
+  border-color: var(--muled-placeholder);
 }
 
 .SettingsDialog__error {
   flex-shrink: 0;
   margin: 0 16px 8px;
   font-size: 12px;
-  color: #b91c1c;
+  color: var(--muled-danger);
 }
 
 .SettingsDialog__footer {
@@ -142,22 +142,22 @@
   justify-content: flex-end;
   gap: 8px;
   padding: 12px 16px;
-  border-top: 1px solid #e4e4e7;
-  background: #fafafa;
+  border-top: 1px solid var(--muled-border);
+  background: var(--muled-bg);
 }
 
 .SettingsDialog__btn {
   border-radius: 6px;
-  border: 1px solid #d4d4d8;
-  background: #fff;
+  border: 1px solid var(--muled-input-border);
+  background: var(--muled-surface);
   padding: 6px 14px;
   font-size: 13px;
-  color: #18181b;
+  color: var(--muled-fg);
   cursor: pointer;
 }
 
 .SettingsDialog__btn:hover:not(:disabled) {
-  background: #f4f4f5;
+  background: var(--muled-surface-muted);
 }
 
 .SettingsDialog__btn:disabled {
@@ -166,11 +166,11 @@
 }
 
 .SettingsDialog__btn--primary {
-  border-color: #2563eb;
-  background: #2563eb;
-  color: #fff;
+  border-color: var(--muled-accent);
+  background: var(--muled-accent);
+  color: var(--muled-accent-fg);
 }
 
 .SettingsDialog__btn--primary:hover:not(:disabled) {
-  background: #1d4ed8;
+  filter: brightness(0.92);
 }

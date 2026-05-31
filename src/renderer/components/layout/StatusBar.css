@@ -5,10 +5,10 @@
   gap: 6px;
   padding: 0 12px;
   height: 28px;
-  border-top: 1px solid #e4e4e7;
-  background: #fafafa;
+  border-top: 1px solid var(--muled-border);
+  background: var(--muled-bg);
   font-size: 11px;
-  color: #71717a;
+  color: var(--muled-muted-fg);
   min-width: 0;
 }
 
@@ -22,12 +22,12 @@
 .StatusBar__workspace {
   flex-shrink: 1;
   max-width: 28%;
-  color: #52525b;
+  color: var(--muled-subtle-fg);
 }
 
 .StatusBar__file {
   flex: 1;
-  color: #3f3f46;
+  color: var(--muled-text-secondary);
 }
 
 .StatusBar__breadcrumb {
@@ -35,7 +35,7 @@
   display: flex;
   align-items: center;
   min-width: 0;
-  color: #3f3f46;
+  color: var(--muled-text-secondary);
   overflow: hidden;
 }
 
@@ -53,7 +53,7 @@
 .StatusBar__crumbSep {
   flex-shrink: 0;
   margin: 0 1px;
-  color: #a1a1aa;
+  color: var(--muled-placeholder);
   user-select: none;
 }
 
@@ -73,8 +73,8 @@
 }
 
 .StatusBar__crumb:hover:not(:disabled) {
-  background: #e4e4e7;
-  color: #18181b;
+  background: var(--muled-hover);
+  color: var(--muled-fg);
 }
 
 .StatusBar__crumb:disabled {
@@ -88,11 +88,11 @@
 
 .StatusBar__file--dirty,
 .StatusBar__breadcrumb.StatusBar__file--dirty {
-  color: #b45309;
+  color: var(--muled-warning-text);
 }
 
 .StatusBar__breadcrumb.StatusBar__file--dirty .StatusBar__crumb:hover:not(:disabled) {
-  color: #92400e;
+  color: var(--muled-warning-fg);
 }
 
 .StatusBar__dirtyDot {
@@ -119,20 +119,20 @@
 .StatusBar__badge {
   padding: 1px 6px;
   border-radius: 4px;
-  background: #f4f4f5;
-  color: #52525b;
+  background: var(--muled-surface-muted);
+  color: var(--muled-subtle-fg);
   font-weight: 500;
   white-space: nowrap;
 }
 
 .StatusBar__badge--warn {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--muled-warning-bg);
+  color: var(--muled-warning-fg);
 }
 
 .StatusBar__badge--muted {
   background: transparent;
-  color: #a1a1aa;
+  color: var(--muled-placeholder);
   font-weight: 400;
 }
 
@@ -143,7 +143,7 @@
 }
 
 .StatusBar__badge--clickable:hover:not(:disabled) {
-  background: #e4e4e7;
+  background: var(--muled-hover);
 }
 
 .StatusBar__badge--clickable:disabled {
@@ -153,10 +153,10 @@
 
 .StatusBar__hints {
   flex-shrink: 0;
-  color: #a1a1aa;
+  color: var(--muled-placeholder);
 }
 
 .StatusBar__sep {
   flex-shrink: 0;
-  color: #d4d4d8;
+  color: var(--muled-separator);
 }

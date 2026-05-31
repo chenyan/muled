@@ -1,8 +1,8 @@
 import { EditorView } from '@codemirror/view';
-import { basicDark } from 'cm6-theme-basic-dark';
-import { basicLight } from 'cm6-theme-basic-light';
 import type { Extension } from '@codemirror/state';
 import languageExtensionForId from './codemirrorLanguage';
+import { flattenExtensions } from './codemirrorSetup';
+import { codeMirrorThemeFor } from './codemirrorThemeFor';
 import type { SourceLanguageId } from './fileLanguage';
 import type { WysiwygTheme } from '../hooks/useWysiwygStyles';
 
@@ -12,7 +12,7 @@ export function buildWysiwygCodeBlockExtensions(
 ): Extension[] {
   const lang = languageExtensionForId(languageId);
   return [
-    theme === 'dark' ? basicDark : basicLight,
+    ...flattenExtensions([codeMirrorThemeFor(theme)]),
     EditorView.lineWrapping,
     EditorView.theme({
       '&': { height: 'auto', backgroundColor: 'transparent' },

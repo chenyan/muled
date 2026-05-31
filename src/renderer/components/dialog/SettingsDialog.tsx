@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { SettingsForm } from '../../../shared/types/settings';
+import type { ThemePreference } from '../../../shared/types/theme';
 import './SettingsDialog.css';
 
 export interface SettingsDialogProps {
@@ -211,6 +212,66 @@ export default function SettingsDialog({
                         })
                       }
                     />
+                  </label>
+                </div>
+              </section>
+
+              <section className="SettingsDialog__section">
+                <h3 className="SettingsDialog__sectionTitle">主题</h3>
+                <div className="SettingsDialog__grid">
+                  <label className="SettingsDialog__field">
+                    <span className="SettingsDialog__label">界面主题</span>
+                    <select
+                      className="SettingsDialog__select"
+                      value={form.theme.ui}
+                      onChange={(e) =>
+                        patch('theme', {
+                          ...form.theme,
+                          ui: e.target.value as ThemePreference,
+                        })
+                      }
+                    >
+                      <option value="system">跟随系统</option>
+                      <option value="light">浅色</option>
+                      <option value="dark">深色</option>
+                      <option value="acme">Acme</option>
+                    </select>
+                  </label>
+                  <label className="SettingsDialog__field">
+                    <span className="SettingsDialog__label">WYSIWYG 样式</span>
+                    <select
+                      className="SettingsDialog__select"
+                      value={form.theme.wysiwyg}
+                      onChange={(e) =>
+                        patch('theme', {
+                          ...form.theme,
+                          wysiwyg: e.target.value as ThemePreference,
+                        })
+                      }
+                    >
+                      <option value="system">跟随系统</option>
+                      <option value="light">浅色</option>
+                      <option value="dark">深色</option>
+                      <option value="acme">Acme</option>
+                    </select>
+                  </label>
+                  <label className="SettingsDialog__field">
+                    <span className="SettingsDialog__label">源码编辑器</span>
+                    <select
+                      className="SettingsDialog__select"
+                      value={form.theme.source}
+                      onChange={(e) =>
+                        patch('theme', {
+                          ...form.theme,
+                          source: e.target.value as ThemePreference,
+                        })
+                      }
+                    >
+                      <option value="system">跟随系统</option>
+                      <option value="light">浅色</option>
+                      <option value="dark">深色</option>
+                      <option value="acme">Acme</option>
+                    </select>
                   </label>
                 </div>
               </section>

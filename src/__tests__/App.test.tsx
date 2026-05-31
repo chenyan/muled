@@ -31,6 +31,12 @@ const mockConfig: PublicConfig = {
   },
   workspace: { path: '/tmp' },
   ui: { sidebar_width: 260, tree_initial_expansion_depth: 1 },
+  theme: {
+    ui: 'system',
+    wysiwyg: 'system',
+    source: 'system',
+    resolved: { ui: 'light', wysiwyg: 'light', source: 'light' },
+  },
   openai: { model: 'gpt-4o-mini', has_api_key: false },
   system: { homedir: '/tmp' },
 };
@@ -47,6 +53,11 @@ beforeEach(() => {
           editor: mockConfig.editor,
           workspace: mockConfig.workspace,
           ui: mockConfig.ui,
+          theme: {
+            ui: 'system',
+            wysiwyg: 'system',
+            source: 'system',
+          },
         },
       }),
       save: async () => mockConfig,
@@ -56,9 +67,10 @@ beforeEach(() => {
         paths: {
           light: '/tmp/wysiwyg/light.css',
           dark: '/tmp/wysiwyg/dark.css',
+          acme: '/tmp/wysiwyg/acme.css',
         },
       }),
-      onWysiwygThemeChanged: () => () => undefined,
+      onThemeChanged: () => () => undefined,
     },
     workspace: {
       get: async () => ({ root: '/tmp', recent: ['/tmp'] }),

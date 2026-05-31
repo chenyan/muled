@@ -1,5 +1,5 @@
 import { ipcMain, nativeTheme, type BrowserWindow, type WebContents } from 'electron';
-import type { IpcChannel } from '../../shared/types/ipc';
+import type { IpcChannel, ThemeChangedPayload } from '../../shared/types/ipc';
 import type {
   SearchStreamEvent,
   ShellSearchError,
@@ -9,7 +9,6 @@ import ConfigService, { ensureConfigFile } from '../services/configService';
 import {
   ensureWysiwygStyleFiles,
   readWysiwygCss,
-  resolveWysiwygTheme,
   getWysiwygStylePaths,
 } from '../services/wysiwygStyleService';
 import FileService from '../services/fileService';
@@ -45,6 +44,33 @@ export function createServices(): MuledServices {
   return { config, workspace, file, openai };
 }
 
+function buildThemePayload(config: ConfigService): ThemeChangedPayload {
+  const publicConfig = config.getPublicConfig();
+  const resolved = publicConfig.theme.resolved;
+  const wysiwygTheme = resolved.wysiwyg;
+  return {
+    theme: {
+      ui: publicConfig.theme.ui,
+      wysiwyg: publicConfig.theme.wysiwyg,
+      source: publicConfig.theme.source,
+    },
+    resolved,
+    wysiwyg: {
+      css: readWysiwygCss(wysiwygTheme),
+      theme: wysiwygTheme,
+      paths: getWysiwygStylePaths(),
+    },
+  };
+}
+
+function sendThemeChanged(
+  win: BrowserWindow,
+  config: ConfigService,
+): void {
+  if (win.isDestroyed()) return;
+  win.webContents.send('config:themeChanged', buildThemePayload(config));
+}
+
 function sendSearchEvent(
   sender: WebContents,
   event: SearchStreamEvent,
@@ -55,7 +81,10 @@ function sendSearchEvent(
   sender.send('search:stream', event);
 }
 
-export function registerIpc(services: MuledServices): void {
+export function registerIpc(
+  services: MuledServices,
+  getWindow?: () => BrowserWindow | null,
+): void {
   const activeSearches = new Map<number, RunningSearch>();
 
   const cancelSearch = (searchId: number) => {
@@ -83,17 +112,14 @@ export function registerIpc(services: MuledServices): void {
           /* 工作区路径无效时保留当前根目录，仅更新配置文件 */
         }
       }
+      const win = getWindow?.();
+      if (win) {
+        sendThemeChanged(win, services.config);
+      }
       return publicConfig;
     },
 
-    'config:getWysiwygCss': () => {
-      const theme = resolveWysiwygTheme();
-      return {
-        css: readWysiwygCss(theme),
-        theme,
-        paths: getWysiwygStylePaths(),
-      };
-    },
+    'config:getWysiwygCss': () => buildThemePayload(services.config).wysiwyg,
 
     'workspace:get': () => ({
       root: services.workspace.getRoot(),
@@ -205,14 +231,13 @@ export function registerIpc(services: MuledServices): void {
   });
 }
 
-export function registerWysiwygThemeWatcher(getWindow: () => BrowserWindow | null): void {
+export function registerThemeWatcher(
+  services: MuledServices,
+  getWindow: () => BrowserWindow | null,
+): void {
   nativeTheme.on('updated', () => {
     const win = getWindow();
-    if (!win || win.isDestroyed()) return;
-    const theme = resolveWysiwygTheme();
-    win.webContents.send('config:wysiwygThemeChanged', {
-      css: readWysiwygCss(theme),
-      theme,
-    });
+    if (!win) return;
+    sendThemeChanged(win, services.config);
   });
 }

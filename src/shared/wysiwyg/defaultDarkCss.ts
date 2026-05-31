@@ -1,6 +1,25 @@
+import {
+  SOURCE_DARK_PALETTE as P,
+  WYSIWYG_DARK_PALETTE_VERSION,
+} from '../sourceDarkPalette';
+
 /** 首次启动写入 ~/.config/muled/wysiwyg/dark.css 的默认内容 */
 export default `
-/* Muled WYSIWYG — dark theme (可编辑) */
+/* Muled WYSIWYG — dark theme (可编辑，配色对齐 cm6-theme-basic-dark) */
+
+[data-muled-wysiwyg-theme='dark'] {
+  --wysiwyg-palette: ${WYSIWYG_DARK_PALETTE_VERSION};
+  --wysiwyg-bg: ${P.bg};
+  --wysiwyg-fg: ${P.fg};
+  --wysiwyg-heading: ${P.heading};
+  --wysiwyg-muted: ${P.muted};
+  --wysiwyg-border: ${P.border};
+  --wysiwyg-surface: ${P.surface};
+  --wysiwyg-code-bg: ${P.codeBg};
+  --wysiwyg-link: ${P.link};
+  --wysiwyg-accent: ${P.accent};
+  --wysiwyg-selection: ${P.selection};
+}
 
 .MuledMDXEditor__errorFallback {
   margin: 1rem;
@@ -17,9 +36,41 @@ export default `
   padding: 0.25rem 0.75rem;
   border: 1px solid #991b1b;
   border-radius: 4px;
-  background: #1c1917;
+  background: ${P.surface};
   color: inherit;
   cursor: pointer;
+}
+
+[data-muled-wysiwyg-theme='dark'] .MuledMDXEditorHost .mdxeditor.MuledMDXEditor {
+  --basePageBg: var(--wysiwyg-bg);
+  --baseBase: var(--wysiwyg-surface);
+  --baseBgSubtle: var(--wysiwyg-surface);
+  --baseBg: #35393d;
+  --baseBgHover: #3a3e42;
+  --baseBgActive: #404448;
+  --baseLine: var(--wysiwyg-border);
+  --baseBorder: #484c50;
+  --baseBorderHover: #52565a;
+  --baseSolid: ${P.muted};
+  --baseSolidHover: #b0b0b0;
+  --baseText: var(--wysiwyg-fg);
+  --baseTextContrast: var(--wysiwyg-heading);
+
+  --accentBase: #252a2e;
+  --accentBgSubtle: #2a3238;
+  --accentBg: #2d3842;
+  --accentBgHover: #334452;
+  --accentBgActive: #3a5060;
+  --accentLine: #4a6880;
+  --accentBorder: ${P.link};
+  --accentBorderHover: ${P.accent};
+  --accentSolid: var(--wysiwyg-accent);
+  --accentSolidHover: #8ec4e0;
+  --accentText: ${P.accent};
+  --accentTextContrast: ${P.highlight};
+
+  --admonitionNoteBg: ${P.surface};
+  --admonitionNoteBorder: #484c50;
 }
 
 .MuledMDXEditorHost .mdxeditor.MuledMDXEditor {
@@ -29,8 +80,8 @@ export default `
   border: none;
   border-radius: 0;
   overflow: visible;
-  background: #18181b;
-  color: #e4e4e7;
+  background: var(--wysiwyg-bg, ${P.bg});
+  color: var(--wysiwyg-fg, ${P.fg});
 }
 
 .MuledMDXEditorHost .mdxeditor-root-contenteditable {
@@ -54,6 +105,18 @@ export default `
   line-height: 1.6;
 }
 
+[data-muled-wysiwyg-theme='dark']
+  .MuledMDXEditorHost
+  .mdxeditor-root-contenteditable
+  [contenteditable='true']::selection,
+[data-muled-wysiwyg-theme='dark']
+  .MuledMDXEditorHost
+  .mdxeditor-root-contenteditable
+  [contenteditable='true']
+  *::selection {
+  background: var(--wysiwyg-selection);
+}
+
 .MuledMDXEditorHost .mdxeditor-root-contenteditable [contenteditable='true'] {
   min-height: 2rem;
 }
@@ -64,35 +127,45 @@ export default `
 .MuledMDXEditorHost .mdxeditor h4,
 .MuledMDXEditorHost .mdxeditor h5,
 .MuledMDXEditorHost .mdxeditor h6 {
-  color: #fafafa;
+  color: var(--wysiwyg-heading, ${P.heading});
 }
 
 .MuledMDXEditorHost .mdxeditor a {
-  color: #60a5fa;
+  color: var(--wysiwyg-link, ${P.link});
+}
+
+.MuledMDXEditorHost .mdxeditor a:hover {
+  color: ${P.accent};
 }
 
 .MuledMDXEditorHost .mdxeditor blockquote {
-  border-left: 3px solid #52525b;
-  color: #a1a1aa;
+  border-left: 3px solid var(--wysiwyg-border, ${P.border});
+  color: var(--wysiwyg-muted, ${P.muted});
 }
 
 .MuledMDXEditorHost .mdxeditor hr {
-  border-color: #3f3f46;
+  border: none;
+  border-top: 1px solid var(--wysiwyg-border, ${P.border});
 }
 
 .MuledMDXEditorHost .mdxeditor [data-editor-block-type='image'] img {
   max-width: 80%;
   height: auto;
+  border-radius: 4px;
+}
+
+[data-muled-wysiwyg-theme='dark'] .MuledMDXEditorHost .mdxeditor mjx-container {
+  color: var(--wysiwyg-fg, ${P.fg});
 }
 
 .MuledCodeBlockWithPreview {
   display: flex;
   flex-direction: column;
-  border: 1px solid #3f3f46;
+  border: 1px solid var(--wysiwyg-border, ${P.border});
   border-radius: 6px;
   overflow: hidden;
   margin: 8px 0;
-  background: #27272a;
+  background: var(--wysiwyg-surface, ${P.surface});
 }
 
 .MuledCodeBlockWithPreview__editor {
@@ -107,9 +180,9 @@ export default `
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #a1a1aa;
-  background: #18181b;
-  border-bottom: 1px solid #3f3f46;
+  color: var(--wysiwyg-muted, ${P.muted});
+  background: var(--wysiwyg-bg, ${P.bg});
+  border-bottom: 1px solid var(--wysiwyg-border, ${P.border});
 }
 
 .MuledCodeBlockWithPreview__textarea {
@@ -124,15 +197,27 @@ export default `
   line-height: 1.5;
   outline: none;
   box-sizing: border-box;
-  background: #09090b;
-  color: #e4e4e7;
+  background: var(--wysiwyg-code-bg, ${P.codeBg});
+  color: var(--wysiwyg-fg, ${P.fg});
 }
 
 .MuledCodeBlockWithPreview__preview {
-  border-top: 1px solid #3f3f46;
+  border-top: 1px solid var(--wysiwyg-border, ${P.border});
   padding: 12px 16px;
   overflow: visible;
-  background: #09090b;
+  background: var(--wysiwyg-code-bg, ${P.codeBg});
+}
+
+[data-muled-wysiwyg-theme='dark']
+  .MuledCodeBlockWithPreview__preview--mermaidOnly
+  svg {
+  color-scheme: dark;
+}
+
+[data-muled-wysiwyg-theme='dark']
+  .MuledCodeBlockWithPreview__preview--mermaidOnly
+  .MuledCodeBlockWithPreview__error {
+  border-radius: 6px;
 }
 
 .MuledCodeBlockWithPreview--mermaidOnly {
@@ -148,7 +233,7 @@ export default `
 }
 
 .MuledCodeBlockWithPreview__preview--mermaidOnly:focus-visible {
-  outline: 2px solid #71717a;
+  outline: 2px solid ${P.muted};
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -167,12 +252,12 @@ export default `
 }
 
 .MuledCodeBlockWithPreview__preview--mathOnly:focus-visible {
-  outline: 2px solid #71717a;
+  outline: 2px solid ${P.muted};
   outline-offset: 2px;
   border-radius: 4px;
 }
 
-.MuledCodeBlockWithPreview__preview--mathOnly .katex-display {
+.MuledCodeBlockWithPreview__preview--mathOnly mjx-container[display='true'] {
   margin: 0.5em 0;
 }
 
@@ -183,8 +268,9 @@ export default `
   max-width: 100%;
 }
 
-.MuledInlineMath .katex {
+.MuledInlineMath mjx-container {
   font-size: 1em;
+  color: inherit;
 }
 
 .MuledInlineMath--error {
@@ -194,6 +280,16 @@ export default `
 .MuledInlineMath--empty {
   display: inline-block;
   min-width: 0.5em;
+}
+
+.MuledHtmlBlock {
+  display: block;
+  margin: 0.75em 0;
+  max-width: 100%;
+}
+
+.MuledInlineHtml {
+  display: inline;
 }
 
 .MuledCodeBlockWithPreview__preview svg {
@@ -213,15 +309,34 @@ export default `
 .MuledCodeBlockWithPreview__empty {
   margin: 0;
   font-size: 12px;
-  color: #71717a;
+  color: var(--wysiwyg-muted, ${P.muted});
 }
 
 .MuledPlainCodeBlock {
+  position: relative;
   margin: 8px 0;
-  border: 1px solid #3f3f46;
+  border: 1px solid var(--wysiwyg-border, ${P.border});
   border-radius: 6px;
   overflow: hidden;
-  background: #09090b;
+  background: var(--wysiwyg-code-bg, ${P.codeBg});
+}
+
+.MuledPlainCodeBlock__label {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 1;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--wysiwyg-muted, ${P.muted});
+  background: color-mix(in srgb, var(--wysiwyg-bg, ${P.bg}) 88%, transparent);
+  border: 1px solid var(--wysiwyg-border, ${P.border});
+  border-radius: 4px;
+  pointer-events: none;
+  user-select: none;
 }
 
 .MuledPlainCodeBlock__cm {

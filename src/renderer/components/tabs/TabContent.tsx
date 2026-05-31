@@ -31,7 +31,6 @@ import SourceCodeEditor, {
 import { DEFAULT_BUFFER_BYTES } from '../../../shared/constants';
 import { formatBytes } from '../../../shared/formatBytes';
 import { applyAiInEditor } from '../../lib/applyAiInEditor';
-import { exportMarkdownFromWysiwyg } from '../../lib/normalizeMarkdownWikiImages';
 import {
   registerEditorAiHandlers,
   type EditorAiSnapshot,
@@ -47,7 +46,6 @@ interface TabContentProps {
   wysiwygFont: EditorFontSettings;
   hasApiKey: boolean;
   onContentChange: (content: string) => void;
-  onBaselineSync?: (content: string) => void;
   onViewModeChange: (
     tabId: string,
     viewMode: EditorViewMode,
@@ -63,7 +61,6 @@ export default function TabContent({
   wysiwygFont,
   hasApiKey,
   onContentChange,
-  onBaselineSync,
   onViewModeChange,
   onSave,
   onAiOpen,
@@ -80,6 +77,10 @@ export default function TabContent({
   const [translationPopup, setTranslationPopup] =
     useState<TranslationPopupState | null>(null);
 
+  const getWysiwygContent = useCallback((): string => {
+    return mdxRef.current?.getPersistedMarkdown() ?? tab?.content ?? '';
+  }, [tab?.content]);
+
   const captureSnapshot = useCallback((): EditorAiSnapshot | null => {
     if (!tab || !isEditableTextTab(tab)) return null;
 
@@ -87,9 +88,7 @@ export default function TabContent({
     if (showWysiwyg) {
       const selection = mdxRef.current?.getSelectionMarkdown() ?? '';
       if (!selection.trim()) return null;
-      const current = exportMarkdownFromWysiwyg(
-        mdxRef.current?.getMarkdown() ?? tab.content,
-      );
+      const current = getWysiwygContent();
       return {
         selection,
         sourceRange: findSelectionSpan(current, selection),
@@ -100,7 +99,7 @@ export default function TabContent({
     const selection = sourceRef.current?.getSelectionText() ?? '';
     if (!selection.trim() || !range) return null;
     return { selection, sourceRange: range };
-  }, [tab]);
+  }, [getWysiwygContent, tab]);
 
   const applyAiResult = useCallback(
     (
@@ -112,15 +111,14 @@ export default function TabContent({
 
       const current =
         tab.viewMode === 'rich-text' && tab.kind === 'markdown'
-          ? exportMarkdownFromWysiwyg(
-              mdxRef.current?.getMarkdown() ?? tab.content,
-            )
+          ? getWysiwygContent()
           : (sourceRef.current?.getValue() ?? tab.content);
 
       const next = applyAiInEditor(current, snapshot, mode, aiText);
       if (next === null) return null;
 
       if (tab.viewMode === 'rich-text' && tab.kind === 'markdown') {
+        mdxRef.current?.markUserEdited();
         mdxRef.current?.setMarkdown(next);
       } else {
         sourceRef.current?.setDocument(next);
@@ -128,19 +126,17 @@ export default function TabContent({
       onContentChange(next);
       return next;
     },
-    [onContentChange, tab],
+    [getWysiwygContent, onContentChange, tab],
   );
 
   const getEditorContent = useCallback((): string => {
     if (!tab || !isEditableTextTab(tab)) return '';
     const showWysiwyg = tab.kind === 'markdown' && tab.viewMode === 'rich-text';
     if (showWysiwyg) {
-      return exportMarkdownFromWysiwyg(
-        mdxRef.current?.getMarkdown() ?? tab.content,
-      );
+      return getWysiwygContent();
     }
     return sourceRef.current?.getValue() ?? tab.content;
-  }, [tab]);
+  }, [getWysiwygContent, tab]);
 
   useEffect(() => {
     if (!tab || !isEditableTextTab(tab) || tab.truncated) {
@@ -167,13 +163,11 @@ export default function TabContent({
       if (!tab || tab.kind !== 'markdown') return;
       const content =
         next === 'source'
-          ? exportMarkdownFromWysiwyg(
-              mdxRef.current?.getMarkdown() ?? tab.content,
-            )
+          ? getWysiwygContent()
           : (sourceRef.current?.getValue() ?? tab.content);
       onViewModeChange(tab.id, next, content);
     },
-    [tab, onViewModeChange],
+    [getWysiwygContent, tab, onViewModeChange],
   );
 
   const handleEditorContextMenu = useCallback(
@@ -192,9 +186,7 @@ export default function TabContent({
         );
         if (!picked?.text.trim()) return;
 
-        const current = exportMarkdownFromWysiwyg(
-          mdxRef.current?.getMarkdown() ?? tab.content,
-        );
+        const current = getWysiwygContent();
         const snapshot: EditorAiSnapshot = {
           selection: picked.text,
           sourceRange: findSelectionSpan(current, picked.text),
@@ -222,7 +214,7 @@ export default function TabContent({
         wysiwyg: false,
       });
     },
-    [captureSnapshot, tab],
+    [captureSnapshot, getWysiwygContent, tab],
   );
 
   const handleContextMenuSelect = useCallback(
@@ -350,7 +342,6 @@ export default function TabContent({
                 relativePath={tab.relativePath}
                 readOnly={tab.truncated}
                 onChange={onContentChange}
-                onBaselineSync={onBaselineSync}
               />
             )}
             {showSource && (

@@ -18,6 +18,11 @@ import {
 } from '../../shared/editorFontConfig';
 import type { SettingsForm, SettingsGetResult } from '../../shared/types/settings';
 import {
+  DEFAULT_THEME_CONFIG,
+  parseThemeConfig,
+} from '../../shared/types/theme';
+import { resolveThemes } from './themeService';
+import {
   compressTilde,
   ensureParentDir,
   expandTilde,
@@ -45,6 +50,7 @@ const DEFAULT_CONFIG: MuledConfig = {
     sidebar_width: 260,
     tree_initial_expansion_depth: DEFAULT_TREE_INITIAL_EXPANSION_DEPTH,
   },
+  theme: DEFAULT_THEME_CONFIG,
 };
 
 function parseTreeInitialExpansionDepth(value: unknown): number {
@@ -77,6 +83,7 @@ function parseConfig(raw: unknown): MuledConfig {
   const editor = (data.editor ?? {}) as Record<string, unknown>;
   const workspace = (data.workspace ?? {}) as Record<string, unknown>;
   const ui = (data.ui ?? {}) as Record<string, unknown>;
+  const theme = parseThemeConfig(data.theme);
 
   const mode =
     editor.mode === 'normal' || editor.mode === 'vim' ? editor.mode : 'vim';
@@ -123,6 +130,7 @@ function parseConfig(raw: unknown): MuledConfig {
         ui.tree_initial_expansion_depth,
       ),
     },
+    theme,
   };
 }
 
@@ -152,6 +160,7 @@ export function ensureConfigFile(): void {
       sidebar_width: 260,
       tree_initial_expansion_depth: DEFAULT_TREE_INITIAL_EXPANSION_DEPTH,
     },
+    theme: DEFAULT_THEME_CONFIG,
   });
   fs.writeFileSync(configPath, template, 'utf8');
 }
@@ -191,7 +200,8 @@ export default class ConfigService {
   }
 
   getPublicConfig(): PublicConfig {
-    const { editor, workspace, ui, openai } = this.config;
+    const { editor, workspace, ui, openai, theme } = this.config;
+    const resolved = resolveThemes(theme);
     return {
       editor: {
         buffer_bytes: editor.buffer_bytes,
@@ -202,6 +212,7 @@ export default class ConfigService {
       },
       workspace: { path: workspace.path },
       ui,
+      theme: { ...theme, resolved },
       openai: {
         model: openai.model,
         has_api_key: openai.api_key.length > 0,
@@ -213,7 +224,7 @@ export default class ConfigService {
   }
 
   getSettings(): SettingsGetResult {
-    const { openai, editor, workspace, ui } = this.config;
+    const { openai, editor, workspace, ui, theme } = this.config;
     return {
       configPath: getConfigFilePath(),
       openai_key_configured: openai.api_key.length > 0,
@@ -234,6 +245,7 @@ export default class ConfigService {
           path: compressTilde(workspace.path),
         },
         ui: { ...ui },
+        theme: { ...theme },
       },
     };
   }
@@ -261,7 +273,7 @@ export default class ConfigService {
   private persist(): void {
     const configPath = getConfigFilePath();
     ensureParentDir(configPath);
-    const { openai, editor, workspace, ui } = this.config;
+    const { openai, editor, workspace, ui, theme } = this.config;
     const doc = {
       openai: {
         api_key: openai.api_key,
@@ -279,6 +291,7 @@ export default class ConfigService {
         path: compressTilde(workspace.path),
       },
       ui,
+      theme,
     };
     fs.writeFileSync(configPath, yaml.dump(doc), 'utf8');
   }

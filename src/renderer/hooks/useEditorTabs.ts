@@ -477,21 +477,6 @@ export function useEditorTabs(
     );
   }, []);
 
-  /** WYSIWYG 载入完成后同步编辑器 baseline，不标记 dirty（AutoLink 等被动改写） */
-  const syncActiveContent = useCallback(
-    (content: string) => {
-      if (!activeTabId) return;
-      setTabs((prev) =>
-        prev.map((t) => {
-          if (t.id !== activeTabId) return t;
-          if (t.dirty || t.content === content) return t;
-          return { ...t, content };
-        }),
-      );
-    },
-    [activeTabId],
-  );
-
   const setViewMode = useCallback(
     (tabId: string, viewMode: EditorViewMode, content?: string) => {
       setTabs((prev) =>
@@ -537,7 +522,6 @@ export function useEditorTabs(
     setActiveTab,
     updateActiveContent,
     updateTabContent,
-    syncActiveContent,
     setViewMode,
     setKeybindingMode,
     saveTab,

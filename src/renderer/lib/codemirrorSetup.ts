@@ -1,6 +1,92 @@
 import type { Extension } from '@codemirror/state';
-import { basicLight } from 'cm6-theme-basic-light';
-import { basicSetup } from 'codemirror';
+import { EditorState } from '@codemirror/state';
+import {
+  crosshairCursor,
+  drawSelection,
+  dropCursor,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  highlightSpecialChars,
+  keymap,
+  lineNumbers,
+  rectangularSelection,
+} from '@codemirror/view';
+import {
+  autocompletion,
+  closeBrackets,
+  closeBracketsKeymap,
+  completionKeymap,
+} from '@codemirror/autocomplete';
+import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
+import {
+  bracketMatching,
+  foldGutter,
+  foldKeymap,
+  indentOnInput,
+} from '@codemirror/language';
+import { lintKeymap } from '@codemirror/lint';
+import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
+import { EditorView } from '@codemirror/view';
+import type { ResolvedTheme } from '../../shared/types/theme';
+import { codeMirrorThemeFor } from './codemirrorThemeFor';
+
+/**
+ * 语法高亮的 bold/italic、字体连字会改变字宽，导致光标与文字错位。
+ * 强制等宽渲染，仅用颜色区分 token。
+ */
+function sourceEditorMeasureFixExtension(): Extension {
+  return EditorView.theme({
+    '.cm-scroller': {
+      lineHeight: 1.5,
+    },
+    '.cm-content': {
+      fontVariantLigatures: 'none',
+      fontFeatureSettings: '"liga" 0, "calt" 0',
+      padding: '4px 0',
+    },
+    '.cm-line': {
+      padding: '0 2px 0 6px',
+    },
+    '.cm-content .cm-line span': {
+      fontWeight: 'inherit !important',
+      fontStyle: 'inherit !important',
+    },
+  });
+}
+
+/**
+ * 等同 codemirror 包的 basicSetup，但不含 defaultHighlightStyle（由主题提供），
+ * 且 lineNumbers 只注册一次。
+ */
+function sourceEditorSetup(): Extension[] {
+  return [
+    lineNumbers(),
+    highlightActiveLineGutter(),
+    highlightSpecialChars(),
+    history(),
+    foldGutter(),
+    drawSelection(),
+    dropCursor(),
+    EditorState.allowMultipleSelections.of(true),
+    indentOnInput(),
+    bracketMatching(),
+    closeBrackets(),
+    autocompletion(),
+    rectangularSelection(),
+    crosshairCursor(),
+    highlightActiveLine(),
+    highlightSelectionMatches(),
+    keymap.of([
+      ...closeBracketsKeymap,
+      ...defaultKeymap,
+      ...searchKeymap,
+      ...historyKeymap,
+      ...foldKeymap,
+      ...completionKeymap,
+      ...lintKeymap,
+    ]),
+  ];
+}
 
 /** 将 CodeMirror 扩展或扩展数组合并为一维数组，过滤 undefined */
 export function flattenExtensions(
@@ -14,6 +100,12 @@ export function flattenExtensions(
 }
 
 /** Source 编辑器通用 UI 扩展（主题、行号等） */
-export function buildCommonSourceUiExtensions(): Extension[] {
-  return flattenExtensions([basicSetup, basicLight]);
+export function buildCommonSourceUiExtensions(
+  theme: ResolvedTheme = 'light',
+): Extension[] {
+  return flattenExtensions([
+    sourceEditorSetup(),
+    codeMirrorThemeFor(theme),
+    sourceEditorMeasureFixExtension(),
+  ]);
 }

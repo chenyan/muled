@@ -8,6 +8,7 @@ import { merge } from 'webpack-merge';
 import { execSync, spawn } from 'child_process';
 import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
 import baseConfig from './webpack.config.base';
+import mathjaxDefinePlugin from './mathjaxDefinePlugin';
 import webpackPaths from './webpack.paths';
 import checkNodeEnv from '../scripts/check-node-env';
 
@@ -146,6 +147,8 @@ const configuration: webpack.Configuration = {
     new webpack.EnvironmentPlugin({
       NODE_ENV: 'development',
     }),
+
+    mathjaxDefinePlugin(),
 
     new webpack.LoaderOptionsPlugin({
       debug: true,

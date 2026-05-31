@@ -1,7 +1,5 @@
 import { splitTopLevelMarkdownBlocks } from './splitMarkdownBlocks';
 
-const MATH_FENCE_LANG = /^(`{3,}|~{3,})(latex|tex|katex)(\s*)$/im;
-
 /** 行内公式：$a$ 且非 $$ */
 const INLINE_MATH_RE = /(?<!\$)\$(?!\$)((?:\\.|[^$\\\n])+?)\$(?!\$)/g;
 
@@ -12,25 +10,11 @@ function escapeHtmlAttr(value: string): string {
     .replace(/</g, '&lt;');
 }
 
-function normalizeMathFenceLanguage(block: string): string {
-  const lines = block.split('\n');
-  if (lines.length === 0 || !lines[0].match(/^(`{3,}|~{3,})/)) {
-    return block;
-  }
-  lines[0] = lines[0].replace(MATH_FENCE_LANG, '$1math$3');
-  return lines.join('\n');
-}
-
 function normalizeDisplayMathDelimiters(block: string): string {
-  let result = block.replace(
-    /^\$\$\s*\n([\s\S]*?)\n\s*\$\$/gm,
+  return block.replace(
+    /^\$\$([\s\S]*?)\$\$/gm,
     (_, content: string) => `\`\`\`math\n${content.trim()}\n\`\`\``,
   );
-  result = result.replace(
-    /^\$\$([^\n$]+?)\$\$/gm,
-    (_, content: string) => `\`\`\`math\n${content.trim()}\n\`\`\``,
-  );
-  return result;
 }
 
 function normalizeInlineMathDelimiters(block: string): string {
@@ -48,7 +32,7 @@ export default function normalizeMarkdownMath(source: string): string {
     .map((block) => {
       const trimmedStart = block.trimStart();
       if (trimmedStart.startsWith('```') || trimmedStart.startsWith('~~~')) {
-        return normalizeMathFenceLanguage(block);
+        return block;
       }
       let normalized = normalizeDisplayMathDelimiters(block);
       normalized = normalizeInlineMathDelimiters(normalized);

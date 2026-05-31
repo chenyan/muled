@@ -6,6 +6,7 @@ import {
 } from '@mdxeditor/editor';
 import { $createParagraphNode, $createTextNode, type ElementNode, type LexicalNode } from 'lexical';
 import type { Nodes } from 'mdast';
+import { isRenderableHtmlMdastNode } from './serializeMdastNodeToHtml';
 import {
   formatLinkDefinition,
   isCompositeInlineMdastNode,
@@ -20,7 +21,6 @@ const INLINE_LEAF_MDAST_TYPES = new Set<string>([
   'inlineCode',
   'link',
   'image',
-  'mdxJsxTextElement',
   'mdxTextExpression',
   'break',
 ]);
@@ -65,6 +65,10 @@ const MDAST_FALLBACK_VISITOR: MdastImportVisitor<Nodes> = {
   priority: -1000,
   testNode: () => true,
   visitNode({ mdastNode, lexicalParent, actions }) {
+    if (isRenderableHtmlMdastNode(mdastNode)) {
+      return;
+    }
+
     if (mdastNode.type === 'definition') {
       appendTextToLexicalParent(
         lexicalParent,

@@ -10,7 +10,7 @@ describe('resolveWikiImagePreview', () => {
       config: {
         get: jest.fn(),
         getWysiwygCss: jest.fn(),
-        onWysiwygThemeChanged: () => () => undefined,
+        onThemeChanged: () => () => undefined,
       },
       workspace: {
         get: jest.fn(),
