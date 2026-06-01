@@ -6,7 +6,12 @@ import type {
 } from '../../shared/types/config';
 import { isMarkdownPath } from '../lib/fileLanguage';
 import { exportWikiImagesFromMarkdown } from '../lib/normalizeMarkdownWikiImages';
-import { isDirectoryPath, isImagePath, isPdfPath } from '../lib/mime';
+import {
+  isAudioPath,
+  isDirectoryPath,
+  isImagePath,
+  isPdfPath,
+} from '../lib/mime';
 import keybindingModePatch from '../lib/keybindingMode';
 import { pushStatusToast } from '../lib/statusToast';
 import {
@@ -52,6 +57,7 @@ async function loadFileIntoTab(
     | 'fileSize'
     | 'imageSrc'
     | 'pdfSrc'
+    | 'audioSrc'
   >,
 ): Promise<EditorTab> {
   if (isPdfPath(relativePath)) {
@@ -80,6 +86,21 @@ async function loadFileIntoTab(
       truncated: false,
       fileSize: 0,
       imageSrc: `data:${mime};base64,${base64}`,
+      dirty: false,
+    };
+  }
+
+  if (isAudioPath(relativePath)) {
+    const { base64, mime } = await window.muled.file.readBinary(relativePath);
+    return {
+      ...base,
+      id: newId(),
+      relativePath,
+      kind: 'audio',
+      content: '',
+      truncated: false,
+      fileSize: 0,
+      audioSrc: `data:${mime};base64,${base64}`,
       dirty: false,
     };
   }
@@ -184,7 +205,7 @@ export function useEditorTabs(
     if (tab.truncated) {
       return { ok: false, reason: 'truncated' };
     }
-    if (tab.kind === 'image' || tab.kind === 'pdf') {
+    if (tab.kind === 'image' || tab.kind === 'pdf' || tab.kind === 'audio') {
       return { ok: false, reason: 'image' };
     }
 
@@ -364,6 +385,61 @@ export function useEditorTabs(
     [activateTabId, ensureCanProceed],
   );
 
+  const openDirectoryGrid = useCallback(
+    async (relativePath: string) => {
+      const cfg = configRef.current;
+      if (!cfg || !isDirectoryPath(relativePath)) {
+        return;
+      }
+
+      const currentTabs = tabsRef.current;
+      const existing = currentTabs.find(
+        (t) => t.kind === 'directory-grid' && t.relativePath === relativePath,
+      );
+      if (existing) {
+        await activateTabId(existing.id);
+        return;
+      }
+
+      const targetId = resolveTargetTabId(currentTabs, activeTabIdRef.current);
+      const target = targetId
+        ? currentTabs.find((t) => t.id === targetId)
+        : undefined;
+      if (!(await ensureCanProceed(target))) return;
+
+      const loaded: EditorTab = {
+        id: newId(),
+        relativePath,
+        kind: 'directory-grid',
+        dirty: false,
+        keybindingMode: cfg.editor.mode,
+        viewMode: cfg.editor.default_view,
+        content: '',
+        truncated: false,
+        fileSize: 0,
+      };
+
+      let nextActiveId: string | null = null;
+      setTabs((prev) => {
+        const nextTargetId = resolveTargetTabId(prev, activeTabIdRef.current);
+        if (!nextTargetId) {
+          const id = newId();
+          nextActiveId = id;
+          return [{ ...loaded, id }];
+        }
+        nextActiveId = nextTargetId;
+        return prev.map((t) => {
+          if (t.id !== nextTargetId) return t;
+          releaseTabResources(t);
+          return { ...loaded, id: t.id };
+        });
+      });
+
+      if (nextActiveId) setActiveTabId(nextActiveId);
+    },
+    [activateTabId, ensureCanProceed],
+  );
+
   const addTab = useCallback(() => {
     if (!config) return;
     const tab = createEmptyTab(config);
@@ -432,6 +508,7 @@ export function useEditorTabs(
             if (t.id !== tabId) return t;
             if (t.kind === 'pdf') return { ...t, pdfSrc: dataUrl };
             if (t.kind === 'image') return { ...t, imageSrc: dataUrl };
+            if (t.kind === 'audio') return { ...t, audioSrc: dataUrl };
             return t;
           }),
         );
@@ -451,6 +528,7 @@ export function useEditorTabs(
     activeTab?.relativePath,
     activeTab?.pdfSrc,
     activeTab?.imageSrc,
+    activeTab?.audioSrc,
   ]);
 
   const updateActiveContent = useCallback(
@@ -517,6 +595,7 @@ export function useEditorTabs(
     activeTabId,
     openPath,
     openPathWithReveal,
+    openDirectoryGrid,
     addTab,
     closeTab,
     setActiveTab,

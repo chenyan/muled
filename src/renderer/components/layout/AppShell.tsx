@@ -83,6 +83,7 @@ export default function AppShell() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteInitialValue, setPaletteInitialValue] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
 
   const [aiDialog, setAiDialog] = useState<{
     mode: AiApplyMode;
@@ -365,6 +366,7 @@ export default function AppShell() {
   const tabContent = (
     <TabContent
       tab={editor.activeTab}
+      workspacePaths={workspace.paths}
       sourceFont={uiConfig.editor.source}
       wysiwygFont={uiConfig.editor.wysiwyg}
       hasApiKey={uiConfig.openai.has_api_key}
@@ -377,6 +379,16 @@ export default function AppShell() {
         handleSave(tabId).catch((err) => {
           const message = err instanceof Error ? err.message : String(err);
           pushStatusToast(`保存失败: ${message}`, 'error');
+        });
+      }}
+      onOpenFile={(path) => {
+        editor.openPath(path).catch(() => {
+          /* toast in openPath */
+        });
+      }}
+      onOpenDirectoryGrid={(path) => {
+        editor.openDirectoryGrid(path).catch(() => {
+          /* openDirectoryGrid is sync-safe */
         });
       }}
     />
@@ -412,7 +424,11 @@ export default function AppShell() {
         onClose={() => setSettingsOpen(false)}
         onSaved={handleSettingsSaved}
       />
-      <aside className="AppShell__sidebar" style={sidebarStyle}>
+      <aside
+        className={`AppShell__sidebar${sidebarVisible ? '' : ' AppShell__sidebar--hidden'}`}
+        style={sidebarStyle}
+        aria-hidden={!sidebarVisible}
+      >
         <WorkspaceTree
           key={uiConfig.ui.tree_initial_expansion_depth}
           paths={workspace.paths}
@@ -439,6 +455,11 @@ export default function AppShell() {
               /* alert in openPath */
             });
           }}
+          onOpenDirectoryGrid={(path) => {
+            editor.openDirectoryGrid(path).catch(() => {
+              /* openDirectoryGrid is sync-safe */
+            });
+          }}
         />
       </aside>
       <main className="AppShell__main">
@@ -446,6 +467,8 @@ export default function AppShell() {
           <TabBar
             tabs={editor.tabs}
             activeTabId={editor.activeTabId}
+            sidebarVisible={sidebarVisible}
+            onToggleSidebar={() => setSidebarVisible((v) => !v)}
             onSelect={editor.setActiveTab}
             onClose={(tabId) => {
               editor

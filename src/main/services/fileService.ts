@@ -8,7 +8,8 @@ import type {
 import type { ConfigService } from './configService';
 import type { WorkspaceService } from './workspaceService';
 
-const BINARY_PREVIEW_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|ico|pdf)$/i;
+const BINARY_PREVIEW_EXT =
+  /\.(png|jpe?g|gif|webp|svg|bmp|ico|pdf|mp3|wav|ogg|m4a|aac|flac|weba)$/i;
 
 const MIME_BY_EXT: Record<string, string> = {
   '.png': 'image/png',
@@ -20,6 +21,13 @@ const MIME_BY_EXT: Record<string, string> = {
   '.bmp': 'image/bmp',
   '.ico': 'image/x-icon',
   '.pdf': 'application/pdf',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.ogg': 'audio/ogg',
+  '.m4a': 'audio/mp4',
+  '.aac': 'audio/aac',
+  '.flac': 'audio/flac',
+  '.weba': 'audio/webm',
 };
 
 function guessMime(filePath: string): string {

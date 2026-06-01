@@ -30,6 +30,7 @@ interface WorkspaceTreeProps {
   /** 状态栏路径点击等：在树中展开并选中，不重复打开文件 */
   revealRequest?: WorkspaceTreeRevealRequest | null;
   onOpenFile: (relativePath: string) => void;
+  onOpenDirectoryGrid: (relativePath: string) => void;
   onSwitchWorkspace: (absolutePath: string) => void;
 }
 
@@ -40,6 +41,7 @@ interface WorkspaceTreeFileListProps {
   selectionResetKey: number;
   revealRequest?: WorkspaceTreeRevealRequest | null;
   onOpenFile: (relativePath: string) => void;
+  onOpenDirectoryGrid: (relativePath: string) => void;
 }
 
 /** 工作区切换时 remount，避免 pierre/trees 在 resetPaths 后选区回调失效 */
@@ -50,6 +52,7 @@ function WorkspaceTreeFileList({
   selectionResetKey,
   revealRequest,
   onOpenFile,
+  onOpenDirectoryGrid,
 }: WorkspaceTreeFileListProps) {
   const onOpenFileRef = useRef(onOpenFile);
   onOpenFileRef.current = onOpenFile;
@@ -98,6 +101,7 @@ function WorkspaceTreeFileList({
         <WorkspaceTreeContextMenu
           item={item}
           workspaceRoot={workspaceRoot}
+          onOpenDirectoryGrid={onOpenDirectoryGrid}
           onClose={context.close}
         />
       )}
@@ -117,6 +121,7 @@ export default function WorkspaceTree({
   selectionResetKey,
   revealRequest,
   onOpenFile,
+  onOpenDirectoryGrid,
   onSwitchWorkspace,
 }: WorkspaceTreeProps) {
   const treeHostRef = useRef<HTMLDivElement>(null);
@@ -201,6 +206,7 @@ export default function WorkspaceTree({
           selectionResetKey={selectionResetKey}
           revealRequest={revealRequest}
           onOpenFile={onOpenFile}
+          onOpenDirectoryGrid={onOpenDirectoryGrid}
         />
       </div>
     </div>

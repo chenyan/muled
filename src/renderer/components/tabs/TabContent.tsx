@@ -20,7 +20,9 @@ import TranslationPopup, {
   type TranslationPopupState,
 } from '../ai/TranslationPopup';
 import EditorViewSwitch from '../editor/EditorViewSwitch';
+import AudioPreview from '../editor/AudioPreview';
 import ImagePreview from '../editor/ImagePreview';
+import DirectoryGridView from '../editor/DirectoryGridView';
 import PdfViewer from '../editor/pdf/PdfViewer';
 import MarkdownEditor, {
   type MarkdownEditorHandle,
@@ -42,6 +44,7 @@ import { isEditableTextTab, tabLabel } from '../../types/tab';
 
 interface TabContentProps {
   tab: EditorTab | null;
+  workspacePaths: string[];
   sourceFont: EditorFontSettings;
   wysiwygFont: EditorFontSettings;
   hasApiKey: boolean;
@@ -52,17 +55,22 @@ interface TabContentProps {
     content: string,
   ) => void;
   onSave: (tabId: string) => void;
+  onOpenFile: (relativePath: string) => void;
+  onOpenDirectoryGrid: (relativePath: string) => void;
   onAiOpen: (mode: AiApplyMode, snapshot: EditorAiSnapshot) => void;
 }
 
 export default function TabContent({
   tab,
+  workspacePaths,
   sourceFont,
   wysiwygFont,
   hasApiKey,
   onContentChange,
   onViewModeChange,
   onSave,
+  onOpenFile,
+  onOpenDirectoryGrid,
   onAiOpen,
 }: TabContentProps) {
   const mdxRef = useRef<MarkdownEditorHandle>(null);
@@ -328,6 +336,15 @@ export default function TabContent({
           <ImagePreview tab={tab} />
         ) : tab.kind === 'pdf' ? (
           <PdfViewer tab={tab} />
+        ) : tab.kind === 'audio' ? (
+          <AudioPreview tab={tab} />
+        ) : tab.kind === 'directory-grid' ? (
+          <DirectoryGridView
+            tab={tab}
+            workspacePaths={workspacePaths}
+            onOpenFile={onOpenFile}
+            onOpenDirectory={onOpenDirectoryGrid}
+          />
         ) : (
           <div
             className="TabContent__editorPane"

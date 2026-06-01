@@ -1,4 +1,9 @@
-import { isDirectoryPath, isImagePath, isPdfPath } from '../renderer/lib/mime';
+import {
+  isAudioPath,
+  isDirectoryPath,
+  isImagePath,
+  isPdfPath,
+} from '../renderer/lib/mime';
 
 describe('mime', () => {
   it('detects image extensions', () => {
@@ -10,6 +15,13 @@ describe('mime', () => {
   it('detects pdf extension', () => {
     expect(isPdfPath('docs/guide.pdf')).toBe(true);
     expect(isPdfPath('readme.md')).toBe(false);
+  });
+
+  it('detects audio extensions', () => {
+    expect(isAudioPath('music/song.mp3')).toBe(true);
+    expect(isAudioPath('voice.WAV')).toBe(true);
+    expect(isAudioPath('track.flac')).toBe(true);
+    expect(isAudioPath('readme.md')).toBe(false);
   });
 
   it('detects directory paths', () => {

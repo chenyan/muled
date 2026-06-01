@@ -36,6 +36,16 @@ describe('releaseTabBinaryPayload', () => {
     });
     expect(released.imageSrc).toBeUndefined();
   });
+
+  it('strips audioSrc from audio tabs', () => {
+    const released = releaseTabBinaryPayload({
+      ...pdfTab(),
+      kind: 'audio',
+      pdfSrc: undefined,
+      audioSrc: 'data:audio/mpeg;base64,abc',
+    });
+    expect(released.audioSrc).toBeUndefined();
+  });
 });
 
 describe('needsBinaryHydration', () => {
@@ -45,5 +55,16 @@ describe('needsBinaryHydration', () => {
 
   it('is false when pdf tab already has pdfSrc', () => {
     expect(needsBinaryHydration(pdfTab())).toBe(false);
+  });
+
+  it('is true when audio tab has no audioSrc', () => {
+    expect(
+      needsBinaryHydration({
+        ...pdfTab(),
+        kind: 'audio',
+        pdfSrc: undefined,
+        audioSrc: undefined,
+      }),
+    ).toBe(true);
   });
 });

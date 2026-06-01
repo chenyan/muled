@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect } from 'react';
+import { useCallback } from 'react';
 import { workspaceAbsolutePath } from '../../lib/workspaceAbsolutePath';
 import { pushStatusToast } from '../../lib/statusToast';
 import './WorkspaceTreeContextMenu.css';
@@ -12,20 +12,16 @@ interface WorkspaceTreeContextMenuItem {
 interface WorkspaceTreeContextMenuProps {
   item: WorkspaceTreeContextMenuItem;
   workspaceRoot: string;
+  onOpenDirectoryGrid: (relativePath: string) => void;
   onClose: () => void;
 }
 
 export default function WorkspaceTreeContextMenu({
   item,
   workspaceRoot,
+  onOpenDirectoryGrid,
   onClose,
 }: WorkspaceTreeContextMenuProps) {
-  useLayoutEffect(() => {
-    if (item.kind !== 'file') {
-      onClose();
-    }
-  }, [item.kind, onClose]);
-
   const copyAbsolutePath = useCallback(async () => {
     const absolutePath = workspaceAbsolutePath(workspaceRoot, item.path);
     try {
@@ -37,8 +33,29 @@ export default function WorkspaceTreeContextMenu({
     onClose();
   }, [item.path, onClose, workspaceRoot]);
 
-  if (item.kind !== 'file') {
-    return null;
+  const openDirectoryGrid = useCallback(() => {
+    const dirPath = item.path.endsWith('/') ? item.path : `${item.path}/`;
+    onOpenDirectoryGrid(dirPath);
+    onClose();
+  }, [item.path, onClose, onOpenDirectoryGrid]);
+
+  if (item.kind === 'directory') {
+    return (
+      <div
+        className="WorkspaceTreeContextMenu"
+        data-file-tree-context-menu-root="true"
+        role="menu"
+      >
+        <button
+          type="button"
+          role="menuitem"
+          className="WorkspaceTreeContextMenu__item"
+          onClick={openDirectoryGrid}
+        >
+          列表显示
+        </button>
+      </div>
+    );
   }
 
   return (

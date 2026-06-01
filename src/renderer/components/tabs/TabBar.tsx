@@ -4,6 +4,8 @@ import { tabLabel } from '../../types/tab';
 interface TabBarProps {
   tabs: EditorTab[];
   activeTabId: string | null;
+  sidebarVisible: boolean;
+  onToggleSidebar: () => void;
   onSelect: (tabId: string) => void;
   onClose: (tabId: string) => void;
   onAdd: () => void;
@@ -13,6 +15,8 @@ interface TabBarProps {
 export default function TabBar({
   tabs,
   activeTabId,
+  sidebarVisible,
+  onToggleSidebar,
   onSelect,
   onClose,
   onAdd,
@@ -20,6 +24,27 @@ export default function TabBar({
 }: TabBarProps) {
   return (
     <div className="TabBar">
+      <button
+        type="button"
+        className={`TabBar__sidebarToggle${sidebarVisible ? ' TabBar__sidebarToggle--active' : ''}`}
+        aria-label={sidebarVisible ? '隐藏侧边栏' : '显示侧边栏'}
+        aria-pressed={sidebarVisible}
+        title={sidebarVisible ? '隐藏侧边栏' : '显示侧边栏'}
+        onClick={onToggleSidebar}
+      >
+        <svg
+          className="TabBar__sidebarToggleIcon"
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          aria-hidden
+        >
+          <path
+            fill="currentColor"
+            d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zm2 0v14h6V5H5zm8 0v14h6V5h-6z"
+          />
+        </svg>
+      </button>
       <div className="TabBar__list" role="tablist">
         {tabs.map((tab) => {
           const active = tab.id === activeTabId;
