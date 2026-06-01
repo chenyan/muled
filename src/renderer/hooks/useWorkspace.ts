@@ -29,7 +29,7 @@ export function useWorkspace() {
     setState((prev) => ({ ...prev, loading: true, error: null }));
     try {
       const { root, recent } = await window.muled.workspace.get();
-      const { paths } = await window.muled.workspace.list();
+      const { paths } = await window.muled.workspace.listChildren('');
       setState({ root, paths, recent, loading: false, error: null });
     } catch (e) {
       setState((prev) => ({

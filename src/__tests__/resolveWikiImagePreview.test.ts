@@ -15,7 +15,10 @@ describe('resolveWikiImagePreview', () => {
       workspace: {
         get: jest.fn(),
         list: jest.fn(),
+        listChildren: jest.fn(),
+        pdfOutline: jest.fn(),
         cd: jest.fn(),
+        completeCd: jest.fn(),
       },
       file: {
         read: jest.fn(),
@@ -24,6 +27,12 @@ describe('resolveWikiImagePreview', () => {
       },
       ai: {
         complete: jest.fn(),
+        translate: jest.fn(),
+      },
+      search: {
+        start: jest.fn(),
+        cancel: jest.fn(),
+        onStream: () => () => undefined,
       },
     } as unknown as typeof window.muled;
   });

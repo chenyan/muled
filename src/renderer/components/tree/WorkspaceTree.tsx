@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWheelScrollOnlyWhenGestureStartsIn } from '../../lib/wheelScrollOnlyWhenGestureStartsIn';
 import { FileTree, useFileTree } from '@pierre/trees/react';
 import { formatWorkspacePathLabel } from '../../lib/formatWorkspacePathLabel';
 import {
+  ancestorDirectoryPaths,
   clearFileTreeSelection,
   revealPathInFileTree,
   type FileTreeRevealModel,
 } from '../../lib/workspaceTreeReveal';
-import { filterWorkspacePathsByQuery } from '../../../shared/workspacePathGlob';
 import WorkspaceTreeContextMenu from './WorkspaceTreeContextMenu';
 
 export type WorkspaceTreeRevealRequest = {
@@ -57,16 +57,78 @@ function WorkspaceTreeFileList({
   const onOpenFileRef = useRef(onOpenFile);
   onOpenFileRef.current = onOpenFile;
   const suppressOpenRef = useRef(false);
+  const loadedDirsRef = useRef(new Set<string>());
+  const loadedChildrenRef = useRef(new Map<string, string[]>());
+  const inFlightLoadsRef = useRef(new Map<string, Promise<string[]>>());
+  const pendingExpandDirsRef = useRef(new Set<string>());
+  const [treePaths, setTreePaths] = useState<string[]>(paths);
+
+  const mergePaths = useCallback((prevPaths: string[], nextPaths: string[]) => {
+    if (nextPaths.length === 0) return prevPaths;
+    const merged = new Set(prevPaths);
+    let changed = false;
+    for (const path of nextPaths) {
+      if (!merged.has(path)) {
+        merged.add(path);
+        changed = true;
+      }
+    }
+    if (!changed) return prevPaths;
+    return [...merged].sort();
+  }, []);
+
+  const ensureChildrenLoaded = useCallback(
+    async (directoryPath: string): Promise<string[]> => {
+      const normalized =
+        directoryPath === ''
+          ? ''
+          : directoryPath.endsWith('/')
+            ? directoryPath
+            : `${directoryPath}/`;
+      if (loadedDirsRef.current.has(normalized)) {
+        return loadedChildrenRef.current.get(normalized) ?? [];
+      }
+      const inFlight = inFlightLoadsRef.current.get(normalized);
+      if (inFlight) return inFlight;
+
+      const loadPromise = window.muled.workspace
+        .listChildren(normalized)
+        .then(({ paths: children }) => {
+          // listChildren 完成后会触发 resetPaths，这里记录需要恢复展开态的目录。
+          pendingExpandDirsRef.current.add(normalized);
+          setTreePaths((prev) => mergePaths(prev, children));
+          loadedDirsRef.current.add(normalized);
+          loadedChildrenRef.current.set(normalized, children);
+          return children;
+        })
+        .finally(() => {
+          inFlightLoadsRef.current.delete(normalized);
+        });
+
+      inFlightLoadsRef.current.set(normalized, loadPromise);
+      return loadPromise;
+    },
+    [mergePaths],
+  );
 
   const { model } = useFileTree({
-    paths,
+    paths: treePaths,
     initialExpansion: initialExpansionDepth,
     search: false,
     density: 'compact',
     onSelectionChange: (selectedPaths) => {
       if (suppressOpenRef.current) return;
       const last = selectedPaths[selectedPaths.length - 1];
-      if (!last || last.endsWith('/')) {
+      if (!last) {
+        return;
+      }
+      if (last.endsWith('/')) {
+        // 首次点击目录时先立刻展开，再异步加载子项，避免“点第二次才展开”的体感。
+        const dir = (model as FileTreeRevealModel).getItem(last);
+        if (dir?.isDirectory()) {
+          dir.expand();
+        }
+        void ensureChildrenLoaded(last);
         return;
       }
       onOpenFileRef.current(last);
@@ -74,8 +136,54 @@ function WorkspaceTreeFileList({
   });
 
   useEffect(() => {
-    model.resetPaths(paths);
-  }, [model, paths]);
+    loadedDirsRef.current = new Set<string>();
+    loadedChildrenRef.current = new Map<string, string[]>();
+    inFlightLoadsRef.current = new Map<string, Promise<string[]>>();
+    setTreePaths(paths);
+    void ensureChildrenLoaded('');
+  }, [ensureChildrenLoaded, paths, workspaceRoot]);
+
+  useEffect(() => {
+    model.resetPaths(treePaths);
+    if (pendingExpandDirsRef.current.size > 0) {
+      pendingExpandDirsRef.current.forEach((dirPath) => {
+        const dir = (model as FileTreeRevealModel).getItem(dirPath);
+        if (dir?.isDirectory()) {
+          dir.expand();
+        }
+      });
+      pendingExpandDirsRef.current.clear();
+    }
+  }, [model, treePaths]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      let currentDirs = [''];
+      for (let depth = 0; depth < initialExpansionDepth; depth += 1) {
+        const nextDirs: string[] = [];
+        await Promise.all(
+          currentDirs.map(async (dir) => {
+            if (cancelled) return;
+            const children = await ensureChildrenLoaded(dir);
+            for (const child of children) {
+              if (child.endsWith('/')) {
+                nextDirs.push(child);
+              }
+            }
+          }),
+        );
+        currentDirs = nextDirs;
+        if (currentDirs.length === 0 || cancelled) {
+          break;
+        }
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [ensureChildrenLoaded, initialExpansionDepth, workspaceRoot]);
 
   useEffect(() => {
     clearFileTreeSelection(model as FileTreeRevealModel);
@@ -83,15 +191,30 @@ function WorkspaceTreeFileList({
 
   useEffect(() => {
     if (!revealRequest) return;
-    suppressOpenRef.current = true;
-    try {
-      revealPathInFileTree(model as FileTreeRevealModel, revealRequest.treePath);
-    } finally {
-      queueMicrotask(() => {
-        suppressOpenRef.current = false;
-      });
-    }
-  }, [model, revealRequest]);
+    let cancelled = false;
+    const run = async () => {
+      suppressOpenRef.current = true;
+      try {
+        const targetPath = revealRequest.treePath.replace(/\\/g, '/');
+        const dirs = ancestorDirectoryPaths(targetPath);
+        for (const dir of dirs) {
+          if (cancelled) return;
+          await ensureChildrenLoaded(dir);
+        }
+        if (!cancelled) {
+          revealPathInFileTree(model as FileTreeRevealModel, targetPath);
+        }
+      } finally {
+        queueMicrotask(() => {
+          suppressOpenRef.current = false;
+        });
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [ensureChildrenLoaded, model, revealRequest]);
 
   return (
     <FileTree
@@ -126,7 +249,6 @@ export default function WorkspaceTree({
 }: WorkspaceTreeProps) {
   const treeHostRef = useRef<HTMLDivElement>(null);
   useWheelScrollOnlyWhenGestureStartsIn(treeHostRef);
-  const [searchQuery, setSearchQuery] = useState('');
 
   const workspaceOptions = useMemo(() => {
     const seen = new Set<string>();
@@ -138,11 +260,6 @@ export default function WorkspaceTree({
     }
     return ordered;
   }, [workspaceRoot, recentWorkspaces]);
-
-  const filteredPaths = useMemo(
-    () => filterWorkspacePathsByQuery(paths, searchQuery),
-    [paths, searchQuery],
-  );
 
   return (
     <div className="WorkspaceTree">
@@ -167,18 +284,6 @@ export default function WorkspaceTree({
           ))}
         </select>
       </label>
-      <label className="WorkspaceTree__search">
-        <span className="visually-hidden">搜索文件</span>
-        <input
-          type="search"
-          className="WorkspaceTree__searchInput"
-          value={searchQuery}
-          placeholder="搜索… 支持 glob（*.md、**/*.tsx）"
-          spellCheck={false}
-          disabled={pathsLoading}
-          onChange={(event) => setSearchQuery(event.target.value)}
-        />
-      </label>
       {workspaceError ? (
         <div className="WorkspaceTree__error" role="alert">
           <span>{workspaceError}</span>
@@ -200,7 +305,7 @@ export default function WorkspaceTree({
         ) : null}
         <WorkspaceTreeFileList
           key={workspaceRoot}
-          paths={filteredPaths}
+          paths={paths}
           workspaceRoot={workspaceRoot}
           initialExpansionDepth={initialExpansionDepth}
           selectionResetKey={selectionResetKey}

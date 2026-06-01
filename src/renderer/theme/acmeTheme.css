@@ -143,6 +143,12 @@
   font-size: 14px;
 }
 
+/* Sidebar 标签按钮需要填满 36px 高度的 header，不使用 24px 小按钮 */
+[data-muled-ui-theme='acme'] .SidebarTabs__tab {
+  height: 36px;
+  width: 36px;
+}
+
 [data-muled-ui-theme='acme'] .TabBar__sidebarToggle {
   border-right: 1px solid #000;
 }

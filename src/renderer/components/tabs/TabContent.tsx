@@ -39,12 +39,12 @@ import {
 } from '../../lib/editorAiBridge';
 import { editorPaneFontVars } from '../../lib/editorFontStyle';
 import { registerEditorViewHandlers } from '../../lib/editorViewBridge';
+import { registerEditorOutlineHandlers } from '../../lib/editorOutlineBridge';
 import type { EditorTab } from '../../types/tab';
 import { isEditableTextTab, tabLabel } from '../../types/tab';
 
 interface TabContentProps {
   tab: EditorTab | null;
-  workspacePaths: string[];
   sourceFont: EditorFontSettings;
   wysiwygFont: EditorFontSettings;
   hasApiKey: boolean;
@@ -62,7 +62,6 @@ interface TabContentProps {
 
 export default function TabContent({
   tab,
-  workspacePaths,
   sourceFont,
   wysiwygFont,
   hasApiKey,
@@ -151,6 +150,7 @@ export default function TabContent({
       if (tab) {
         registerEditorAiHandlers(tab.id, null);
         registerEditorViewHandlers(tab.id, null);
+        registerEditorOutlineHandlers(tab.id, null);
       }
       return undefined;
     }
@@ -160,9 +160,23 @@ export default function TabContent({
       applyAiResult,
     });
     registerEditorViewHandlers(tab.id, { getEditorContent });
+    registerEditorOutlineHandlers(tab.id, {
+      revealOutlineTarget: ({ line, title }) => {
+        if (tab.kind !== 'markdown' || tab.viewMode !== 'rich-text') {
+          return false;
+        }
+        return (
+          mdxRef.current?.revealOutlineTarget({
+            line,
+            title,
+          }) ?? false
+        );
+      },
+    });
     return () => {
       registerEditorAiHandlers(tab.id, null);
       registerEditorViewHandlers(tab.id, null);
+      registerEditorOutlineHandlers(tab.id, null);
     };
   }, [applyAiResult, captureSnapshot, getEditorContent, tab]);
 
@@ -341,7 +355,6 @@ export default function TabContent({
         ) : tab.kind === 'directory-grid' ? (
           <DirectoryGridView
             tab={tab}
-            workspacePaths={workspacePaths}
             onOpenFile={onOpenFile}
             onOpenDirectory={onOpenDirectoryGrid}
           />

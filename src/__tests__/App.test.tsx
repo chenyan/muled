@@ -75,6 +75,8 @@ beforeEach(() => {
     workspace: {
       get: async () => ({ root: '/tmp', recent: ['/tmp'] }),
       list: async () => ({ paths: ['README.md'] }),
+      listChildren: async () => ({ paths: ['README.md'] }),
+      pdfOutline: async () => ({ items: [] }),
       cd: async () => ({ root: '/tmp', paths: [], recent: ['/tmp'] }),
       completeCd: async () => ({ labels: [] }),
     },
@@ -102,7 +104,7 @@ beforeEach(() => {
 describe('App', () => {
   it('renders shell after config loads', async () => {
     render(<App />);
-    expect(await screen.findByRole('tablist')).toBeInTheDocument();
+    expect((await screen.findAllByRole('tablist')).length).toBeGreaterThan(0);
     expect(screen.getAllByText('Untitled').length).toBeGreaterThan(0);
   });
 });

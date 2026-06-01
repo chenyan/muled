@@ -31,4 +31,24 @@ describe('WorkspaceService', () => {
     expect(paths).toContain('src/index.ts');
     expect(paths.some((p) => p.includes('node_modules'))).toBe(false);
   });
+
+  it('lists only direct children for a directory', () => {
+    const config = new ConfigService();
+    config.load();
+    const workspace = new WorkspaceService(config);
+    workspace.setRoot(tmpRoot);
+
+    expect(workspace.listChildren('')).toEqual(['README.md', 'src/']);
+    expect(workspace.listChildren('src/')).toEqual(['src/index.ts']);
+  });
+
+  it('normalizes directory input and blocks escape paths', () => {
+    const config = new ConfigService();
+    config.load();
+    const workspace = new WorkspaceService(config);
+    workspace.setRoot(tmpRoot);
+
+    expect(workspace.listChildren('src')).toEqual(['src/index.ts']);
+    expect(() => workspace.listChildren('../')).toThrow('Path escapes workspace');
+  });
 });

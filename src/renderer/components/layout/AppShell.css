@@ -39,6 +39,149 @@
     border-color 0.15s ease;
 }
 
+.SidebarTabs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.SidebarTabs__header {
+  display: flex;
+  align-items: stretch;
+  padding: 0;
+  height: 24px;
+  min-height: 24px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--muled-border);
+  background: var(--muled-surface);
+}
+
+.SidebarTabs__tab {
+  box-sizing: border-box;
+  width: 24px;
+  min-width: 24px;
+  max-width: 24px;
+  height: 24px;
+  min-height: 24px;
+  max-height: 24px;
+  flex: 0 0 auto;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.SidebarTabs__tab:focus-visible {
+  outline: 2px solid var(--muled-accent);
+  outline-offset: -2px;
+}
+
+.SidebarTabs__tab--active {
+  background: var(--muled-bg) !important;
+  color: var(--muled-fg);
+  box-shadow: inset 0 -2px 0 var(--muled-accent);
+}
+
+.SidebarTabs__tabIcon {
+  width: 14px;
+  height: 14px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.SidebarTabs__header .SidebarTabs__tab.TabBar__sidebarToggle {
+  width: 24px;
+  min-width: 24px;
+  max-width: 24px;
+  height: 24px;
+  min-height: 24px;
+  max-height: 24px;
+}
+
+.SidebarTabs__body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.SidebarTabs__panel {
+  display: none;
+  height: 100%;
+  min-height: 0;
+}
+
+.SidebarTabs__panel--active {
+  display: block;
+}
+
+.SidebarTabs__outline {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.SidebarTabs__outlineHint {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--muled-border);
+  font-size: 11px;
+  color: var(--muled-muted-fg);
+}
+
+.SidebarTabs__empty {
+  padding: 12px 10px;
+  font-size: 12px;
+  color: var(--muled-placeholder);
+}
+
+.SidebarTabs__outlineList {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+  overflow: auto;
+}
+
+.SidebarTabs__outlineItem {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--muled-fg);
+  min-height: 26px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  padding-right: 10px;
+}
+
+.SidebarTabs__outlineItem:hover {
+  background: var(--muled-hover);
+}
+
+.SidebarTabs__outlineTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.SidebarTabs__outlineMeta {
+  flex-shrink: 0;
+  color: var(--muled-muted-fg);
+  font-size: 11px;
+}
+
 .AppShell__sidebar--hidden {
   flex: 0 0 0;
   width: 0;
@@ -225,6 +368,8 @@
   display: flex;
   align-items: stretch;
   flex-shrink: 0;
+  height: 36px;
+  min-height: 36px;
   border-bottom: 1px solid var(--muled-border);
   background: var(--muled-surface);
 }
@@ -278,7 +423,10 @@
 .TabBar__add,
 .TabBar__settings {
   flex-shrink: 0;
+  box-sizing: border-box;
   width: 36px;
+  height: 36px;
+  padding: 0;
   border: none;
   background: var(--muled-surface);
   cursor: pointer;

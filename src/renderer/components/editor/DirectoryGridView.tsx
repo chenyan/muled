@@ -1,12 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { listDirectoryChildren } from '../../lib/listDirectoryChildren';
+import { useCallback, useEffect, useState } from 'react';
 import { isDirectoryPath, isImagePath } from '../../lib/mime';
 import type { EditorTab } from '../../types/tab';
 import { tabLabel } from '../../types/tab';
 
 interface DirectoryGridViewProps {
   tab: EditorTab;
-  workspacePaths: string[];
   onOpenFile: (relativePath: string) => void;
   onOpenDirectory: (relativePath: string) => void;
 }
@@ -86,15 +84,30 @@ function DirectoryGridCell({
 
 export default function DirectoryGridView({
   tab,
-  workspacePaths,
   onOpenFile,
   onOpenDirectory,
 }: DirectoryGridViewProps) {
   const directoryPath = tab.relativePath ?? '';
-  const children = useMemo(
-    () => listDirectoryChildren(workspacePaths, directoryPath),
-    [directoryPath, workspacePaths],
-  );
+  const [children, setChildren] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    window.muled.workspace
+      .listChildren(directoryPath)
+      .then((result) => {
+        if (!cancelled) {
+          setChildren(result.paths);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setChildren([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [directoryPath]);
 
   const handleActivate = useCallback(
     (relativePath: string) => {

@@ -65,6 +65,7 @@ export type MarkdownEditorHandle = MDXEditorMethods & {
     clientY: number,
   ) => WysiwygSentenceSelection | null;
   getSelectionRect: () => DOMRect | null;
+  revealOutlineTarget: (target: { line: number; title: string }) => boolean;
 };
 
 /** 仅 WYSIWYG；Source 由 {@link SourceCodeEditor} 按后缀高亮 */
@@ -115,6 +116,37 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
         },
         getSelectionRect() {
           return getSelectionBoundingRect();
+        },
+        revealOutlineTarget(target: { line: number; title: string }) {
+          const host = scrollHostRef.current;
+          if (!host) return false;
+          const root = host.querySelector(
+            '.mdxeditor-root-contenteditable [contenteditable="true"]',
+          );
+          if (!(root instanceof HTMLElement)) return false;
+
+          const normalize = (text: string) => text.replace(/\s+/g, ' ').trim();
+          const targetTitle = normalize(target.title);
+          if (!targetTitle) return false;
+
+          const headingNodes = Array.from(
+            root.querySelectorAll('h1, h2, h3, h4, h5, h6'),
+          ).filter((node): node is HTMLElement => node instanceof HTMLElement);
+          const matched = headingNodes.find(
+            (node) => normalize(node.textContent ?? '') === targetTitle,
+          );
+          if (matched) {
+            matched.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            return true;
+          }
+
+          const paragraphs = Array.from(root.querySelectorAll('p'));
+          const approxNode = paragraphs[Math.max(0, target.line - 1)];
+          if (approxNode) {
+            approxNode.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            return true;
+          }
+          return false;
         },
       };
     });

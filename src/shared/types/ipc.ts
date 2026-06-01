@@ -25,6 +25,12 @@ export interface WorkspaceInfo {
   recent: string[];
 }
 
+export interface PdfOutlineItem {
+  title: string;
+  depth: number;
+  page: number | null;
+}
+
 export type IpcChannel =
   | 'config:get'
   | 'config:getSettings'
@@ -34,6 +40,8 @@ export type IpcChannel =
   | 'workspace:cd'
   | 'workspace:completeCd'
   | 'workspace:list'
+  | 'workspace:listChildren'
+  | 'workspace:pdfOutline'
   | 'file:read'
   | 'file:readBinary'
   | 'file:write'
@@ -70,6 +78,14 @@ export interface IpcInvokeMap {
     result: { labels: string[] };
   };
   'workspace:list': { args: void; result: { paths: string[] } };
+  'workspace:listChildren': {
+    args: { path: string };
+    result: { paths: string[] };
+  };
+  'workspace:pdfOutline': {
+    args: { path: string };
+    result: { items: PdfOutlineItem[] };
+  };
   'file:read': { args: { path: string }; result: FileReadResult };
   'file:readBinary': {
     args: { path: string };

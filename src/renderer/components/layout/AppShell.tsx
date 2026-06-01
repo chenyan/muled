@@ -32,12 +32,14 @@ import { isEditableTextTab } from '../../types/tab';
 import TabBar from '../tabs/TabBar';
 import PdfEngineProvider from '../editor/pdf/PdfEngineProvider';
 import TabContent from '../tabs/TabContent';
-import WorkspaceTree, {
-  type WorkspaceTreeRevealRequest,
-} from '../tree/WorkspaceTree';
+import type { WorkspaceTreeRevealRequest } from '../tree/WorkspaceTree';
+import SidebarTabs from '../sidebar/SidebarTabs';
 import StatusBar from './StatusBar';
 import StatusToast from './StatusToast';
 import './AppShell.css';
+import { buildTabOutline } from '../../lib/outlineIndex';
+import type { PdfOutlineItem } from '../../../shared/types/ipc';
+import { getEditorOutlineHandlers } from '../../lib/editorOutlineBridge';
 
 export default function AppShell() {
   const [config, setConfig] = useState<PublicConfig | null>(null);
@@ -84,6 +86,7 @@ export default function AppShell() {
   const [paletteInitialValue, setPaletteInitialValue] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [pdfOutline, setPdfOutline] = useState<PdfOutlineItem[]>([]);
 
   const [aiDialog, setAiDialog] = useState<{
     mode: AiApplyMode;
@@ -188,6 +191,35 @@ export default function AppShell() {
       });
     },
     [editor],
+  );
+
+  useEffect(() => {
+    const tab = editor.activeTab;
+    if (!tab || tab.kind !== 'pdf' || !tab.relativePath) {
+      setPdfOutline([]);
+      return;
+    }
+    let cancelled = false;
+    window.muled.workspace
+      .pdfOutline(tab.relativePath)
+      .then((result) => {
+        if (!cancelled) {
+          setPdfOutline(result.items);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPdfOutline([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [editor.activeTab]);
+
+  const outlineItems = useMemo(
+    () => buildTabOutline(editor.activeTab, pdfOutline),
+    [editor.activeTab, pdfOutline],
   );
 
   const handlePaletteSubmit = useCallback(
@@ -366,7 +398,6 @@ export default function AppShell() {
   const tabContent = (
     <TabContent
       tab={editor.activeTab}
-      workspacePaths={workspace.paths}
       sourceFont={uiConfig.editor.source}
       wysiwygFont={uiConfig.editor.wysiwyg}
       hasApiKey={uiConfig.openai.has_api_key}
@@ -429,8 +460,9 @@ export default function AppShell() {
         style={sidebarStyle}
         aria-hidden={!sidebarVisible}
       >
-        <WorkspaceTree
-          key={uiConfig.ui.tree_initial_expansion_depth}
+        <SidebarTabs
+          activeEditorTab={editor.activeTab}
+          outlineItems={outlineItems}
           paths={workspace.paths}
           workspaceRoot={workspace.root}
           homeDir={uiConfig.system.homedir}
@@ -459,6 +491,32 @@ export default function AppShell() {
             editor.openDirectoryGrid(path).catch(() => {
               /* openDirectoryGrid is sync-safe */
             });
+          }}
+          onRevealInEditor={(item) => {
+            const activeTab = editor.activeTab;
+            const relativePath = activeTab?.relativePath;
+            if (!relativePath || !item.line) {
+              return;
+            }
+            const handlers = activeTab
+              ? getEditorOutlineHandlers(activeTab.id)
+              : null;
+            if (
+              handlers?.revealOutlineTarget({
+                line: item.line,
+                title: item.title,
+              })
+            ) {
+              return;
+            }
+            editor
+              .openPathWithReveal(relativePath, {
+                id: newId(),
+                line: item.line,
+                column: 1,
+                length: 1,
+              })
+              .catch(() => undefined);
           }}
         />
       </aside>

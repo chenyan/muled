@@ -128,13 +128,23 @@ export function registerIpc(
 
     'workspace:list': () => ({ paths: services.workspace.listPaths() }),
 
+    'workspace:listChildren': (arg) => {
+      const { path: directoryPath } = arg as { path: string };
+      return { paths: services.workspace.listChildren(directoryPath) };
+    },
+
+    'workspace:pdfOutline': async (arg) => {
+      const { path: relativePath } = arg as { path: string };
+      return { items: await services.workspace.listPdfOutline(relativePath) };
+    },
+
     'workspace:cd': (arg) => {
       const { path: nextPath } = arg as { path: string };
       const root = services.workspace.setRoot(nextPath);
       const recent = recordRecentWorkspace(root);
       return {
         root,
-        paths: services.workspace.listPaths(),
+        paths: services.workspace.listChildren(''),
         recent,
       };
     },

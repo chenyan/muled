@@ -34,6 +34,8 @@ const muled = {
   workspace: {
     get: () => invoke('workspace:get'),
     list: () => invoke('workspace:list'),
+    listChildren: (path: string) => invoke('workspace:listChildren', { path }),
+    pdfOutline: (path: string) => invoke('workspace:pdfOutline', { path }),
     cd: (path: string) => invoke('workspace:cd', { path }),
     completeCd: (partial: string) =>
       invoke('workspace:completeCd', { partial }),
