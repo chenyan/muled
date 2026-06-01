@@ -58,7 +58,12 @@ beforeEach(() => {
             wysiwyg: 'system',
             source: 'system',
           },
+          tools: { fd: '', rg: '' },
         },
+      }),
+      detectTools: async () => ({
+        tools: { fd: '', rg: '' },
+        found: { fd: false, rg: false },
       }),
       save: async () => mockConfig,
       getWysiwygCss: async () => ({

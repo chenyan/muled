@@ -24,6 +24,7 @@ import {
   type RunningSearch,
 } from '../services/shellSearchService';
 import WorkspaceService from '../services/workspaceService';
+import { detectToolPaths } from '../services/toolPathService';
 
 export interface MuledServices {
   config: ConfigService;
@@ -100,6 +101,8 @@ export function registerIpc(
     'config:get': () => services.config.getPublicConfig(),
 
     'config:getSettings': () => services.config.getSettings(),
+
+    'config:detectTools': () => detectToolPaths(),
 
     'config:save': (arg) => {
       const settings = arg as Parameters<ConfigService['saveSettings']>[0];
@@ -211,10 +214,11 @@ export function registerIpc(
       };
 
       const workspaceRoot = services.workspace.getRoot();
+      const tools = services.config.get().tools;
       const started =
         command === 'rg'
-          ? await streamRgSearch(workspaceRoot, query, emit)
-          : await streamFdSearch(workspaceRoot, query, emit);
+          ? await streamRgSearch(workspaceRoot, query, emit, tools)
+          : await streamFdSearch(workspaceRoot, query, emit, tools);
 
       if ('code' in started) {
         return { ok: false as const, error: started };

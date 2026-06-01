@@ -1,4 +1,5 @@
 import type { EditorFontSettings } from '../editorFontConfig';
+import type { ToolPathsConfig } from './tools';
 import type { ResolvedThemeConfig, ThemeConfig } from './theme';
 
 export type { EditorFontSettings };
@@ -29,6 +30,7 @@ export interface MuledConfig {
     tree_initial_expansion_depth: number;
   };
   theme: ThemeConfig;
+  tools: ToolPathsConfig;
 }
 
 export interface PublicConfig {

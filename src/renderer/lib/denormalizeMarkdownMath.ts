@@ -7,11 +7,12 @@ const MATH_FENCE_OPEN =
 const INLINE_MATH_SPAN_RE =
   /<span\s+data-muled-math=(?:"([^"]*)"|'([^']*)')\s*(?:\/>|><\/span>|>)/gi;
 
-function unescapeHtmlAttr(value: string): string {
+/** 解码载入 WYSIWYG 时写入属性 / 正文的 HTML 实体（先 &amp; 再 &lt;，避免 &amp;lt; 无法还原） */
+export function unescapeHtmlAttr(value: string): string {
   return value
+    .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
-    .replace(/&quot;/g, '"')
-    .replace(/&amp;/g, '&');
+    .replace(/&quot;/g, '"');
 }
 
 /** 将泄漏的 `<span data-muled-math>` 还原为 `$...$` */

@@ -75,6 +75,30 @@
   margin-bottom: 16px;
 }
 
+.SettingsDialog__sectionHint {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muled-muted-fg);
+}
+
+.SettingsDialog__sectionHint code {
+  font-size: 11px;
+}
+
+.SettingsDialog__toolActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.SettingsDialog__detectHint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--muled-text-secondary);
+}
+
 .SettingsDialog__sectionTitle {
   margin: 0 0 8px;
   font-size: 12px;

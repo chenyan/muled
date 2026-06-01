@@ -4,8 +4,14 @@ import { canParseMarkdownBlock } from '../renderer/lib/markdownBlockParser';
 import { denormalizeMarkdownHtmlTags } from '../renderer/lib/denormalizeMarkdownHtmlTags';
 import normalizeMarkdownHtmlTags, {
   parseHtmlLikeTagName,
+  shouldKeepHtmlTag,
 } from '../renderer/lib/normalizeMarkdownHtmlTags';
+import normalizeMarkdownMath from '../renderer/lib/normalizeMarkdownMath';
 import { exportMarkdownFromWysiwyg } from '../renderer/lib/normalizeMarkdownWikiImages';
+
+function prepareForWysiwyg(source: string): string {
+  return normalizeMarkdownHtmlTags(normalizeMarkdownMath(source));
+}
 
 describe('parseHtmlLikeTagName', () => {
   it('recognizes common tags', () => {
@@ -18,6 +24,14 @@ describe('parseHtmlLikeTagName', () => {
   it('returns null for book-title-like fragments', () => {
     expect(parseHtmlLikeTagName('<中国震撼世界>')).toBeNull();
     expect(parseHtmlLikeTagName('<[[wiki]]>')).toBeNull();
+  });
+});
+
+describe('shouldKeepHtmlTag', () => {
+  it('keeps whitelist tags only', () => {
+    expect(shouldKeepHtmlTag('<br>')).toBe(true);
+    expect(shouldKeepHtmlTag('<ReadVer>')).toBe(false);
+    expect(shouldKeepHtmlTag('<中国震撼世界>')).toBe(false);
   });
 });
 
@@ -56,6 +70,39 @@ describe('normalizeMarkdownHtmlTags', () => {
     const normalized = normalizeMarkdownHtmlTags(original);
     expect(denormalizeMarkdownHtmlTags(normalized)).toBe(original);
     expect(exportMarkdownFromWysiwyg(normalized, original)).toBe(original);
+  });
+
+  it('escapes comparison operators and unclosed angle brackets for MDX', () => {
+    expect(normalizeMarkdownHtmlTags('版本号<ReadVer的写')).toBe(
+      '版本号&lt;ReadVer的写',
+    );
+    expect(normalizeMarkdownHtmlTags('4<v<=10')).toBe('4&lt;v&lt;=10');
+    expect(normalizeMarkdownHtmlTags('Vmax < v <= ReadTs')).toBe(
+      'Vmax &lt; v &lt;= ReadTs',
+    );
+    expect(normalizeMarkdownHtmlTags('Max(v | v<=ReadTs)')).toBe(
+      'Max(v | v&lt;=ReadTs)',
+    );
+  });
+
+  it('round-trips comparison operator escapes', () => {
+    const original =
+      '拒绝版本号<ReadVer的写，以及 4<v<=10 与 Vmax < v <= ReadTs';
+    const normalized = normalizeMarkdownHtmlTags(original);
+    expect(denormalizeMarkdownHtmlTags(normalized)).toBe(original);
+    expect(canParseMarkdownBlock(normalized)).toBe(true);
+  });
+
+  it('allows MDX parse of MVCC snapshot note snippets after prepare', () => {
+    const snippets = [
+      '要读到ReadVer的数据集并保存为快照。按照MVCC读取方式，需要从每个Key的多版本中选取版本号= Max(v | v<=ReadTs)的。',
+      '|KeyB|2,4|4<v<=10|',
+      '**R2:** Vmax >= ReadTs || (不可能出现版本v：Vmax < v <= ReadTs)',
+      '拒绝还没到来的且版本号<ReadVer的写',
+    ];
+    for (const snippet of snippets) {
+      expect(canParseMarkdownBlock(prepareForWysiwyg(snippet))).toBe(true);
+    }
   });
 
   it('allows MDX parse of civil war note snippets after normalize', () => {

@@ -19,7 +19,9 @@ export default function SettingsDialog({
   const [form, setForm] = useState<SettingsForm | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [detecting, setDetecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [detectHint, setDetectHint] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -34,6 +36,7 @@ export default function SettingsDialog({
     if (!open || !window.muled?.config?.getSettings) return;
     setLoading(true);
     setError(null);
+    setDetectHint(null);
     window.muled.config
       .getSettings()
       .then((result) => {
@@ -54,6 +57,31 @@ export default function SettingsDialog({
     },
     [],
   );
+
+  const handleDetectTools = useCallback(async () => {
+    if (!form || !window.muled?.config?.detectTools) return;
+    setDetecting(true);
+    setError(null);
+    setDetectHint(null);
+    try {
+      const result = await window.muled.config.detectTools();
+      patch('tools', result.tools);
+      const missing: string[] = [];
+      if (!result.found.fd) missing.push('fd');
+      if (!result.found.rg) missing.push('ripgrep (rg)');
+      if (missing.length > 0) {
+        setDetectHint(
+          `未找到 ${missing.join('、')}，请手动输入可执行文件路径，或先安装后再检测。`,
+        );
+      } else {
+        setDetectHint('已填入检测到的路径，保存后生效。');
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setDetecting(false);
+    }
+  }, [form, patch]);
 
   const handleSave = useCallback(async () => {
     if (!form || !window.muled?.config?.save) return;
@@ -322,6 +350,54 @@ export default function SettingsDialog({
                     />
                   </label>
                 </div>
+              </section>
+
+              <section className="SettingsDialog__section">
+                <h3 className="SettingsDialog__sectionTitle">命令行工具</h3>
+                <p className="SettingsDialog__sectionHint">
+                  命令面板中的 <code>fd</code>、<code>rg</code> 搜索依赖本机可执行文件。
+                  路径留空时在 PATH 中查找；从 Finder 启动的 release
+                  包若找不到，可点「自动检测」或手动填写绝对路径。
+                </p>
+                <div className="SettingsDialog__grid">
+                  <label className="SettingsDialog__field SettingsDialog__field--full">
+                    <span className="SettingsDialog__label">fd</span>
+                    <input
+                      className="SettingsDialog__input"
+                      placeholder="/opt/homebrew/bin/fd"
+                      value={form.tools.fd}
+                      onChange={(e) =>
+                        patch('tools', { ...form.tools, fd: e.target.value })
+                      }
+                    />
+                  </label>
+                  <label className="SettingsDialog__field SettingsDialog__field--full">
+                    <span className="SettingsDialog__label">ripgrep (rg)</span>
+                    <input
+                      className="SettingsDialog__input"
+                      placeholder="/opt/homebrew/bin/rg"
+                      value={form.tools.rg}
+                      onChange={(e) =>
+                        patch('tools', { ...form.tools, rg: e.target.value })
+                      }
+                    />
+                  </label>
+                </div>
+                <div className="SettingsDialog__toolActions">
+                  <button
+                    type="button"
+                    className="SettingsDialog__btn"
+                    disabled={saving || detecting}
+                    onClick={() => {
+                      handleDetectTools().catch(() => undefined);
+                    }}
+                  >
+                    {detecting ? '检测中…' : '自动检测'}
+                  </button>
+                </div>
+                {detectHint ? (
+                  <p className="SettingsDialog__detectHint">{detectHint}</p>
+                ) : null}
               </section>
 
               <section className="SettingsDialog__section">

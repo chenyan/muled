@@ -18,6 +18,10 @@ import {
 } from '../../shared/editorFontConfig';
 import type { SettingsForm, SettingsGetResult } from '../../shared/types/settings';
 import {
+  DEFAULT_TOOL_PATHS,
+  parseToolPaths,
+} from '../../shared/types/tools';
+import {
   DEFAULT_THEME_CONFIG,
   parseThemeConfig,
 } from '../../shared/types/theme';
@@ -51,6 +55,7 @@ const DEFAULT_CONFIG: MuledConfig = {
     tree_initial_expansion_depth: DEFAULT_TREE_INITIAL_EXPANSION_DEPTH,
   },
   theme: DEFAULT_THEME_CONFIG,
+  tools: { ...DEFAULT_TOOL_PATHS },
 };
 
 function parseTreeInitialExpansionDepth(value: unknown): number {
@@ -131,6 +136,7 @@ function parseConfig(raw: unknown): MuledConfig {
       ),
     },
     theme,
+    tools: parseToolPaths(data.tools),
   };
 }
 
@@ -161,6 +167,7 @@ export function ensureConfigFile(): void {
       tree_initial_expansion_depth: DEFAULT_TREE_INITIAL_EXPANSION_DEPTH,
     },
     theme: DEFAULT_THEME_CONFIG,
+    tools: DEFAULT_TOOL_PATHS,
   });
   fs.writeFileSync(configPath, template, 'utf8');
 }
@@ -246,6 +253,10 @@ export default class ConfigService {
         },
         ui: { ...ui },
         theme: { ...theme },
+        tools: {
+          fd: compressTilde(this.config.tools.fd),
+          rg: compressTilde(this.config.tools.rg),
+        },
       },
     };
   }
@@ -292,6 +303,10 @@ export default class ConfigService {
       },
       ui,
       theme,
+      tools: {
+        fd: compressTilde(this.config.tools.fd),
+        rg: compressTilde(this.config.tools.rg),
+      },
     };
     fs.writeFileSync(configPath, yaml.dump(doc), 'utf8');
   }

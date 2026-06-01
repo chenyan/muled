@@ -10,6 +10,9 @@
  */
 import path from 'path';
 import { app, BrowserWindow, shell } from 'electron';
+import { augmentShellPath } from './shellPath';
+
+augmentShellPath();
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { createServices, registerIpc, registerThemeWatcher } from './ipc/registerIpc';

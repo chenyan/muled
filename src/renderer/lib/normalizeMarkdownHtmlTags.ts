@@ -5,6 +5,10 @@ const ANGLE_TAG_RE = /<[^>\n]+>/g;
 
 const INLINE_CODE_RE = /(`+)([^`\n]*?)\1/g;
 
+/** 载入时暂存保留的 HTML 标签，避免后续对孤立 `<` 的转义误伤 `<br>` 等 */
+const PRESERVED_HTML_PLACEHOLDER_PREFIX = '\uE000muled-html-';
+const PRESERVED_HTML_PLACEHOLDER_SUFFIX = '\uE001';
+
 function escapeAngleTag(raw: string): string {
   return raw.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -25,7 +29,7 @@ export function parseHtmlLikeTagName(raw: string): string | null {
   return nameMatch?.[1] ?? null;
 }
 
-function shouldKeepHtmlTag(match: string): boolean {
+export function shouldKeepHtmlTag(match: string): boolean {
   const name = parseHtmlLikeTagName(match);
   if (!name) {
     return false;
@@ -33,10 +37,38 @@ function shouldKeepHtmlTag(match: string): boolean {
   return isCommonHtmlTagName(name);
 }
 
+function preserveHtmlTag(match: string, preserved: string[]): string {
+  const id = preserved.length;
+  preserved.push(match);
+  return `${PRESERVED_HTML_PLACEHOLDER_PREFIX}${id}${PRESERVED_HTML_PLACEHOLDER_SUFFIX}`;
+}
+
+function restorePreservedHtmlTags(segment: string, preserved: string[]): string {
+  let result = segment;
+  for (let i = 0; i < preserved.length; i += 1) {
+    result = result.replace(
+      `${PRESERVED_HTML_PLACEHOLDER_PREFIX}${i}${PRESERVED_HTML_PLACEHOLDER_SUFFIX}`,
+      preserved[i],
+    );
+  }
+  return result;
+}
+
+/** 将 MDX 无法当作合法标签解析的剩余 `<` 实体化（如比较符、未闭合的 `<ReadVer`） */
+function escapeOrphanLessThan(segment: string): string {
+  return segment.replace(/</g, '&lt;');
+}
+
 function normalizeAngleTagsInSegment(segment: string): string {
-  return segment.replace(ANGLE_TAG_RE, (match) =>
-    shouldKeepHtmlTag(match) ? match : escapeAngleTag(match),
-  );
+  const preserved: string[] = [];
+  const afterPairs = segment.replace(ANGLE_TAG_RE, (match) => {
+    if (shouldKeepHtmlTag(match)) {
+      return preserveHtmlTag(match, preserved);
+    }
+    return escapeAngleTag(match);
+  });
+  const escaped = escapeOrphanLessThan(afterPairs);
+  return restorePreservedHtmlTags(escaped, preserved);
 }
 
 function splitByInlineCode(text: string): { code: boolean; text: string }[] {

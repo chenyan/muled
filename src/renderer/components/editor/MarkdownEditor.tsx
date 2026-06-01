@@ -185,8 +185,9 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
     );
 
     const prepareForEditor = useCallback((raw: string): string => {
+      // 先归一化 $...$ 为 span，避免 HTML 转义把公式里的 <= 等变成 &amp;lt; 导致 MathJax 失败
       return normalizeMarkdownWikiImages(
-        normalizeMarkdownMath(normalizeMarkdownHtmlTags(raw)),
+        normalizeMarkdownHtmlTags(normalizeMarkdownMath(raw)),
       );
     }, []);
 

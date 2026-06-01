@@ -62,9 +62,21 @@ export function resolvePath(inputPath: string, cwd?: string): string {
   return path.normalize(path.resolve(cwd ?? process.cwd(), expanded));
 }
 
+/** 解析符号链接后的路径，便于比较 ~/obnotes 与 iCloud 真实路径 */
+function normalizePathForComparison(input: string): string {
+  try {
+    if (typeof fs.realpathSync.native === 'function') {
+      return fs.realpathSync.native(input);
+    }
+    return fs.realpathSync(input);
+  } catch {
+    return path.resolve(input);
+  }
+}
+
 export function isPathInsideRoot(root: string, target: string): boolean {
-  const normalizedRoot = path.resolve(root);
-  const normalizedTarget = path.resolve(target);
+  const normalizedRoot = normalizePathForComparison(root);
+  const normalizedTarget = normalizePathForComparison(target);
   if (normalizedRoot === normalizedTarget) {
     return true;
   }
@@ -87,14 +99,15 @@ export function toWorkspaceRelativePath(
   workspaceRoot: string,
   filePath: string,
 ): string | null {
-  const root = path.resolve(workspaceRoot);
   const absolute = path.isAbsolute(filePath)
     ? path.normalize(filePath)
-    : path.resolve(root, filePath);
-  if (!isPathInsideRoot(root, absolute)) {
+    : path.resolve(path.resolve(workspaceRoot), filePath);
+  if (!isPathInsideRoot(workspaceRoot, absolute)) {
     return null;
   }
-  return path.relative(root, absolute).split(path.sep).join('/');
+  const rootReal = normalizePathForComparison(workspaceRoot);
+  const absoluteReal = normalizePathForComparison(absolute);
+  return path.relative(rootReal, absoluteReal).split(path.sep).join('/');
 }
 
 export function ensureParentDir(filePath: string): void {

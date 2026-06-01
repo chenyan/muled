@@ -1,4 +1,5 @@
 import {
+  buildFdCommandArgs,
   parseRgJsonLines,
   parseShellArgs,
 } from '../main/services/shellSearchService';
@@ -12,6 +13,25 @@ describe('parseShellArgs', () => {
   it('splits quoted args', () => {
     expect(parseShellArgs('foo bar')).toEqual(['foo', 'bar']);
     expect(parseShellArgs('"foo bar" baz')).toEqual(['foo bar', 'baz']);
+  });
+});
+
+describe('buildFdCommandArgs', () => {
+  it('uses glob mode for palette patterns like *.ts', () => {
+    expect(buildFdCommandArgs('*.ts', 5)).toEqual([
+      '--glob',
+      '--max-results',
+      '5',
+      '*.ts',
+    ]);
+  });
+
+  it('uses regex mode for plain keywords like Chinese text', () => {
+    expect(buildFdCommandArgs('熵', 5)).toEqual([
+      '--max-results',
+      '5',
+      '熵',
+    ]);
   });
 });
 

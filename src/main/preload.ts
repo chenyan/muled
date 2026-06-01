@@ -14,6 +14,7 @@ const muled = {
   config: {
     get: () => invoke('config:get'),
     getSettings: () => invoke('config:getSettings'),
+    detectTools: () => invoke('config:detectTools'),
     save: (settings: SettingsForm) => invoke('config:save', settings),
     getWysiwygCss: () => invoke('config:getWysiwygCss'),
     onThemeChanged: (

@@ -1,6 +1,12 @@
+import normalizeMarkdownHtmlTags from '../renderer/lib/normalizeMarkdownHtmlTags';
 import normalizeMarkdownMath from '../renderer/lib/normalizeMarkdownMath';
+import { unescapeHtmlAttr } from '../renderer/lib/denormalizeMarkdownMath';
 import { normalizeMathSource } from '../renderer/lib/normalizeMathSource';
 import renderMathBlock, { renderMathInline } from '../renderer/lib/renderMath';
+
+function prepareForWysiwyg(source: string): string {
+  return normalizeMarkdownHtmlTags(normalizeMarkdownMath(source));
+}
 
 describe('normalizeMathSource', () => {
   it('strips $$ delimiters', () => {
@@ -64,6 +70,23 @@ describe('normalizeMarkdownMath', () => {
   it('converts inline $...$ to span', () => {
     const result = normalizeMarkdownMath('Energy $E=mc^2$ here');
     expect(result).toContain('data-muled-math="E=mc^2"');
+  });
+
+  it('prepares comparison inside inline math for MathJax without double-encoding', () => {
+    const line = String.raw`拿到 $Max(v \mid v<=ReadTs)$ 的值`;
+    const prepared = prepareForWysiwyg(line);
+    expect(prepared).toContain('data-muled-math=');
+    expect(prepared).not.toContain('&amp;lt;');
+
+    const match = prepared.match(/data-muled-math="([^"]*)"/);
+    expect(match).toBeTruthy();
+    const latex = unescapeHtmlAttr(match![1]);
+    expect(latex).toBe(String.raw`Max(v \mid v<=ReadTs)`);
+
+    const { html, error } = renderMathInline(latex);
+    expect(error).toBeNull();
+    expect(html).toContain('mjx-container');
+    expect(html).not.toContain('Misplaced');
   });
 
   it('normalizes latex fence to math', () => {

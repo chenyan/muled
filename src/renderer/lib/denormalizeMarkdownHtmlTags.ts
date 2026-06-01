@@ -4,7 +4,10 @@ import { splitTopLevelMarkdownBlocks } from './splitMarkdownBlocks';
 const ESCAPED_ANGLE_TAG_RE = /&lt;([^&\n]+?)&gt;/g;
 
 function denormalizeEscapedAngleTags(segment: string): string {
-  return segment.replace(ESCAPED_ANGLE_TAG_RE, '<$1>');
+  return segment
+    .replace(ESCAPED_ANGLE_TAG_RE, '<$1>')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
 }
 
 function denormalizeBlock(block: string): string {

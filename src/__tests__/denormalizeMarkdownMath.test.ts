@@ -16,6 +16,13 @@ describe('denormalizeInlineMathSpans', () => {
     expect(denormalizeInlineMathSpans(source)).toBe('$a<b$');
   });
 
+  it('unescapes double-encoded entities from legacy prepare order', () => {
+    const source = '<span data-muled-math="Max(v \\mid v&amp;lt;=ReadTs)"></span>';
+    expect(denormalizeInlineMathSpans(source)).toBe(
+      String.raw`$Max(v \mid v<=ReadTs)$`,
+    );
+  });
+
   it('supports single-quoted attributes', () => {
     const source = "<span data-muled-math='x^2'></span>";
     expect(denormalizeInlineMathSpans(source)).toBe('$x^2$');

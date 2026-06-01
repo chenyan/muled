@@ -8,6 +8,7 @@ import {
 } from '@mdxeditor/editor';
 import { $createTextNode, type ElementNode, type LexicalNode } from 'lexical';
 import type { Nodes, Text } from 'mdast';
+import { unescapeHtmlAttr } from '../../../lib/denormalizeMarkdownMath';
 import {
   $createInlineMathNode,
   $isInlineMathNode,
@@ -27,7 +28,9 @@ function readMuledMathAttribute(node: Nodes): string | null {
   if (!attr || attr.type !== 'mdxJsxAttribute') {
     return null;
   }
-  return typeof attr.value === 'string' ? attr.value : null;
+  return typeof attr.value === 'string'
+    ? unescapeHtmlAttr(attr.value)
+    : null;
 }
 
 function canLexicalAppend(parent: LexicalNode): parent is ElementNode {

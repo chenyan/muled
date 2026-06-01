@@ -1,5 +1,8 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'child_process';
 import path from 'path';
+import { getShellProcessEnv } from '../shellPath';
+import type { ToolPathsConfig } from '../../shared/types/tools';
+import { resolveToolPaths } from './toolPathService';
 import { toWorkspaceRelativePath } from '../../shared/pathUtils';
 import type {
   FdSearchMatch,
@@ -59,13 +62,28 @@ export function parseShellArgs(input: string): string[] {
   return args;
 }
 
-function commandAvailable(name: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    const checker = process.platform === 'win32' ? 'where' : 'which';
-    const proc = spawn(checker, [name], { stdio: 'ignore' });
-    proc.on('error', () => resolve(false));
-    proc.on('close', (code) => resolve(code === 0));
-  });
+/** 是否像 glob（*.ts）；普通关键词（如中文）应走 fd 默认正则，不能用 --glob */
+export function looksLikeGlobPattern(pattern: string): boolean {
+  return /[*?[\]{}]/.test(pattern);
+}
+
+/** fd 命令行参数：含 * ? 等时用 --glob；否则与终端 `fd 关键词` 一致（正则） */
+export function buildFdCommandArgs(
+  query: string,
+  maxResults = MAX_MATCHES,
+): string[] {
+  const parsed = parseShellArgs(query);
+  const hasGlobFlag = parsed.includes('--glob') || parsed.includes('-g');
+  const patternArgs = parsed.filter((arg) => !arg.startsWith('-'));
+  const needsGlob =
+    !hasGlobFlag &&
+    patternArgs.some((pattern) => looksLikeGlobPattern(pattern));
+
+  const flags: string[] = ['--max-results', String(maxResults)];
+  if (needsGlob) {
+    flags.unshift('--glob');
+  }
+  return [...flags, ...parsed];
 }
 
 class LineBuffer {
@@ -179,9 +197,12 @@ function parseFdLine(
   line: string,
   workspaceRoot: string,
 ): FdSearchMatch | null {
-  const filePath = line.trim();
+  const filePath = line.trim().replace(/^\.\//, '');
   if (!filePath) return null;
-  const absolutePath = path.normalize(filePath);
+  const root = path.resolve(workspaceRoot);
+  const absolutePath = path.isAbsolute(filePath)
+    ? path.normalize(filePath)
+    : path.normalize(path.join(root, filePath));
   const relativePath = toWorkspaceRelativePath(workspaceRoot, absolutePath);
   if (!relativePath) {
     return null;
@@ -208,6 +229,7 @@ function streamProcessLines(
   proc: ChildProcessWithoutNullStreams,
   emit: SearchStreamEmitter,
   onLine: (line: string) => ShellSearchMatch | null,
+  options?: { reportStderrWhenPresent?: boolean },
 ): RunningSearch {
   const killed = { value: false };
   const lineBuffer = new LineBuffer();
@@ -263,8 +285,13 @@ function streamProcessLines(
   proc.on('close', (code) => {
     if (!killed.value) {
       lineBuffer.flush(handleLine);
-      if (code !== 0 && code !== 1 && code !== null && stderr.trim()) {
-        emit.onError({ code: 'failed', message: stderr.trim() });
+      const stderrTrim = stderr.trim();
+      const reportStderr =
+        stderrTrim.length > 0 &&
+        (options?.reportStderrWhenPresent === true ||
+          (code !== 0 && code !== 1 && code !== null));
+      if (reportStderr) {
+        emit.onError({ code: 'failed', message: stderrTrim });
       }
     }
     complete();
@@ -277,19 +304,21 @@ export async function streamRgSearch(
   workspaceRoot: string,
   query: string,
   emit: SearchStreamEmitter,
+  toolPaths: ToolPathsConfig,
 ): Promise<RunningSearch | ShellSearchError> {
   const args = parseShellArgs(query);
   if (args.length === 0) {
     return { code: 'empty_query' };
   }
-  if (!(await commandAvailable('rg'))) {
+  const resolved = resolveToolPaths(toolPaths);
+  if (!resolved.rg) {
     return { code: 'not_installed', command: 'rg', hint: installHint('rg') };
   }
 
   const proc = spawn(
-    'rg',
+    resolved.rg,
     ['--json', '--max-count', String(MAX_MATCHES), ...args, '.'],
-    { cwd: workspaceRoot, env: process.env },
+    { cwd: workspaceRoot, env: getShellProcessEnv() },
   );
 
   return streamProcessLines(proc, emit, (line) =>
@@ -301,22 +330,25 @@ export async function streamFdSearch(
   workspaceRoot: string,
   query: string,
   emit: SearchStreamEmitter,
+  toolPaths: ToolPathsConfig,
 ): Promise<RunningSearch | ShellSearchError> {
-  const args = parseShellArgs(query);
-  if (args.length === 0) {
+  if (parseShellArgs(query).length === 0) {
     return { code: 'empty_query' };
   }
-  if (!(await commandAvailable('fd'))) {
+  const resolved = resolveToolPaths(toolPaths);
+  if (!resolved.fd) {
     return { code: 'not_installed', command: 'fd', hint: installHint('fd') };
   }
 
-  const proc = spawn(
-    'fd',
-    ['--absolute-path', '--max-results', String(MAX_MATCHES), ...args],
-    { cwd: workspaceRoot, env: process.env },
-  );
+  const proc = spawn(resolved.fd, buildFdCommandArgs(query), {
+    cwd: workspaceRoot,
+    env: getShellProcessEnv(),
+  });
 
-  return streamProcessLines(proc, emit, (line) =>
-    parseFdLine(line, workspaceRoot),
+  return streamProcessLines(
+    proc,
+    emit,
+    (line) => parseFdLine(line, workspaceRoot),
+    { reportStderrWhenPresent: true },
   );
 }

@@ -1,5 +1,6 @@
 import type { PublicConfig } from './config';
 import type { SettingsForm, SettingsGetResult } from './settings';
+import type { DetectToolsResult } from './tools';
 import type { ResolvedThemeConfig, ThemeConfig } from './theme';
 import type { SearchStartResult } from './search';
 
@@ -34,6 +35,7 @@ export interface PdfOutlineItem {
 export type IpcChannel =
   | 'config:get'
   | 'config:getSettings'
+  | 'config:detectTools'
   | 'config:save'
   | 'config:getWysiwygCss'
   | 'workspace:get'
@@ -69,6 +71,7 @@ export interface ThemeChangedPayload {
 export interface IpcInvokeMap {
   'config:get': { args: void; result: PublicConfig };
   'config:getSettings': { args: void; result: SettingsGetResult };
+  'config:detectTools': { args: void; result: DetectToolsResult };
   'config:save': { args: SettingsForm; result: PublicConfig };
   'config:getWysiwygCss': { args: void; result: WysiwygCssResult };
   'workspace:get': { args: void; result: WorkspaceInfo };
