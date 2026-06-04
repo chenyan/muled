@@ -48,6 +48,15 @@ export function getWysiwygStyleDir(): string {
   return path.join(getConfigDir(), 'wysiwyg');
 }
 
+export function getTranslationHistoryFilePath(): string {
+  return path.join(getConfigDir(), 'translation-history.md');
+}
+
+/** 可在 file IPC 中使用的配置目录内路径（含 ~ 简写） */
+export function getTranslationHistoryConfigPath(): string {
+  return compressTilde(getTranslationHistoryFilePath());
+}
+
 export type WysiwygTheme = 'light' | 'dark' | 'acme';
 
 export function getWysiwygStylePath(theme: WysiwygTheme): string {

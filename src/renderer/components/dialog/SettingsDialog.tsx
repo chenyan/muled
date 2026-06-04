@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
+import {
+  SIDEBAR_WIDTH_MAX,
+  SIDEBAR_WIDTH_MIN,
+} from '../../../shared/constants';
 import type { SettingsForm } from '../../../shared/types/settings';
 import type { ThemePreference } from '../../../shared/types/theme';
 import './SettingsDialog.css';
@@ -169,6 +173,7 @@ export default function SettingsDialog({
                     >
                       <option value="source">源码</option>
                       <option value="rich-text">富文本</option>
+                      <option value="preview">预览</option>
                     </select>
                   </label>
                   <label className="SettingsDialog__field SettingsDialog__field--full">
@@ -322,8 +327,8 @@ export default function SettingsDialog({
                     <input
                       className="SettingsDialog__input"
                       type="number"
-                      min={120}
-                      max={800}
+                      min={SIDEBAR_WIDTH_MIN}
+                      max={SIDEBAR_WIDTH_MAX}
                       value={form.ui.sidebar_width}
                       onChange={(e) =>
                         patch('ui', {

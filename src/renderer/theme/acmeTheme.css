@@ -54,7 +54,10 @@
 
 [data-muled-ui-theme='acme'] .AppShell__sidebar {
   background: var(--muled-editor-bg);
-  border-right: 1px solid #000;
+}
+
+[data-muled-ui-theme='acme'] .AppShell__sidebarResize {
+  background: #000;
 }
 
 [data-muled-ui-theme='acme'] .WorkspaceTree__root,
@@ -189,6 +192,34 @@
   border: 1px solid #000;
   background: var(--muled-chrome-bg);
   color: #000;
+}
+
+[data-muled-ui-theme='acme'] .MarkdownTabNavigation {
+  border-color: #000;
+}
+
+[data-muled-ui-theme='acme'] .MarkdownTabNavigation__btn {
+  width: 20px;
+  height: 18px;
+  background: var(--muled-chrome-bg);
+  color: #000;
+}
+
+[data-muled-ui-theme='acme'] .MarkdownTabNavigation__btn + .MarkdownTabNavigation__btn {
+  border-left-color: #000;
+}
+
+[data-muled-ui-theme='acme'] .MarkdownTabNavigation__btn:disabled {
+  color: #888;
+  background: var(--muled-chrome-bg);
+}
+
+[data-muled-ui-theme='acme'] .MarkdownTabNavigation__btn:not(:disabled):hover {
+  background: #e8e8e8;
+}
+
+[data-muled-ui-theme='acme'] .MarkdownTabNavigation__btn:not(:disabled):active {
+  background: #ccc;
 }
 
 [data-muled-ui-theme='acme'] .EditorViewSwitch {

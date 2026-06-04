@@ -5,7 +5,7 @@ export default `
 /* Muled WYSIWYG — acme theme (可编辑，配色参考 Acme 编辑器) */
 
 [data-muled-wysiwyg-theme='acme'] {
-  --wysiwyg-palette: 2;
+  --wysiwyg-palette: 4;
   --wysiwyg-bg: ${P.bg};
   --wysiwyg-fg: ${P.fg};
   --wysiwyg-heading: ${P.fg};
@@ -350,6 +350,13 @@ export default `
   min-height: 96px;
 }
 
+.MuledCodeBlockWithPreview__placeholder {
+  margin: 0;
+  padding: 12px;
+  font-size: 12px;
+  opacity: 0.72;
+}
+
 [data-muled-wysiwyg-theme='acme'] .MuledMDXEditorHost .mdxeditor code,
 [data-muled-wysiwyg-theme='acme'] .MuledMDXEditorHost .mdxeditor pre {
   border: 1px solid ${P.border};
@@ -357,11 +364,51 @@ export default `
   background: ${P.codeBg};
 }
 
-[data-muled-wysiwyg-theme='acme'] .MuledMDXEditorHost .mdxeditor table,
-[data-muled-wysiwyg-theme='acme'] .MuledMDXEditorHost .mdxeditor th,
-[data-muled-wysiwyg-theme='acme'] .MuledMDXEditorHost .mdxeditor td {
+[data-muled-wysiwyg-theme='acme'] .MuledMDXEditorHost .mdxeditor table {
+  border-collapse: collapse;
   border: 1px solid ${P.border};
   border-radius: 0;
+}
+
+/* 覆盖 MDXEditor tableEditor：tbody 单元格边框用 --baseBgActive（#E8D882），特异性高于 .mdxeditor th/td */
+[data-muled-wysiwyg-theme='acme']
+  .MuledMDXEditorHost
+  .mdxeditor
+  table
+  > tbody
+  > tr
+  > td:not([data-tool-cell='true']),
+[data-muled-wysiwyg-theme='acme']
+  .MuledMDXEditorHost
+  .mdxeditor
+  table
+  > tbody
+  > tr
+  > th:not([data-tool-cell='true']) {
+  border: 1px solid ${P.border};
+  border-radius: 0;
+  padding: 4px 8px;
+}
+
+[data-muled-wysiwyg-theme='acme']
+  .MuledMDXEditorHost
+  .mdxeditor
+  table
+  > tbody
+  > tr
+  > td:not([data-tool-cell='true']) {
+  background: var(--wysiwyg-bg, ${P.bg});
+}
+
+[data-muled-wysiwyg-theme='acme']
+  .MuledMDXEditorHost
+  .mdxeditor
+  table
+  > tbody
+  > tr:first-child
+  > th:not([data-tool-cell='true']) {
+  background: var(--wysiwyg-surface, ${P.header});
+  font-weight: bold;
 }
 
 [data-muled-wysiwyg-theme='acme'] .MuledPlainCodeBlock__cm .cm-gutters {

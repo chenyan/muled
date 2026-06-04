@@ -25,18 +25,58 @@
 .AppShell__sidebar {
   flex: 0 0 var(--app-sidebar-width, 260px);
   width: var(--app-sidebar-width, 260px);
-  min-width: 180px;
-  max-width: 40vw;
+  min-width: var(--app-sidebar-width, 260px);
+  max-width: var(--app-sidebar-width, 260px);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--muled-border);
+  border-right: none;
   background: var(--muled-surface-muted);
   overflow: hidden;
   transition:
     flex-basis 0.15s ease,
     width 0.15s ease,
     min-width 0.15s ease,
+    max-width 0.15s ease,
     border-color 0.15s ease;
+}
+
+.AppShell--sidebar-resizing .AppShell__sidebar {
+  transition: none;
+}
+
+.AppShell__sidebarResize {
+  flex: 0 0 1px;
+  width: 1px;
+  margin: 0;
+  padding: 0;
+  align-self: stretch;
+  flex-shrink: 0;
+  touch-action: none;
+  cursor: col-resize;
+  background: var(--muled-border);
+  position: relative;
+  z-index: 2;
+}
+
+.AppShell__sidebarResize::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -5px;
+  width: 11px;
+  cursor: col-resize;
+}
+
+.AppShell__sidebarResize:hover,
+.AppShell__sidebarResize:focus-visible,
+.AppShell__sidebarResize--active {
+  background: var(--muled-accent);
+}
+
+.AppShell__sidebarResize:focus-visible {
+  outline: 2px solid var(--muled-accent);
+  outline-offset: -2px;
 }
 
 .SidebarTabs {
@@ -187,7 +227,6 @@
   width: 0;
   min-width: 0;
   max-width: 0;
-  border-right-color: transparent;
   pointer-events: none;
 }
 
@@ -501,6 +540,48 @@
   min-width: 0;
 }
 
+.MarkdownTabNavigation {
+  display: inline-flex;
+  flex-shrink: 0;
+  border: 1px solid var(--muled-border);
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.MarkdownTabNavigation__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 20px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: var(--muled-surface);
+  color: var(--muled-fg);
+  cursor: pointer;
+}
+
+.MarkdownTabNavigation__btn + .MarkdownTabNavigation__btn {
+  border-left: 1px solid var(--muled-border);
+}
+
+.MarkdownTabNavigation__btn:disabled {
+  color: var(--muled-subtle-fg);
+  background: var(--muled-surface-muted);
+  cursor: not-allowed;
+}
+
+.MarkdownTabNavigation__btn:not(:disabled):hover {
+  background: var(--muled-surface-muted);
+  color: var(--muled-fg);
+}
+
+.MarkdownTabNavigation__btn:not(:disabled):active {
+  background: var(--muled-border);
+}
+
 .TabContent__headerRight {
   display: flex;
   align-items: center;
@@ -545,6 +626,17 @@
   cursor: not-allowed;
 }
 
+.TabContent__editorPane--preview .MuledMDXEditorHost
+  .mdxeditor-root-contenteditable
+  [role='textbox'],
+.TabContent__editorPane--preview .MuledMDXEditorHost
+  .mdxeditor-root-contenteditable
+  [contenteditable='false'] {
+  cursor: default;
+  caret-color: transparent;
+  user-select: text;
+}
+
 .EditorViewSwitch {
   display: inline-flex;
   border: 1px solid var(--muled-border);
@@ -579,6 +671,37 @@
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+.MuledMDXEditorHost a[href^='#muled-wiki:'],
+.MuledMDXEditorHost a[href^='muled-wiki-link:'],
+.MuledMDXEditorHost .mdxeditor a[href^='http://'],
+.MuledMDXEditorHost .mdxeditor a[href^='https://'],
+.MuledMDXEditorHost .mdxeditor a[href^='mailto:'] {
+  color: #6366f1;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.MuledMDXEditorHost a[href^='#muled-wiki:']:hover,
+.MuledMDXEditorHost a[href^='muled-wiki-link:']:hover,
+.MuledMDXEditorHost .mdxeditor a[href^='http://']:hover,
+.MuledMDXEditorHost .mdxeditor a[href^='https://']:hover,
+.MuledMDXEditorHost .mdxeditor a[href^='mailto:']:hover {
+  text-decoration: underline;
+}
+
+.dark-theme.MuledMDXEditorHost a[href^='#muled-wiki:'],
+.MuledMDXEditorHost.dark-theme a[href^='#muled-wiki:'],
+.dark-theme.MuledMDXEditorHost a[href^='muled-wiki-link:'],
+.MuledMDXEditorHost.dark-theme a[href^='muled-wiki-link:'],
+.dark-theme.MuledMDXEditorHost .mdxeditor a[href^='http://'],
+.dark-theme.MuledMDXEditorHost .mdxeditor a[href^='https://'],
+.dark-theme.MuledMDXEditorHost .mdxeditor a[href^='mailto:'],
+.MuledMDXEditorHost.dark-theme .mdxeditor a[href^='http://'],
+.MuledMDXEditorHost.dark-theme .mdxeditor a[href^='https://'],
+.MuledMDXEditorHost.dark-theme .mdxeditor a[href^='mailto:'] {
+  color: #818cf8;
 }
 
 /* WYSIWYG 图片编辑按钮：默认隐藏，悬浮或聚焦时显示 */
@@ -977,6 +1100,11 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+/* 挂在 Viewport 内：不额外占布局，避免破坏 Scroller */
+.PdfPreview__contextHost--inViewport {
+  display: contents;
 }
 
 .PdfPreview__viewportSurface {

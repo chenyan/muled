@@ -1,0 +1,32 @@
+import normalizeMarkdownHtmlTags from './normalizeMarkdownHtmlTags';
+import normalizeMarkdownMath from './normalizeMarkdownMath';
+import { normalizeMarkdownWikiImages } from './normalizeMarkdownWikiImages';
+import { normalizeMarkdownWikiLinks } from './normalizeMarkdownWikiLinks';
+import { splitTopLevelMarkdownBlocks } from './splitMarkdownBlocks';
+import { normalizeMarkdownBlockMathAndHtml } from './wysiwygBlockNormalize';
+
+function joinPreparedBlocks(blocks: string[], fallback: string): string {
+  if (blocks.length === 0 && !fallback.trim()) {
+    return fallback;
+  }
+  return blocks.map(normalizeMarkdownBlockMathAndHtml).join('\n\n');
+}
+
+/** WYSIWYG 载入：单次块拆分 + math/html 合并，再处理 wiki 图片/链接 */
+export function prepareMarkdownForWysiwyg(raw: string): string {
+  const blocks = splitTopLevelMarkdownBlocks(raw);
+  const body = joinPreparedBlocks(blocks, raw);
+  return normalizeMarkdownWikiLinks(normalizeMarkdownWikiImages(body));
+}
+
+/**
+ * 旧版四次全篇归一化（两次块拆分），仅供基准对比。
+ * @visibleForTesting
+ */
+export function prepareMarkdownForWysiwygLegacy(raw: string): string {
+  return normalizeMarkdownWikiLinks(
+    normalizeMarkdownWikiImages(
+      normalizeMarkdownHtmlTags(normalizeMarkdownMath(raw)),
+    ),
+  );
+}

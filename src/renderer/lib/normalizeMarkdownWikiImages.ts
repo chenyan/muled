@@ -1,5 +1,6 @@
 import { denormalizeInlineMathSpans, denormalizeMarkdownMath } from './denormalizeMarkdownMath';
 import { denormalizeMarkdownHtmlTags } from './denormalizeMarkdownHtmlTags';
+import { exportWikiLinksFromMarkdown } from './normalizeMarkdownWikiLinks';
 import { isImagePath } from './mime';
 
 /**
@@ -126,7 +127,9 @@ export function exportMarkdownFromWysiwyg(
 ): string {
   return denormalizeMarkdownMath(
     denormalizeInlineMathSpans(
-      denormalizeMarkdownHtmlTags(exportWikiImagesFromMarkdown(source)),
+      denormalizeMarkdownHtmlTags(
+        exportWikiLinksFromMarkdown(exportWikiImagesFromMarkdown(source)),
+      ),
     ),
     original,
   );

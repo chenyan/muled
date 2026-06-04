@@ -73,6 +73,36 @@ const muled = {
       };
     },
   },
+  shell: {
+    openExternal: (url: string) => invoke('shell:openExternal', { url }),
+  },
+  menu: {
+    onOpenTranslationHistory: (listener: (path: string) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, path: string) => {
+        listener(path);
+      };
+      ipcRenderer.on('menu:openTranslationHistory', handler);
+      return () => {
+        ipcRenderer.removeListener('menu:openTranslationHistory', handler);
+      };
+    },
+    onOpenExternalDocument: (
+      listener: (
+        payload: import('../shared/types/ipc').OpenExternalDocumentPayload,
+      ) => void,
+    ) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        payload: import('../shared/types/ipc').OpenExternalDocumentPayload,
+      ) => {
+        listener(payload);
+      };
+      ipcRenderer.on('menu:openExternalDocument', handler);
+      return () => {
+        ipcRenderer.removeListener('menu:openExternalDocument', handler);
+      };
+    },
+  },
 };
 
 contextBridge.exposeInMainWorld('muled', muled);

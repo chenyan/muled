@@ -13,7 +13,7 @@ import {
 import { buildWysiwygCodeBlockExtensions } from '../../../lib/wysiwygCodeMirrorSetup';
 import useCodeBlockFocus from './useCodeBlockFocus';
 
-/** CodeMirror 代码块：语法高亮、无内部滚动条 */
+/** CodeMirror 代码块：每块一个实例，语法高亮、无内部滚动条 */
 export default function PlainCodeBlockEditor({
   code,
   language,

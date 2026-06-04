@@ -66,19 +66,32 @@ function joinRelative(baseDir: string, imagePath: string): string {
 export function resolveWikiImagePathCandidates(
   imagePath: string,
   documentRelativePath?: string | null,
+  options?: { resolveRelativeToDocument?: boolean },
 ): string[] {
-  const normalized = imagePath.replace(/\\/g, '/').replace(/^\.\/+/, '');
-  const candidates: string[] = [];
-
-  if (normalized) {
-    candidates.push(normalized);
+  const raw = imagePath.replace(/\\/g, '/');
+  const vaultAbsolute = raw.startsWith('/');
+  const normalized = raw.replace(/^\.\/+/, '').replace(/^\/+/, '');
+  if (!normalized) {
+    return [];
   }
+
+  const resolveRelativeToDocument =
+    options?.resolveRelativeToDocument !== false;
+
+  // Obsidian：以 / 开头的 wiki 路径相对 vault 根，而非当前笔记目录
+  if (vaultAbsolute || !resolveRelativeToDocument) {
+    return [normalized];
+  }
+
+  const candidates: string[] = [];
 
   if (documentRelativePath) {
     const docDir = dirname(documentRelativePath);
-    if (docDir) {
-      candidates.push(joinRelative(docDir, normalized));
-    }
+    candidates.push(joinRelative(docDir, normalized));
+  }
+
+  if (!candidates.includes(normalized)) {
+    candidates.push(normalized);
   }
 
   return [...new Set(candidates.filter(Boolean))];
@@ -102,10 +115,16 @@ export async function resolveWikiImagePreview(
       return cached;
     }
 
+    const isWikiEmbed = src.startsWith(WIKI_IMAGE_SRC_PREFIX);
+    const isMuledFile = src.startsWith(MULED_FILE_SRC_PREFIX);
     const imagePath = decodeURIComponent(stripMuledImagePrefix(src));
     const candidates = resolveWikiImagePathCandidates(
       imagePath,
       documentRelativePath,
+      {
+        // ![[...]] / muled-wiki：相对当前笔记目录；![](path) / muled-file：工作区相对路径
+        resolveRelativeToDocument: isWikiEmbed || !isMuledFile,
+      },
     );
 
     for (const candidate of candidates) {

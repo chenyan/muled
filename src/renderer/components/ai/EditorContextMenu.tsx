@@ -9,7 +9,8 @@ export interface EditorContextMenuProps {
   y: number;
   hasSelection: boolean;
   hasApiKey: boolean;
-  wysiwygMode?: boolean;
+  showTranslate?: boolean;
+  showAiEdit?: boolean;
   onSelect: (action: EditorContextMenuAction) => void;
   onClose: () => void;
 }
@@ -20,7 +21,8 @@ export default function EditorContextMenu({
   y,
   hasSelection,
   hasApiKey,
-  wysiwygMode = false,
+  showTranslate = false,
+  showAiEdit = true,
   onSelect,
   onClose,
 }: EditorContextMenuProps) {
@@ -64,41 +66,45 @@ export default function EditorContextMenu({
       style={{ left: x, top: y }}
       role="menu"
     >
-      {wysiwygMode && (
+      {showTranslate && (
+        <button
+          type="button"
+          role="menuitem"
+          className="EditorContextMenu__item"
+          disabled={translateDisabled}
+          title={aiTitle}
+          onClick={() => onSelect('translate')}
+        >
+          翻译该句
+        </button>
+      )}
+      {showTranslate && showAiEdit && (
+        <div className="EditorContextMenu__separator" role="separator" />
+      )}
+      {showAiEdit && (
         <>
           <button
             type="button"
             role="menuitem"
             className="EditorContextMenu__item"
-            disabled={translateDisabled}
+            disabled={aiDisabled}
             title={aiTitle}
-            onClick={() => onSelect('translate')}
+            onClick={() => onSelect('append')}
           >
-            翻译该句
+            Chat Append
           </button>
-          <div className="EditorContextMenu__separator" role="separator" />
+          <button
+            type="button"
+            role="menuitem"
+            className="EditorContextMenu__item"
+            disabled={aiDisabled}
+            title={aiTitle}
+            onClick={() => onSelect('replace')}
+          >
+            Chat Replace
+          </button>
         </>
       )}
-      <button
-        type="button"
-        role="menuitem"
-        className="EditorContextMenu__item"
-        disabled={aiDisabled}
-        title={aiTitle}
-        onClick={() => onSelect('append')}
-      >
-        Chat Append
-      </button>
-      <button
-        type="button"
-        role="menuitem"
-        className="EditorContextMenu__item"
-        disabled={aiDisabled}
-        title={aiTitle}
-        onClick={() => onSelect('replace')}
-      >
-        Chat Replace
-      </button>
     </div>
   );
 }

@@ -10,7 +10,9 @@ import type {
 import {
   DEFAULT_BUFFER_BYTES,
   DEFAULT_TREE_INITIAL_EXPANSION_DEPTH,
+  SIDEBAR_WIDTH_DEFAULT,
 } from '../../shared/constants';
+import { clampSidebarWidth } from '../../shared/sidebarLayout';
 import {
   DEFAULT_SOURCE_FONT,
   DEFAULT_WYSIWYG_FONT,
@@ -73,7 +75,11 @@ function deriveDefaultView(
   mode: EditorMode,
   explicit: EditorViewMode | null,
 ): EditorViewMode {
-  if (explicit === 'source' || explicit === 'rich-text') {
+  if (
+    explicit === 'source' ||
+    explicit === 'rich-text' ||
+    explicit === 'preview'
+  ) {
     return explicit;
   }
   return mode === 'vim' ? 'source' : 'rich-text';
@@ -93,7 +99,9 @@ function parseConfig(raw: unknown): MuledConfig {
   const mode =
     editor.mode === 'normal' || editor.mode === 'vim' ? editor.mode : 'vim';
   const defaultView =
-    editor.default_view === 'source' || editor.default_view === 'rich-text'
+    editor.default_view === 'source' ||
+    editor.default_view === 'rich-text' ||
+    editor.default_view === 'preview'
       ? editor.default_view
       : null;
 
@@ -129,8 +137,8 @@ function parseConfig(raw: unknown): MuledConfig {
     ui: {
       sidebar_width:
         typeof ui.sidebar_width === 'number' && ui.sidebar_width > 0
-          ? ui.sidebar_width
-          : DEFAULT_CONFIG.ui.sidebar_width,
+          ? clampSidebarWidth(ui.sidebar_width)
+          : SIDEBAR_WIDTH_DEFAULT,
       tree_initial_expansion_depth: parseTreeInitialExpansionDepth(
         ui.tree_initial_expansion_depth,
       ),

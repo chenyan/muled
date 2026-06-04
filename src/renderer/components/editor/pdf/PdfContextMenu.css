@@ -31,5 +31,11 @@
 
 .PdfContextMenu__item:disabled {
   color: #a1a1aa;
-  cursor: default;
+  cursor: not-allowed;
+}
+
+.PdfContextMenu__separator {
+  height: 1px;
+  margin: 4px 8px;
+  background: #e4e4e7;
 }

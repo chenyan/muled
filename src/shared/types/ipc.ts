@@ -32,6 +32,12 @@ export interface PdfOutlineItem {
   page: number | null;
 }
 
+export interface OpenExternalDocumentPayload {
+  openPath: string;
+  parentDir: string;
+  switchWorkspace: boolean;
+}
+
 export type IpcChannel =
   | 'config:get'
   | 'config:getSettings'
@@ -50,7 +56,8 @@ export type IpcChannel =
   | 'ai:complete'
   | 'ai:translate'
   | 'search:start'
-  | 'search:cancel';
+  | 'search:cancel'
+  | 'shell:openExternal';
 
 export interface WysiwygCssResult {
   css: string;
@@ -112,6 +119,10 @@ export interface IpcInvokeMap {
   };
   'search:cancel': {
     args: { searchId: number };
+    result: { ok: boolean };
+  };
+  'shell:openExternal': {
+    args: { url: string };
     result: { ok: boolean };
   };
 }

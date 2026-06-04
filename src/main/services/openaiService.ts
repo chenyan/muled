@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { buildAiUserContent } from '../../shared/buildAiPrompt';
 import { WYSIWYG_TRANSLATE_SYSTEM_PROMPT } from '../../shared/wysiwygTranslatePrompt';
 import type ConfigService from './configService';
+import { appendTranslationHistoryEntry } from './translationHistoryService';
 
 export default class OpenAIService {
   private readonly configService: ConfigService;
@@ -89,6 +90,7 @@ export default class OpenAIService {
       if (!text) {
         return { error: '模型返回空内容' };
       }
+      appendTranslationHistoryEntry(trimmed, text);
       return { text };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

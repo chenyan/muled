@@ -33,6 +33,14 @@ describe('buildFdCommandArgs', () => {
       '熵',
     ]);
   });
+
+  it('keeps quoted titles with spaces as one pattern', () => {
+    expect(buildFdCommandArgs('"My Page"', 5)).toEqual([
+      '--max-results',
+      '5',
+      'My Page',
+    ]);
+  });
 });
 
 describe('parseRgJsonLines', () => {

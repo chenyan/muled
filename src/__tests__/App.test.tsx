@@ -103,6 +103,13 @@ beforeEach(() => {
       cancel: async () => ({ ok: true }),
       onStream: () => () => undefined,
     },
+    shell: {
+      openExternal: async () => ({ ok: true }),
+    },
+    menu: {
+      onOpenTranslationHistory: () => () => undefined,
+      onOpenExternalDocument: () => () => undefined,
+    },
   };
 });
 

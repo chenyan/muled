@@ -25,6 +25,15 @@ import {
   type SaveTabResult,
   type UnsavedChangesChoice,
 } from '../lib/unsavedChanges';
+import {
+  canTabNavigateBack,
+  canTabNavigateForward,
+  createTabNavigationStacks,
+  pushTabNavigationBack,
+  tabNavigationGoBack,
+  tabNavigationGoForward,
+  type TabNavigationStacks,
+} from '../lib/tabNavigationHistory';
 import type { EditorTab, EditorRevealTarget, TabKind } from '../types/tab';
 
 export type ConfirmUnsavedChanges = (
@@ -186,6 +195,39 @@ export function useEditorTabs(
   const confirmUnsavedRef = useRef(confirmUnsaved);
   confirmUnsavedRef.current = confirmUnsaved;
 
+  const tabNavStacksRef = useRef(new Map<string, TabNavigationStacks>());
+  const [tabNavRevision, setTabNavRevision] = useState(0);
+  const bumpTabNav = useCallback(() => {
+    setTabNavRevision((n) => n + 1);
+  }, []);
+
+  const clearTabNavigation = useCallback(
+    (tabId: string | null | undefined) => {
+      if (!tabId) return;
+      if (tabNavStacksRef.current.delete(tabId)) {
+        bumpTabNav();
+      }
+    },
+    [bumpTabNav],
+  );
+
+  const getTabNavigationStacks = useCallback((tabId: string): TabNavigationStacks => {
+    return tabNavStacksRef.current.get(tabId) ?? createTabNavigationStacks();
+  }, []);
+
+  const tabNavigation = useMemo(() => {
+    if (!activeTabId || activeTab?.kind !== 'markdown') {
+      return { canGoBack: false, canGoForward: false };
+    }
+    const stacks = getTabNavigationStacks(activeTabId);
+    return {
+      canGoBack: canTabNavigateBack(stacks),
+      canGoForward: canTabNavigateForward(stacks),
+    };
+    // tabNavRevision drives recompute when stacks change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, activeTabId, getTabNavigationStacks, tabNavRevision]);
+
   useEffect(() => {
     if (tabs.length === 0) {
       if (activeTabId !== null) setActiveTabId(null);
@@ -237,14 +279,50 @@ export function useEditorTabs(
     );
   }, []);
 
+  const replaceTabWithPath = useCallback(
+    async (tabId: string, relativePath: string) => {
+      const cfg = configRef.current;
+      if (!cfg || isDirectoryPath(relativePath)) {
+        return;
+      }
+
+      const target = tabsRef.current.find((t) => t.id === tabId);
+      if (!target) return;
+      if (!(await ensureCanProceed(target))) return;
+
+      const base = {
+        dirty: false,
+        keybindingMode: target.keybindingMode,
+        viewMode:
+          target.kind === 'markdown' ? target.viewMode : cfg.editor.default_view,
+      } as const;
+
+      try {
+        const loaded = await loadFileIntoTab(relativePath, base);
+        setTabs((prev) =>
+          prev.map((t) => {
+            if (t.id !== tabId) return t;
+            releaseTabResources(t);
+            return { ...loaded, id: tabId };
+          }),
+        );
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        pushStatusToast(`无法打开文件: ${message}`, 'error');
+      }
+    },
+    [ensureCanProceed],
+  );
+
   const activateTabId = useCallback(
     async (tabId: string) => {
       if (tabId === activeTabIdRef.current) return;
 
-      const leaving = tabsRef.current.find(
-        (t) => t.id === activeTabIdRef.current,
-      );
+      const leavingId = activeTabIdRef.current;
+      const leaving = tabsRef.current.find((t) => t.id === leavingId);
       if (!(await ensureCanProceed(leaving))) return;
+
+      clearTabNavigation(leavingId);
 
       setTabs((prev) =>
         prev.map((t) => {
@@ -259,7 +337,7 @@ export function useEditorTabs(
       );
       setActiveTabId(tabId);
     },
-    [ensureCanProceed],
+    [clearTabNavigation, ensureCanProceed],
   );
 
   const openPath = useCallback(async (relativePath: string) => {
@@ -312,6 +390,72 @@ export function useEditorTabs(
       pushStatusToast(`无法打开文件: ${message}`, 'error');
     }
   }, [activateTabId, ensureCanProceed]);
+
+  const openPathRef = useRef(openPath);
+  openPathRef.current = openPath;
+
+  const openPathFromEditorLink = useCallback(
+    async (relativePath: string) => {
+      const tabId = activeTabIdRef.current;
+      if (!tabId) return;
+
+      const tab = tabsRef.current.find((t) => t.id === tabId);
+      if (!tab || tab.kind !== 'markdown') {
+        await openPathRef.current(relativePath);
+        return;
+      }
+
+      if (tab.relativePath && tab.relativePath !== relativePath) {
+        const stacks = getTabNavigationStacks(tabId);
+        tabNavStacksRef.current.set(
+          tabId,
+          pushTabNavigationBack(stacks, tab.relativePath),
+        );
+        bumpTabNav();
+      }
+
+      await replaceTabWithPath(tabId, relativePath);
+    },
+    [bumpTabNav, getTabNavigationStacks, replaceTabWithPath],
+  );
+
+  const navigateTabBack = useCallback(async () => {
+    const tabId = activeTabIdRef.current;
+    if (!tabId) return;
+
+    const tab = tabsRef.current.find((t) => t.id === tabId);
+    if (!tab?.relativePath) return;
+
+    const stacks = getTabNavigationStacks(tabId);
+    const { stacks: next, target } = tabNavigationGoBack(
+      stacks,
+      tab.relativePath,
+    );
+    if (!target) return;
+
+    tabNavStacksRef.current.set(tabId, next);
+    bumpTabNav();
+    await replaceTabWithPath(tabId, target);
+  }, [bumpTabNav, getTabNavigationStacks, replaceTabWithPath]);
+
+  const navigateTabForward = useCallback(async () => {
+    const tabId = activeTabIdRef.current;
+    if (!tabId) return;
+
+    const tab = tabsRef.current.find((t) => t.id === tabId);
+    if (!tab?.relativePath) return;
+
+    const stacks = getTabNavigationStacks(tabId);
+    const { stacks: next, target } = tabNavigationGoForward(
+      stacks,
+      tab.relativePath,
+    );
+    if (!target) return;
+
+    tabNavStacksRef.current.set(tabId, next);
+    bumpTabNav();
+    await replaceTabWithPath(tabId, target);
+  }, [bumpTabNav, getTabNavigationStacks, replaceTabWithPath]);
 
   const openPathWithReveal = useCallback(
     async (relativePath: string, reveal: EditorRevealTarget) => {
@@ -453,6 +597,7 @@ export function useEditorTabs(
       if (!target) return;
       if (!(await ensureCanProceed(target))) return;
 
+      clearTabNavigation(tabId);
       releaseTabResources(target);
 
       setTabs((prev) => {
@@ -478,7 +623,7 @@ export function useEditorTabs(
         return finalTabs;
       });
     },
-    [ensureCanProceed],
+    [clearTabNavigation, ensureCanProceed],
   );
 
   const setActiveTab = useCallback(
@@ -594,8 +739,12 @@ export function useEditorTabs(
     activeTab,
     activeTabId,
     openPath,
+    openPathFromEditorLink,
     openPathWithReveal,
     openDirectoryGrid,
+    tabNavigation,
+    navigateTabBack,
+    navigateTabForward,
     addTab,
     closeTab,
     setActiveTab,

@@ -6,7 +6,7 @@ export type { EditorFontSettings };
 export type { ResolvedThemeConfig, ThemeConfig, ThemePreference, ResolvedTheme } from './theme';
 
 export type EditorMode = 'vim' | 'normal';
-export type EditorViewMode = 'source' | 'rich-text';
+export type EditorViewMode = 'source' | 'rich-text' | 'preview';
 
 export interface MuledConfig {
   openai: {

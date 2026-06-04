@@ -1,10 +1,18 @@
+import path from 'path';
 import {
   app,
+  dialog,
   Menu,
   shell,
   BrowserWindow,
   MenuItemConstructorOptions,
 } from 'electron';
+import { ensureTranslationHistoryFile } from './services/translationHistoryService';
+import {
+  compressTilde,
+  getTranslationHistoryConfigPath,
+  toWorkspaceRelativePath,
+} from '../shared/pathUtils';
 
 interface DarwinMenuItemConstructorOptions extends MenuItemConstructorOptions {
   selector?: string;
@@ -14,8 +22,11 @@ interface DarwinMenuItemConstructorOptions extends MenuItemConstructorOptions {
 export default class MenuBuilder {
   mainWindow: BrowserWindow;
 
-  constructor(mainWindow: BrowserWindow) {
+  getWorkspaceRoot: () => string;
+
+  constructor(mainWindow: BrowserWindow, getWorkspaceRoot: () => string) {
     this.mainWindow = mainWindow;
+    this.getWorkspaceRoot = getWorkspaceRoot;
   }
 
   buildMenu(): Menu {
@@ -52,6 +63,91 @@ export default class MenuBuilder {
     });
   }
 
+  openTranslationHistory(): void {
+    ensureTranslationHistoryFile();
+    if (this.mainWindow.isDestroyed()) return;
+    this.mainWindow.webContents.send(
+      'menu:openTranslationHistory',
+      getTranslationHistoryConfigPath(),
+    );
+  }
+
+  async openExternalDocument(): Promise<void> {
+    if (this.mainWindow.isDestroyed()) return;
+
+    const { canceled, filePaths } = await dialog.showOpenDialog(this.mainWindow, {
+      title: '打开外部文档',
+      properties: ['openFile'],
+    });
+    if (canceled || filePaths.length === 0) {
+      return;
+    }
+
+    const filePath = path.resolve(filePaths[0]);
+    const parentDir = path.dirname(filePath);
+    const workspaceRoot = this.getWorkspaceRoot();
+    let openPath: string;
+    let switchWorkspace = false;
+
+    const relativePath = toWorkspaceRelativePath(workspaceRoot, filePath);
+    if (relativePath) {
+      openPath = relativePath;
+    } else {
+      const { response } = await dialog.showMessageBox(this.mainWindow, {
+        type: 'question',
+        buttons: ['切换', '不切换'],
+        defaultId: 0,
+        cancelId: 1,
+        title: '切换工作目录',
+        message: '是否将工作目录切换到外部文档所在文件夹？',
+        detail: parentDir,
+      });
+      switchWorkspace = response === 0;
+      openPath = switchWorkspace ? path.basename(filePath) : compressTilde(filePath);
+    }
+
+    if (this.mainWindow.isDestroyed()) return;
+    this.mainWindow.webContents.send('menu:openExternalDocument', {
+      openPath,
+      parentDir,
+      switchWorkspace,
+    });
+  }
+
+  buildFileSubmenu(): MenuItemConstructorOptions[] {
+    const quitAccelerator =
+      process.platform === 'darwin' ? 'Command+Q' : 'Ctrl+Q';
+
+    return [
+      {
+        label: '打开',
+        submenu: [
+          {
+            label: '打开外部文档',
+            click: () => {
+              void this.openExternalDocument();
+            },
+          },
+        ],
+      },
+      { type: 'separator' },
+      {
+        label: '翻译历史',
+        click: () => {
+          this.openTranslationHistory();
+        },
+      },
+      { type: 'separator' },
+      {
+        label: '退出',
+        accelerator: quitAccelerator,
+        click: () => {
+          app.quit();
+        },
+      },
+    ];
+  }
+
   buildDarwinTemplate(): MenuItemConstructorOptions[] {
     const subMenuAbout: DarwinMenuItemConstructorOptions = {
       label: 'MulEd',
@@ -83,6 +179,10 @@ export default class MenuBuilder {
           },
         },
       ],
+    };
+    const subMenuFile: MenuItemConstructorOptions = {
+      label: '文件',
+      submenu: this.buildFileSubmenu(),
     };
     const subMenuEdit: DarwinMenuItemConstructorOptions = {
       label: 'Edit',
@@ -189,26 +289,14 @@ export default class MenuBuilder {
         ? subMenuViewDev
         : subMenuViewProd;
 
-    return [subMenuAbout, subMenuEdit, subMenuView, subMenuWindow, subMenuHelp];
+    return [subMenuAbout, subMenuFile, subMenuEdit, subMenuView, subMenuWindow, subMenuHelp];
   }
 
   buildDefaultTemplate() {
     const templateDefault = [
       {
-        label: '&File',
-        submenu: [
-          {
-            label: '&Open',
-            accelerator: 'Ctrl+O',
-          },
-          {
-            label: '&Close',
-            accelerator: 'Ctrl+W',
-            click: () => {
-              this.mainWindow.close();
-            },
-          },
-        ],
+        label: '文件(&F)',
+        submenu: this.buildFileSubmenu(),
       },
       {
         label: '&View',

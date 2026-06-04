@@ -2,7 +2,10 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import {
+  compressTilde,
   expandTilde,
+  getTranslationHistoryConfigPath,
+  getTranslationHistoryFilePath,
   isPathInsideRoot,
   resolvePath,
 } from '../shared/pathUtils';
@@ -25,6 +28,14 @@ describe('pathUtils', () => {
     fs.mkdirSync(cwd, { recursive: true });
     expect(resolvePath('child.txt', cwd)).toBe(
       path.normalize(path.join(cwd, 'child.txt')),
+    );
+  });
+
+  it('exposes translation history paths under config dir', () => {
+    const filePath = getTranslationHistoryFilePath();
+    expect(filePath.endsWith(`${path.sep}translation-history.md`)).toBe(true);
+    expect(getTranslationHistoryConfigPath()).toBe(
+      compressTilde(filePath),
     );
   });
 });

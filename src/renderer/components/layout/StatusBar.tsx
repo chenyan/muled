@@ -1,4 +1,5 @@
 import type { EditorMode, EditorViewMode } from '../../../shared/types/config';
+import { editorViewModeLabel } from '../../lib/editorViewMode';
 import { buildPathBreadcrumbs } from '../../lib/workspaceTreeReveal';
 import type { EditorTab } from '../../types/tab';
 import { isEditableTextTab, tabLabel } from '../../types/tab';
@@ -18,10 +19,6 @@ function shortenPath(path: string, maxLen = 48): string {
   const head = path.slice(0, 20);
   const tail = path.slice(-(maxLen - 23));
   return `${head}…${tail}`;
-}
-
-function viewModeLabel(mode: EditorViewMode): string {
-  return mode === 'rich-text' ? 'WYSIWYG' : 'Source';
 }
 
 export default function StatusBar({
@@ -113,7 +110,7 @@ export default function StatusBar({
           </span>
         )}
         {viewMode && (
-          <span className="StatusBar__badge">{viewModeLabel(viewMode)}</span>
+          <span className="StatusBar__badge">{editorViewModeLabel(viewMode)}</span>
         )}
         {keyMode && tab && isEditableTextTab(tab) && (
           <button

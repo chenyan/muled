@@ -1,4 +1,4 @@
-import { ipcMain, nativeTheme, type BrowserWindow, type WebContents } from 'electron';
+import { ipcMain, nativeTheme, shell, type BrowserWindow, type WebContents } from 'electron';
 import type { IpcChannel, ThemeChangedPayload } from '../../shared/types/ipc';
 import type {
   SearchStreamEvent,
@@ -231,6 +231,12 @@ export function registerIpc(
     'search:cancel': (arg) => {
       const { searchId } = arg as { searchId: number };
       cancelSearch(searchId);
+      return { ok: true };
+    },
+
+    'shell:openExternal': async (arg) => {
+      const { url } = arg as { url: string };
+      await shell.openExternal(url);
       return { ok: true };
     },
   };

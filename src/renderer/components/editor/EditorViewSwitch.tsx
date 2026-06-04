@@ -29,6 +29,14 @@ export default function EditorViewSwitch({
       >
         Source
       </button>
+      <button
+        type="button"
+        className={`EditorViewSwitch__btn${viewMode === 'preview' ? ' EditorViewSwitch__btn--active' : ''}`}
+        disabled={disabled}
+        onClick={() => onChange('preview')}
+      >
+        Preview
+      </button>
     </div>
   );
 }

@@ -157,26 +157,104 @@ export function applyDomRange(range: Range): void {
   selection.addRange(range);
 }
 
+function findBlockElementFromPoint(
+  root: HTMLElement,
+  clientX: number,
+  clientY: number,
+): HTMLElement | null {
+  const target = document.elementFromPoint(clientX, clientY);
+  if (!target || !root.contains(target)) {
+    return null;
+  }
+  return findBlockElement(target, root);
+}
+
+function distanceToRect(rect: DOMRect, clientX: number, clientY: number): number {
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  return Math.hypot(cx - clientX, cy - clientY);
+}
+
+/** readOnly 下 caretRangeFromPoint 常失败，按点击位置估算字符偏移 */
+function offsetAtPointInBlock(
+  block: HTMLElement,
+  clientX: number,
+  clientY: number,
+): number | null {
+  const { text } = collectTextSegments(block);
+  if (!text.trim()) return null;
+
+  const measureOffset = (index: number): number => {
+    const end = Math.min(index + 1, text.length);
+    const range = rangeFromTextOffsets(block, index, end);
+    if (!range) return Infinity;
+    return distanceToRect(range.getBoundingClientRect(), clientX, clientY);
+  };
+
+  const step = Math.max(1, Math.floor(text.length / 64));
+  let bestOffset = 0;
+  let bestDistance = measureOffset(0);
+
+  for (let index = step; index <= text.length; index += step) {
+    const distance = measureOffset(index);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestOffset = index;
+    }
+  }
+
+  const refineStart = Math.max(0, bestOffset - step);
+  const refineEnd = Math.min(text.length, bestOffset + step);
+  for (let index = refineStart; index <= refineEnd; index += 1) {
+    const distance = measureOffset(index);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestOffset = index;
+    }
+  }
+
+  return bestOffset;
+}
+
+function resolveBlockAndOffset(
+  root: HTMLElement,
+  clientX: number,
+  clientY: number,
+): { block: HTMLElement; offset: number } | null {
+  const caret = caretRangeFromPoint(clientX, clientY);
+  if (caret && root.contains(caret.startContainer)) {
+    const block = findBlockElement(caret.startContainer, root);
+    if (block) {
+      const offset = offsetInBlockText(
+        block,
+        caret.startContainer,
+        caret.startOffset,
+      );
+      if (offset !== null) {
+        return { block, offset };
+      }
+    }
+  }
+
+  const block = findBlockElementFromPoint(root, clientX, clientY);
+  if (!block) return null;
+
+  const offset = offsetAtPointInBlock(block, clientX, clientY);
+  if (offset === null) return null;
+  return { block, offset };
+}
+
 export function selectSentenceAtPointInRoot(
   root: HTMLElement,
   clientX: number,
   clientY: number,
 ): WysiwygSentenceSelection | null {
-  const caret = caretRangeFromPoint(clientX, clientY);
-  if (!caret) return null;
+  const resolved = resolveBlockAndOffset(root, clientX, clientY);
+  if (!resolved) return null;
 
-  const block = findBlockElement(caret.startContainer, root);
-  if (!block) return null;
-
+  const { block, offset } = resolved;
   const { text } = collectTextSegments(block);
   if (!text.trim()) return null;
-
-  const offset = offsetInBlockText(
-    block,
-    caret.startContainer,
-    caret.startOffset,
-  );
-  if (offset === null) return null;
 
   const { start, end } = findSentenceBounds(text, offset);
   const sentence = text.slice(start, end).trim();
@@ -185,7 +263,12 @@ export function selectSentenceAtPointInRoot(
   const sentenceRange = rangeFromTextOffsets(block, start, end);
   if (!sentenceRange) return null;
 
-  applyDomRange(sentenceRange);
+  if (root.isContentEditable || root.getAttribute('contenteditable') === 'true') {
+    applyDomRange(sentenceRange);
+  }
   const rect = sentenceRange.getBoundingClientRect();
+  if (rect.width === 0 && rect.height === 0) {
+    return null;
+  }
   return { text: sentence, rect };
 }

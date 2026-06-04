@@ -15,7 +15,12 @@ import { augmentShellPath } from './shellPath';
 augmentShellPath();
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-import { createServices, registerIpc, registerThemeWatcher } from './ipc/registerIpc';
+import {
+  createServices,
+  registerIpc,
+  registerThemeWatcher,
+  type MuledServices,
+} from './ipc/registerIpc';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 
@@ -28,6 +33,7 @@ class AppUpdater {
 }
 
 let mainWindow: BrowserWindow | null = null;
+let services: MuledServices | null = null;
 
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
@@ -96,7 +102,12 @@ const createWindow = async () => {
     mainWindow = null;
   });
 
-  const menuBuilder = new MenuBuilder(mainWindow);
+  const menuBuilder = new MenuBuilder(mainWindow, () => {
+    if (!services) {
+      throw new Error('Muled services are not initialized');
+    }
+    return services.workspace.getRoot();
+  });
   menuBuilder.buildMenu();
 
   // Open urls in the user's browser
@@ -125,7 +136,7 @@ app.on('window-all-closed', () => {
 app
   .whenReady()
   .then(() => {
-    const services = createServices();
+    services = createServices();
     registerIpc(services, () => mainWindow);
     registerThemeWatcher(services, () => mainWindow);
     createWindow();

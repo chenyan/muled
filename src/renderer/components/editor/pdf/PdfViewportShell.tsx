@@ -6,10 +6,15 @@ import {
 } from '@embedpdf/plugin-interaction-manager/react';
 import { usePan } from '@embedpdf/plugin-pan/react';
 import { Viewport, useViewportElement } from '@embedpdf/plugin-viewport/react';
+import PdfContextMenuHost, {
+  type PdfTranslateRequest,
+} from './PdfContextMenuHost';
 import PdfViewportContextMenuListener from './PdfViewportContextMenuListener';
 
 interface PdfViewportShellProps {
   documentId: string;
+  hasApiKey: boolean;
+  onTranslate: (request: PdfTranslateRequest) => void;
   children: ReactNode;
 }
 
@@ -50,6 +55,8 @@ function PdfSelectViewportScrollGuard() {
  */
 export default function PdfViewportShell({
   documentId,
+  hasApiKey,
+  onTranslate,
   children,
 }: PdfViewportShellProps) {
   const { isPanning } = usePan(documentId);
@@ -76,8 +83,14 @@ export default function PdfViewportShell({
           className={viewportClassName}
           style={{ backgroundColor: 'var(--pdf-viewport-bg, #f1f3f5)' }}
         >
-          <PdfViewportContextMenuListener />
-          {children}
+          <PdfContextMenuHost
+            documentId={documentId}
+            hasApiKey={hasApiKey}
+            onTranslate={onTranslate}
+          >
+            <PdfViewportContextMenuListener />
+            {children}
+          </PdfContextMenuHost>
         </Viewport>
       </GlobalPointerProvider>
     );
@@ -89,9 +102,15 @@ export default function PdfViewportShell({
       className={viewportClassName}
       style={{ backgroundColor: 'var(--pdf-viewport-bg, #f1f3f5)' }}
     >
-      <PdfViewportContextMenuListener />
-      <PdfSelectViewportScrollGuard />
-      {children}
+      <PdfContextMenuHost
+        documentId={documentId}
+        hasApiKey={hasApiKey}
+        onTranslate={onTranslate}
+      >
+        <PdfViewportContextMenuListener />
+        <PdfSelectViewportScrollGuard />
+        {children}
+      </PdfContextMenuHost>
     </Viewport>
   );
 }

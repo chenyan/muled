@@ -363,4 +363,11 @@ export default `
   padding: 10px 12px;
   min-height: 96px;
 }
+
+.MuledCodeBlockWithPreview__placeholder {
+  margin: 0;
+  padding: 12px;
+  font-size: 12px;
+  color: #a1a1aa;
+}
 `.trim();

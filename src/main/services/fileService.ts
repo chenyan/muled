@@ -1,6 +1,12 @@
 import fs from 'fs';
 import path from 'path';
-import { assertPathInsideRoot, resolvePath } from '../../shared/pathUtils';
+import {
+  assertPathInsideRoot,
+  expandTilde,
+  getConfigDir,
+  isPathInsideRoot,
+  resolvePath,
+} from '../../shared/pathUtils';
 import type {
   FileReadBinaryResult,
   FileReadResult,
@@ -49,8 +55,25 @@ export default class FileService {
   }
 
   resolveFilePath(filePath: string): string {
+    const expanded = expandTilde(filePath);
+    const resolved = path.isAbsolute(expanded)
+      ? path.normalize(expanded)
+      : resolvePath(filePath, this.workspaceService.getRoot());
+
+    const configDir = getConfigDir();
+    if (isPathInsideRoot(configDir, resolved)) {
+      return resolved;
+    }
+
     const root = this.workspaceService.getRoot();
-    const resolved = resolvePath(filePath, root);
+    if (isPathInsideRoot(root, resolved)) {
+      return resolved;
+    }
+
+    if (path.isAbsolute(resolved)) {
+      return resolved;
+    }
+
     return assertPathInsideRoot(root, resolved);
   }
 

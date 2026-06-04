@@ -16,10 +16,10 @@ import type {
 import EditorContextMenu, {
   type EditorContextMenuAction,
 } from '../ai/EditorContextMenu';
-import TranslationPopup, {
-  type TranslationPopupState,
-} from '../ai/TranslationPopup';
+import TranslationPopup from '../ai/TranslationPopup';
+import { useTabTranslation } from '../../hooks/useTabTranslation';
 import EditorViewSwitch from '../editor/EditorViewSwitch';
+import MarkdownTabNavigation from './MarkdownTabNavigation';
 import AudioPreview from '../editor/AudioPreview';
 import ImagePreview from '../editor/ImagePreview';
 import DirectoryGridView from '../editor/DirectoryGridView';
@@ -33,6 +33,7 @@ import SourceCodeEditor, {
 import { DEFAULT_BUFFER_BYTES } from '../../../shared/constants';
 import { formatBytes } from '../../../shared/formatBytes';
 import { applyAiInEditor } from '../../lib/applyAiInEditor';
+import { prepareMarkdownForWysiwyg } from '../../lib/prepareMarkdownForWysiwyg';
 import {
   registerEditorAiHandlers,
   type EditorAiSnapshot,
@@ -56,8 +57,12 @@ interface TabContentProps {
   ) => void;
   onSave: (tabId: string) => void;
   onOpenFile: (relativePath: string) => void;
+  onOpenFileFromEditor: (relativePath: string) => void;
   onOpenDirectoryGrid: (relativePath: string) => void;
   onAiOpen: (mode: AiApplyMode, snapshot: EditorAiSnapshot) => void;
+  tabNavigation?: { canGoBack: boolean; canGoForward: boolean };
+  onTabNavigateBack?: () => void;
+  onTabNavigateForward?: () => void;
 }
 
 export default function TabContent({
@@ -69,24 +74,41 @@ export default function TabContent({
   onViewModeChange,
   onSave,
   onOpenFile,
+  onOpenFileFromEditor,
   onOpenDirectoryGrid,
   onAiOpen,
+  tabNavigation,
+  onTabNavigateBack,
+  onTabNavigateForward,
 }: TabContentProps) {
   const mdxRef = useRef<MarkdownEditorHandle>(null);
   const sourceRef = useRef<SourceCodeEditorHandle>(null);
+  const editorPaneRef = useRef<HTMLDivElement>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
     snapshot: EditorAiSnapshot;
     anchorRect: DOMRect | null;
-    wysiwyg: boolean;
+    showTranslate: boolean;
+    showAiEdit: boolean;
   } | null>(null);
-  const [translationPopup, setTranslationPopup] =
-    useState<TranslationPopupState | null>(null);
+  const { translationPopup, setTranslationPopup, runTranslate } =
+    useTabTranslation();
 
   const getWysiwygContent = useCallback((): string => {
     return mdxRef.current?.getPersistedMarkdown() ?? tab?.content ?? '';
   }, [tab?.content]);
+
+  const getEditableContent = useCallback((): string => {
+    if (!tab || tab.kind !== 'markdown') return '';
+    if (tab.viewMode === 'rich-text') {
+      return getWysiwygContent();
+    }
+    if (tab.viewMode === 'source') {
+      return sourceRef.current?.getValue() ?? tab.content;
+    }
+    return tab.content;
+  }, [getWysiwygContent, tab]);
 
   const captureSnapshot = useCallback((): EditorAiSnapshot | null => {
     if (!tab || !isEditableTextTab(tab)) return null;
@@ -126,7 +148,7 @@ export default function TabContent({
 
       if (tab.viewMode === 'rich-text' && tab.kind === 'markdown') {
         mdxRef.current?.markUserEdited();
-        mdxRef.current?.setMarkdown(next);
+        mdxRef.current?.setMarkdown(prepareMarkdownForWysiwyg(next));
       } else {
         sourceRef.current?.setDocument(next);
       }
@@ -138,12 +160,11 @@ export default function TabContent({
 
   const getEditorContent = useCallback((): string => {
     if (!tab || !isEditableTextTab(tab)) return '';
-    const showWysiwyg = tab.kind === 'markdown' && tab.viewMode === 'rich-text';
-    if (showWysiwyg) {
-      return getWysiwygContent();
+    if (tab.kind === 'markdown') {
+      return getEditableContent();
     }
     return sourceRef.current?.getValue() ?? tab.content;
-  }, [getWysiwygContent, tab]);
+  }, [getEditableContent, tab]);
 
   useEffect(() => {
     if (!tab || !isEditableTextTab(tab) || tab.truncated) {
@@ -162,7 +183,10 @@ export default function TabContent({
     registerEditorViewHandlers(tab.id, { getEditorContent });
     registerEditorOutlineHandlers(tab.id, {
       revealOutlineTarget: ({ line, title }) => {
-        if (tab.kind !== 'markdown' || tab.viewMode !== 'rich-text') {
+        if (
+          tab.kind !== 'markdown' ||
+          tab.viewMode === 'source'
+        ) {
           return false;
         }
         return (
@@ -182,33 +206,31 @@ export default function TabContent({
 
   const handleViewModeChange = useCallback(
     (next: EditorViewMode) => {
-      if (!tab || tab.kind !== 'markdown') return;
-      const content =
-        next === 'source'
-          ? getWysiwygContent()
-          : (sourceRef.current?.getValue() ?? tab.content);
-      onViewModeChange(tab.id, next, content);
+      if (!tab || tab.kind !== 'markdown' || next === tab.viewMode) return;
+      onViewModeChange(tab.id, next, getEditableContent());
     },
-    [getWysiwygContent, tab, onViewModeChange],
+    [getEditableContent, tab, onViewModeChange],
   );
 
   const handleEditorContextMenu = useCallback(
     (e: MouseEvent) => {
       if (!tab || !isEditableTextTab(tab) || tab.truncated) return;
 
-      const showWysiwyg =
-        tab.kind === 'markdown' && tab.viewMode === 'rich-text';
+      const showRenderedMarkdown =
+        tab.kind === 'markdown' &&
+        (tab.viewMode === 'rich-text' || tab.viewMode === 'preview');
 
-      if (showWysiwyg) {
-        e.preventDefault();
-
+      if (showRenderedMarkdown) {
         const picked = mdxRef.current?.selectSentenceAtPoint(
           e.clientX,
           e.clientY,
         );
         if (!picked?.text.trim()) return;
 
-        const current = getWysiwygContent();
+        e.preventDefault();
+
+        const current =
+          tab.viewMode === 'preview' ? tab.content : getWysiwygContent();
         const snapshot: EditorAiSnapshot = {
           selection: picked.text,
           sourceRange: findSelectionSpan(current, picked.text),
@@ -219,7 +241,9 @@ export default function TabContent({
           y: e.clientY,
           snapshot,
           anchorRect: picked.rect,
-          wysiwyg: true,
+          showTranslate:
+            tab.viewMode === 'rich-text' || tab.viewMode === 'preview',
+          showAiEdit: tab.viewMode === 'rich-text',
         });
         return;
       }
@@ -233,11 +257,24 @@ export default function TabContent({
         y: e.clientY,
         snapshot,
         anchorRect: null,
-        wysiwyg: false,
+        showTranslate: false,
+        showAiEdit: true,
       });
     },
     [captureSnapshot, getWysiwygContent, tab],
   );
+
+  useEffect(() => {
+    const pane = editorPaneRef.current;
+    if (!pane) return undefined;
+
+    const handler = (event: MouseEvent) => {
+      handleEditorContextMenu(event);
+    };
+
+    pane.addEventListener('contextmenu', handler, { capture: true });
+    return () => pane.removeEventListener('contextmenu', handler, { capture: true });
+  }, [handleEditorContextMenu]);
 
   const handleContextMenuSelect = useCallback(
     async (action: EditorContextMenuAction) => {
@@ -248,35 +285,20 @@ export default function TabContent({
       if (action === 'translate') {
         const rect = menu.anchorRect;
         if (!rect) return;
-
-        const sentence = menu.snapshot.selection.trim();
-        setTranslationPopup({
-          rect,
-          sentence,
-          status: 'loading',
-        });
-
-        const result = await window.muled.ai.translate({ sentence });
-        if ('error' in result) {
-          setTranslationPopup((current) =>
-            current
-              ? { ...current, status: 'error', error: result.error }
-              : null,
-          );
-          return;
-        }
-
-        setTranslationPopup((current) =>
-          current
-            ? { ...current, status: 'done', content: result.text }
-            : null,
-        );
+        await runTranslate(menu.snapshot.selection, rect);
         return;
       }
 
       onAiOpen(action, menu.snapshot);
     },
-    [contextMenu, onAiOpen],
+    [contextMenu, onAiOpen, runTranslate],
+  );
+
+  const handlePdfTranslate = useCallback(
+    (request: { sentence: string; anchorRect: DOMRect }) => {
+      void runTranslate(request.sentence, request.anchorRect);
+    },
+    [runTranslate],
   );
 
   if (!tab) {
@@ -284,6 +306,7 @@ export default function TabContent({
   }
 
   const showWysiwyg = tab.kind === 'markdown' && tab.viewMode === 'rich-text';
+  const showPreview = tab.kind === 'markdown' && tab.viewMode === 'preview';
   const showSource =
     tab.kind === 'text' ||
     (tab.kind === 'markdown' && tab.viewMode === 'source');
@@ -299,7 +322,8 @@ export default function TabContent({
         y={contextMenu?.y ?? 0}
         hasSelection={Boolean(contextMenu?.snapshot.selection)}
         hasApiKey={hasApiKey}
-        wysiwygMode={contextMenu?.wysiwyg ?? false}
+        showTranslate={contextMenu?.showTranslate ?? false}
+        showAiEdit={contextMenu?.showAiEdit ?? true}
         onClose={() => setContextMenu(null)}
         onSelect={handleContextMenuSelect}
       />
@@ -309,6 +333,14 @@ export default function TabContent({
       />
       <header className="TabContent__header">
         <div className="TabContent__headerLeft">
+          {tab.kind === 'markdown' && tabNavigation && onTabNavigateBack && onTabNavigateForward ? (
+            <MarkdownTabNavigation
+              canGoBack={tabNavigation.canGoBack}
+              canGoForward={tabNavigation.canGoForward}
+              onBack={onTabNavigateBack}
+              onForward={onTabNavigateForward}
+            />
+          ) : null}
           <span className="TabContent__title">{tabLabel(tab)}</span>
           {tab.truncated && (
             <span className="TabContent__truncated">只读（已截断）</span>
@@ -349,7 +381,11 @@ export default function TabContent({
         {tab.kind === 'image' ? (
           <ImagePreview tab={tab} />
         ) : tab.kind === 'pdf' ? (
-          <PdfViewer tab={tab} />
+          <PdfViewer
+            tab={tab}
+            hasApiKey={hasApiKey}
+            onTranslate={handlePdfTranslate}
+          />
         ) : tab.kind === 'audio' ? (
           <AudioPreview tab={tab} />
         ) : tab.kind === 'directory-grid' ? (
@@ -360,9 +396,9 @@ export default function TabContent({
           />
         ) : (
           <div
-            className="TabContent__editorPane"
+            ref={editorPaneRef}
+            className={`TabContent__editorPane${showPreview ? ' TabContent__editorPane--preview' : ''}`}
             style={editorPaneFontVars(sourceFont, wysiwygFont)}
-            onContextMenu={handleEditorContextMenu}
           >
             {showWysiwyg && (
               <MarkdownEditor
@@ -372,6 +408,18 @@ export default function TabContent({
                 relativePath={tab.relativePath}
                 readOnly={tab.truncated}
                 onChange={onContentChange}
+                onOpenFile={onOpenFileFromEditor}
+              />
+            )}
+            {showPreview && (
+              <MarkdownEditor
+                ref={mdxRef}
+                tabKey={`${tab.id}:${tab.relativePath ?? 'untitled'}:preview`}
+                markdown={tab.content}
+                relativePath={tab.relativePath}
+                readOnly
+                onChange={() => {}}
+                onOpenFile={onOpenFileFromEditor}
               />
             )}
             {showSource && (

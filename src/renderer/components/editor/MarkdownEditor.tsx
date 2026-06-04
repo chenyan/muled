@@ -24,13 +24,13 @@ import {
 import mdxEditorFaultTolerancePlugin from '../../lib/mdxEditorFaultTolerancePlugin';
 import mdxEditorHtmlPlugin from './html/mdxEditorHtmlPlugin';
 import { canParseMarkdownBlock } from '../../lib/markdownBlockParser';
-import normalizeMarkdownHtmlTags from '../../lib/normalizeMarkdownHtmlTags';
-import normalizeMarkdownMath from '../../lib/normalizeMarkdownMath';
 import {
   exportMarkdownFromWysiwyg,
-  normalizeMarkdownWikiImages,
 } from '../../lib/normalizeMarkdownWikiImages';
+import { prepareMarkdownForWysiwyg } from '../../lib/prepareMarkdownForWysiwyg';
 import { recoverMarkdownForWysiwyg } from '../../lib/recoverMarkdownForWysiwyg';
+import type { WikiLinkPickerState } from '../../lib/openWysiwygLink';
+import { useWysiwygLinkNavigation } from '../../hooks/useWysiwygLinkNavigation';
 import {
   clearWikiImagePreviewCache,
   resolveWikiImagePreview,
@@ -39,8 +39,10 @@ import { pushStatusToast } from '../../lib/statusToast';
 import { useWysiwygTheme } from '../../hooks/useAppTheme';
 import mdxEditorInlineMathPlugin from './inlineMath/mdxEditorInlineMathPlugin';
 import mdxEditorWikiImagePlugin from './mdxEditorWikiImagePlugin';
+import WikiLinkPickerMenu from './WikiLinkPickerMenu';
 import MULED_CODE_BLOCK_DESCRIPTORS from './codeBlocks/muledCodeBlockDescriptors';
 import MarkdownEditorErrorBoundary from './MarkdownEditorErrorBoundary';
+import { getWysiwygContentRoot } from '../../lib/wysiwygContentRoot';
 import {
   getSelectionBoundingRect,
   selectSentenceAtPointInRoot,
@@ -53,6 +55,7 @@ export interface MarkdownEditorProps {
   relativePath?: string | null;
   readOnly: boolean;
   onChange: (markdown: string) => void;
+  onOpenFile?: (relativePath: string) => void;
 }
 
 export type MarkdownEditorHandle = MDXEditorMethods & {
@@ -71,7 +74,7 @@ export type MarkdownEditorHandle = MDXEditorMethods & {
 /** 仅 WYSIWYG；Source 由 {@link SourceCodeEditor} 按后缀高亮 */
 const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
   function MarkdownEditor(
-    { tabKey, markdown, relativePath, readOnly, onChange },
+    { tabKey, markdown, relativePath, readOnly, onChange, onOpenFile },
     ref,
   ) {
     const innerRef = useRef<MDXEditorMethods>(null);
@@ -87,6 +90,19 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
     const userEditedRef = useRef(false);
     const onChangeRef = useRef(onChange);
     onChangeRef.current = onChange;
+    const onOpenFileRef = useRef(onOpenFile);
+    onOpenFileRef.current = onOpenFile;
+    const onWikiMenuRef = useRef<(state: WikiLinkPickerState) => void>(() => {});
+    const [wikiLinkMenu, setWikiLinkMenu] = useState<WikiLinkPickerState | null>(
+      null,
+    );
+    onWikiMenuRef.current = setWikiLinkMenu;
+
+    useWysiwygLinkNavigation(scrollHostRef, {
+      onOpenFileRef,
+      onWikiMenuRef,
+      remountKey: `${tabKey}:${editorEpoch}`,
+    });
 
     useImperativeHandle(ref, () => {
       const editor = innerRef.current as MDXEditorMethods;
@@ -108,10 +124,10 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
           return userEditedRef.current;
         },
         selectSentenceAtPoint(clientX: number, clientY: number) {
-          const root = scrollHostRef.current?.querySelector(
-            '.mdxeditor-root-contenteditable [contenteditable="true"]',
-          );
-          if (!(root instanceof HTMLElement)) return null;
+          const host = scrollHostRef.current;
+          if (!host) return null;
+          const root = getWysiwygContentRoot(host);
+          if (!root) return null;
           return selectSentenceAtPointInRoot(root, clientX, clientY);
         },
         getSelectionRect() {
@@ -120,10 +136,8 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
         revealOutlineTarget(target: { line: number; title: string }) {
           const host = scrollHostRef.current;
           if (!host) return false;
-          const root = host.querySelector(
-            '.mdxeditor-root-contenteditable [contenteditable="true"]',
-          );
-          if (!(root instanceof HTMLElement)) return false;
+          const root = getWysiwygContentRoot(host);
+          if (!root) return false;
 
           const normalize = (text: string) => text.replace(/\s+/g, ' ').trim();
           const targetTitle = normalize(target.title);
@@ -184,12 +198,10 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
       [wikiImagePlugin, imagePreviewHandler],
     );
 
-    const prepareForEditor = useCallback((raw: string): string => {
-      // 先归一化 $...$ 为 span，避免 HTML 转义把公式里的 <= 等变成 &amp;lt; 导致 MathJax 失败
-      return normalizeMarkdownWikiImages(
-        normalizeMarkdownHtmlTags(normalizeMarkdownMath(raw)),
-      );
-    }, []);
+    const prepareForEditor = useCallback(
+      (raw: string): string => prepareMarkdownForWysiwyg(raw),
+      [],
+    );
 
     const finishHydration = useCallback(() => {
       hydratingRef.current = false;
@@ -245,16 +257,18 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
     );
 
     useEffect(() => {
-      recoveryAttemptRef.current = 0;
       clearWikiImagePreviewCache();
+    }, [tabKey]);
+
+    useEffect(() => {
+      recoveryAttemptRef.current = 0;
       originalMarkdownRef.current = markdown;
       userEditedRef.current = false;
       hydratingRef.current = true;
-      loadMarkdown(markdown, { prepare: true, notifyRecovery: true });
       scheduleHydrationFinish();
-      // tabKey / editorEpoch：切换 Tab 或重置；组件 remount 时也会执行
+      // tabKey / editorEpoch：MDXEditor 经 key 重挂载，内容由 preparedInitialMarkdown 注入，不再 setMarkdown 二次解析
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tabKey, editorEpoch, loadMarkdown, scheduleHydrationFinish]);
+    }, [tabKey, editorEpoch, scheduleHydrationFinish]);
 
     useEffect(() => {
       const host = scrollHostRef.current;
@@ -322,8 +336,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
     const handleEditorReset = useCallback(() => {
       recoveryAttemptRef.current = 0;
       setEditorEpoch((value) => value + 1);
-      loadMarkdown(markdown, { prepare: true, notifyRecovery: false });
-    }, [loadMarkdown, markdown]);
+    }, []);
 
     useEffect(() => {
       const host = scrollHostRef.current;
@@ -380,6 +393,19 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
             }
           />
         </MarkdownEditorErrorBoundary>
+        {wikiLinkMenu ? (
+          <WikiLinkPickerMenu
+            x={wikiLinkMenu.x}
+            y={wikiLinkMenu.y}
+            title={wikiLinkMenu.title}
+            matches={wikiLinkMenu.matches}
+            onSelect={(match) => {
+              onOpenFileRef.current?.(match.path);
+              setWikiLinkMenu(null);
+            }}
+            onClose={() => setWikiLinkMenu(null)}
+          />
+        ) : null}
       </div>
     );
   },

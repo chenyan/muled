@@ -24,6 +24,10 @@ import {
   type EditorAiSnapshot,
 } from '../../lib/editorAiBridge';
 import { getEditorViewContent } from '../../lib/editorViewBridge';
+import {
+  editorViewModeLabel,
+  nextEditorViewMode,
+} from '../../lib/editorViewMode';
 import { getActiveEditorSelection } from '../../lib/editorSelectionBridge';
 import { runPaletteCommand } from '../../lib/runPaletteCommand';
 import { getCdPaletteCompletion } from '../../../shared/paletteAutoCompletion';
@@ -40,6 +44,8 @@ import './AppShell.css';
 import { buildTabOutline } from '../../lib/outlineIndex';
 import type { PdfOutlineItem } from '../../../shared/types/ipc';
 import { getEditorOutlineHandlers } from '../../lib/editorOutlineBridge';
+import { clampSidebarWidth } from '../../../shared/sidebarLayout';
+import { useSidebarResize } from '../../hooks/useSidebarResize';
 
 export default function AppShell() {
   const [config, setConfig] = useState<PublicConfig | null>(null);
@@ -86,6 +92,9 @@ export default function AppShell() {
   const [paletteInitialValue, setPaletteInitialValue] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState(
+    () => DEFAULT_PUBLIC_CONFIG.ui.sidebar_width,
+  );
   const [pdfOutline, setPdfOutline] = useState<PdfOutlineItem[]>([]);
 
   const [aiDialog, setAiDialog] = useState<{
@@ -268,6 +277,34 @@ export default function AppShell() {
     [editor, handleSwitchWorkspace],
   );
 
+  useEffect(() => {
+    if (!config) {
+      return;
+    }
+    setSidebarWidth(clampSidebarWidth(config.ui.sidebar_width));
+  }, [config?.ui.sidebar_width]);
+
+  const persistSidebarWidth = useCallback(async (width: number) => {
+    if (!window.muled?.config?.getSettings || !window.muled?.config?.save) {
+      return;
+    }
+    const { settings } = await window.muled.config.getSettings();
+    const next = await window.muled.config.save({
+      ...settings,
+      ui: { ...settings.ui, sidebar_width: width },
+    });
+    setConfig(next);
+  }, []);
+
+  const { resizing: sidebarResizing, resizeHandleProps } = useSidebarResize({
+    enabled: sidebarVisible,
+    width: sidebarWidth,
+    onWidthChange: setSidebarWidth,
+    onWidthCommit: (width) => {
+      persistSidebarWidth(width).catch(() => undefined);
+    },
+  });
+
   const handleSettingsSaved = useCallback(
     async (form: SettingsForm) => {
       if (!window.muled?.config?.save) {
@@ -318,12 +355,9 @@ export default function AppShell() {
     const tab = editor.activeTab;
     if (!tab || tab.kind !== 'markdown' || tab.truncated) return;
     const content = getEditorViewContent(tab.id) ?? tab.content;
-    const next = tab.viewMode === 'rich-text' ? 'source' : 'rich-text';
+    const next = nextEditorViewMode(tab.viewMode);
     editor.setViewMode(tab.id, next, content);
-    pushStatusToast(
-      `视图: ${next === 'rich-text' ? 'WYSIWYG' : 'Source'}`,
-      'info',
-    );
+    pushStatusToast(`视图: ${editorViewModeLabel(next)}`, 'info');
   }, [editor]);
 
   useEffect(() => {
@@ -386,13 +420,36 @@ export default function AppShell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!window.muled?.menu?.onOpenTranslationHistory) {
+      return undefined;
+    }
+    return window.muled.menu.onOpenTranslationHistory((path) => {
+      editor.openPath(path).catch(() => undefined);
+    });
+  }, [editor]);
+
+  useEffect(() => {
+    if (!window.muled?.menu?.onOpenExternalDocument) {
+      return undefined;
+    }
+    return window.muled.menu.onOpenExternalDocument(
+      async ({ openPath, parentDir, switchWorkspace }) => {
+        if (switchWorkspace) {
+          await handleSwitchWorkspace(parentDir);
+        }
+        editor.openPath(openPath).catch(() => undefined);
+      },
+    );
+  }, [editor, handleSwitchWorkspace]);
+
   if (configError) {
     return <div className="AppShell__error">配置加载失败: {configError}</div>;
   }
 
   const uiConfig = config ?? DEFAULT_PUBLIC_CONFIG;
   const sidebarStyle = {
-    ['--app-sidebar-width' as string]: `${uiConfig.ui.sidebar_width}px`,
+    ['--app-sidebar-width' as string]: `${sidebarWidth}px`,
   } as CSSProperties;
 
   const tabContent = (
@@ -417,6 +474,18 @@ export default function AppShell() {
           /* toast in openPath */
         });
       }}
+      onOpenFileFromEditor={(path) => {
+        editor.openPathFromEditorLink(path).catch(() => {
+          /* toast in openPathFromEditorLink */
+        });
+      }}
+      tabNavigation={editor.tabNavigation}
+      onTabNavigateBack={() => {
+        editor.navigateTabBack().catch(() => undefined);
+      }}
+      onTabNavigateForward={() => {
+        editor.navigateTabForward().catch(() => undefined);
+      }}
       onOpenDirectoryGrid={(path) => {
         editor.openDirectoryGrid(path).catch(() => {
           /* openDirectoryGrid is sync-safe */
@@ -426,7 +495,9 @@ export default function AppShell() {
   );
 
   return (
-    <div className="AppShell">
+    <div
+      className={`AppShell${sidebarResizing ? ' AppShell--sidebar-resizing' : ''}`}
+    >
       <StatusToast />
       <CommandPalette
         open={paletteOpen}
@@ -520,6 +591,12 @@ export default function AppShell() {
           }}
         />
       </aside>
+      {sidebarVisible ? (
+        <div
+          className={`AppShell__sidebarResize${sidebarResizing ? ' AppShell__sidebarResize--active' : ''}`}
+          {...resizeHandleProps}
+        />
+      ) : null}
       <main className="AppShell__main">
         <div className="AppShell__mainBody">
           <TabBar

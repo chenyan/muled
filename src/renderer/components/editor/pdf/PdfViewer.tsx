@@ -21,16 +21,18 @@ import {
 import type { EditorTab } from '../../../types/tab';
 import { tabLabel } from '../../../types/tab';
 import { usePdfEngine } from './PdfEngineProvider';
-import PdfContextMenuHost from './PdfContextMenuHost';
+import type { PdfTranslateRequest } from './PdfContextMenuHost';
 import PdfToolModeToolbar from './PdfToolModeToolbar';
 import PdfViewportShell from './PdfViewportShell';
 import PdfZoomToolbar from './PdfZoomToolbar';
 
 interface PdfViewerProps {
   tab: EditorTab;
+  hasApiKey: boolean;
+  onTranslate: (request: PdfTranslateRequest) => void;
 }
 
-export default function PdfViewer({ tab }: PdfViewerProps) {
+export default function PdfViewer({ tab, hasApiKey, onTranslate }: PdfViewerProps) {
   const { engine, isLoading, error } = usePdfEngine();
   const pdfSrc = tab.pdfSrc;
   const name = tab.relativePath ? tabLabel(tab) : 'document.pdf';
@@ -102,28 +104,30 @@ export default function PdfViewer({ tab }: PdfViewerProps) {
                   <DocumentContent documentId={activeDocumentId}>
                     {({ isLoaded }) =>
                       isLoaded && (
-                        <PdfContextMenuHost documentId={activeDocumentId}>
-                          <PdfViewportShell documentId={activeDocumentId}>
-                            <Scroller
-                              documentId={activeDocumentId}
-                              renderPage={({ pageIndex }) => (
-                                <PagePointerProvider
+                        <PdfViewportShell
+                          documentId={activeDocumentId}
+                          hasApiKey={hasApiKey}
+                          onTranslate={onTranslate}
+                        >
+                          <Scroller
+                            documentId={activeDocumentId}
+                            renderPage={({ pageIndex }) => (
+                              <PagePointerProvider
+                                documentId={activeDocumentId}
+                                pageIndex={pageIndex}
+                              >
+                                <RenderLayer
                                   documentId={activeDocumentId}
                                   pageIndex={pageIndex}
-                                >
-                                  <RenderLayer
-                                    documentId={activeDocumentId}
-                                    pageIndex={pageIndex}
-                                  />
-                                  <SelectionLayer
-                                    documentId={activeDocumentId}
-                                    pageIndex={pageIndex}
-                                  />
-                                </PagePointerProvider>
-                              )}
-                            />
-                          </PdfViewportShell>
-                        </PdfContextMenuHost>
+                                />
+                                <SelectionLayer
+                                  documentId={activeDocumentId}
+                                  pageIndex={pageIndex}
+                                />
+                              </PagePointerProvider>
+                            )}
+                          />
+                        </PdfViewportShell>
                       )
                     }
                   </DocumentContent>
