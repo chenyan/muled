@@ -35,6 +35,13 @@ import {
   type TabNavigationStacks,
 } from '../lib/tabNavigationHistory';
 import type { EditorTab, EditorRevealTarget, TabKind } from '../types/tab';
+import {
+  splitPaneTabId,
+  splitPlacementDirection,
+  splitPlacementNewPane,
+  type EditorSplitLayout,
+  type SplitPlacement,
+} from '../../shared/editorSplit';
 
 export type ConfirmUnsavedChanges = (
   tab: EditorTab,
@@ -215,18 +222,30 @@ export function useEditorTabs(
     return tabNavStacksRef.current.get(tabId) ?? createTabNavigationStacks();
   }, []);
 
+  const getTabNavigation = useCallback(
+    (tabId: string | null) => {
+      if (!tabId) {
+        return { canGoBack: false, canGoForward: false };
+      }
+      const tab = tabsRef.current.find((t) => t.id === tabId);
+      if (!tab || tab.kind !== 'markdown') {
+        return { canGoBack: false, canGoForward: false };
+      }
+      const stacks = getTabNavigationStacks(tabId);
+      return {
+        canGoBack: canTabNavigateBack(stacks),
+        canGoForward: canTabNavigateForward(stacks),
+      };
+    },
+    [getTabNavigationStacks],
+  );
+
   const tabNavigation = useMemo(() => {
-    if (!activeTabId || activeTab?.kind !== 'markdown') {
-      return { canGoBack: false, canGoForward: false };
-    }
-    const stacks = getTabNavigationStacks(activeTabId);
-    return {
-      canGoBack: canTabNavigateBack(stacks),
-      canGoForward: canTabNavigateForward(stacks),
-    };
+    const nav = getTabNavigation(activeTabId);
+    return nav;
     // tabNavRevision drives recompute when stacks change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, activeTabId, getTabNavigationStacks, tabNavRevision]);
+  }, [activeTabId, getTabNavigation, tabNavRevision]);
 
   useEffect(() => {
     if (tabs.length === 0) {
@@ -340,6 +359,39 @@ export function useEditorTabs(
     [clearTabNavigation, ensureCanProceed],
   );
 
+  const openPathInNewTab = useCallback(
+    async (relativePath: string): Promise<string | null> => {
+      const cfg = configRef.current;
+      if (!cfg || isDirectoryPath(relativePath)) {
+        return null;
+      }
+
+      const currentTabs = tabsRef.current;
+      const existing = currentTabs.find((t) => t.relativePath === relativePath);
+      if (existing) {
+        return existing.id;
+      }
+
+      const base = {
+        dirty: false,
+        keybindingMode: cfg.editor.mode,
+        viewMode: cfg.editor.default_view,
+      } as const;
+
+      try {
+        const loaded = await loadFileIntoTab(relativePath, base);
+        const id = newId();
+        setTabs((prev) => [...prev, { ...loaded, id }]);
+        return id;
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        pushStatusToast(`无法打开文件: ${message}`, 'error');
+        return null;
+      }
+    },
+    [],
+  );
+
   const openPath = useCallback(async (relativePath: string) => {
     const cfg = configRef.current;
     if (!cfg || isDirectoryPath(relativePath)) {
@@ -394,6 +446,123 @@ export function useEditorTabs(
   const openPathRef = useRef(openPath);
   openPathRef.current = openPath;
 
+  const openPathInSplit = useCallback(
+    async (
+      relativePath: string,
+      placement: SplitPlacement,
+      split: EditorSplitLayout | null,
+      onSplitChange: (layout: EditorSplitLayout) => void,
+    ): Promise<void> => {
+      const cfg = configRef.current;
+      if (!cfg || isDirectoryPath(relativePath)) {
+        return;
+      }
+
+      const currentId = activeTabIdRef.current;
+      const currentTabs = tabsRef.current;
+      const currentTab = currentId
+        ? currentTabs.find((t) => t.id === currentId)
+        : null;
+
+      if (!currentTab) {
+        await openPathRef.current(relativePath);
+        return;
+      }
+
+      const newPane = splitPlacementNewPane(placement);
+      const direction = splitPlacementDirection(placement);
+
+      if (split) {
+        const targetTabId = splitPaneTabId(split, newPane);
+        const target = currentTabs.find((t) => t.id === targetTabId);
+        if (!(await ensureCanProceed(target))) return;
+
+        const existing = currentTabs.find((t) => t.relativePath === relativePath);
+        if (existing) {
+          onSplitChange({
+            ...split,
+            direction,
+            primaryTabId:
+              newPane === 'primary' ? existing.id : split.primaryTabId,
+            secondaryTabId:
+              newPane === 'secondary' ? existing.id : split.secondaryTabId,
+            focusedPane: newPane,
+          });
+          setActiveTabId(existing.id);
+          return;
+        }
+
+        const base = {
+          dirty: false,
+          keybindingMode: cfg.editor.mode,
+          viewMode: cfg.editor.default_view,
+        } as const;
+
+        try {
+          const loaded = await loadFileIntoTab(relativePath, base);
+          setTabs((prev) =>
+            prev.map((t) => {
+              if (t.id !== targetTabId) return t;
+              releaseTabResources(t);
+              return { ...loaded, id: t.id };
+            }),
+          );
+          onSplitChange({
+            ...split,
+            direction,
+            primaryTabId:
+              newPane === 'primary' ? targetTabId : split.primaryTabId,
+            secondaryTabId:
+              newPane === 'secondary' ? targetTabId : split.secondaryTabId,
+            focusedPane: newPane,
+          });
+          setActiveTabId(targetTabId);
+        } catch (e) {
+          const message = e instanceof Error ? e.message : String(e);
+          pushStatusToast(`无法打开文件: ${message}`, 'error');
+        }
+        return;
+      }
+
+      const existing = currentTabs.find((t) => t.relativePath === relativePath);
+      let newTabId: string | null =
+        existing && existing.id !== currentId ? existing.id : null;
+      if (!newTabId) {
+        const cfg2 = configRef.current;
+        if (!cfg2) return;
+        const base = {
+          dirty: false,
+          keybindingMode: cfg2.editor.mode,
+          viewMode: cfg2.editor.default_view,
+        } as const;
+        try {
+          const loaded = await loadFileIntoTab(relativePath, base);
+          const id = newId();
+          setTabs((prev) => [...prev, { ...loaded, id }]);
+          newTabId = id;
+        } catch (e) {
+          const message = e instanceof Error ? e.message : String(e);
+          pushStatusToast(`无法打开文件: ${message}`, 'error');
+          return;
+        }
+      }
+      if (!newTabId || newTabId === currentId) return;
+
+      const primaryTabId = newPane === 'primary' ? newTabId : currentId;
+      const secondaryTabId = newPane === 'secondary' ? newTabId : currentId;
+
+      onSplitChange({
+        direction,
+        ratio: 0.5,
+        primaryTabId,
+        secondaryTabId,
+        focusedPane: newPane,
+      });
+      setActiveTabId(newTabId);
+    },
+    [ensureCanProceed, openPathInNewTab],
+  );
+
   const openPathFromEditorLink = useCallback(
     async (relativePath: string) => {
       const tabId = activeTabIdRef.current;
@@ -419,8 +588,8 @@ export function useEditorTabs(
     [bumpTabNav, getTabNavigationStacks, replaceTabWithPath],
   );
 
-  const navigateTabBack = useCallback(async () => {
-    const tabId = activeTabIdRef.current;
+  const navigateTabBack = useCallback(async (tabIdOverride?: string) => {
+    const tabId = tabIdOverride ?? activeTabIdRef.current;
     if (!tabId) return;
 
     const tab = tabsRef.current.find((t) => t.id === tabId);
@@ -438,8 +607,8 @@ export function useEditorTabs(
     await replaceTabWithPath(tabId, target);
   }, [bumpTabNav, getTabNavigationStacks, replaceTabWithPath]);
 
-  const navigateTabForward = useCallback(async () => {
-    const tabId = activeTabIdRef.current;
+  const navigateTabForward = useCallback(async (tabIdOverride?: string) => {
+    const tabId = tabIdOverride ?? activeTabIdRef.current;
     if (!tabId) return;
 
     const tab = tabsRef.current.find((t) => t.id === tabId);
@@ -739,7 +908,9 @@ export function useEditorTabs(
     activeTab,
     activeTabId,
     openPath,
+    openPathInSplit,
     openPathFromEditorLink,
+    getTabNavigation,
     openPathWithReveal,
     openDirectoryGrid,
     tabNavigation,

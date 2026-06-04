@@ -1,7 +1,15 @@
 import { useCallback } from 'react';
+import type { SplitPlacement } from '../../../shared/editorSplit';
 import { workspaceAbsolutePath } from '../../lib/workspaceAbsolutePath';
 import { pushStatusToast } from '../../lib/statusToast';
 import './WorkspaceTreeContextMenu.css';
+
+const SPLIT_OPEN_ITEMS: { placement: SplitPlacement; label: string }[] = [
+  { placement: 'left', label: '左' },
+  { placement: 'right', label: '右' },
+  { placement: 'top', label: '上' },
+  { placement: 'bottom', label: '下' },
+];
 
 interface WorkspaceTreeContextMenuItem {
   kind: 'directory' | 'file';
@@ -13,6 +21,7 @@ interface WorkspaceTreeContextMenuProps {
   item: WorkspaceTreeContextMenuItem;
   workspaceRoot: string;
   onOpenDirectoryGrid: (relativePath: string) => void;
+  onOpenFileInSplit?: (relativePath: string, placement: SplitPlacement) => void;
   onClose: () => void;
 }
 
@@ -20,6 +29,7 @@ export default function WorkspaceTreeContextMenu({
   item,
   workspaceRoot,
   onOpenDirectoryGrid,
+  onOpenFileInSplit,
   onClose,
 }: WorkspaceTreeContextMenuProps) {
   const copyAbsolutePath = useCallback(async () => {
@@ -64,6 +74,33 @@ export default function WorkspaceTreeContextMenu({
       data-file-tree-context-menu-root="true"
       role="menu"
     >
+      {onOpenFileInSplit ? (
+        <div className="WorkspaceTreeContextMenu__submenu">
+          <div
+            className="WorkspaceTreeContextMenu__submenuTrigger"
+            role="menuitem"
+            aria-haspopup="menu"
+          >
+            分隔打开
+          </div>
+          <div className="WorkspaceTreeContextMenu__submenuPanel" role="menu">
+            {SPLIT_OPEN_ITEMS.map(({ placement, label }) => (
+              <button
+                key={placement}
+                type="button"
+                role="menuitem"
+                className="WorkspaceTreeContextMenu__item"
+                onClick={() => {
+                  onOpenFileInSplit(item.path, placement);
+                  onClose();
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <div className="WorkspaceTreeContextMenu__submenu">
         <div
           className="WorkspaceTreeContextMenu__submenuTrigger"

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import type { SplitPlacement } from '../../../shared/editorSplit';
 import type { SidebarOutlineItem } from '../../lib/outlineIndex';
 import type { EditorTab } from '../../types/tab';
 import WorkspaceTree, { type WorkspaceTreeRevealRequest } from '../tree/WorkspaceTree';
@@ -20,6 +21,7 @@ interface SidebarTabsProps {
   revealRequest?: WorkspaceTreeRevealRequest | null;
   onSwitchWorkspace: (absolutePath: string) => void;
   onOpenFile: (relativePath: string) => void;
+  onOpenFileInSplit?: (relativePath: string, placement: SplitPlacement) => void;
   onOpenDirectoryGrid: (relativePath: string) => void;
   onRevealInEditor: (item: SidebarOutlineItem) => void;
 }
@@ -39,6 +41,7 @@ export default function SidebarTabs({
   revealRequest,
   onSwitchWorkspace,
   onOpenFile,
+  onOpenFileInSplit,
   onOpenDirectoryGrid,
   onRevealInEditor,
 }: SidebarTabsProps) {
@@ -110,6 +113,7 @@ export default function SidebarTabs({
             revealRequest={revealRequest}
             onSwitchWorkspace={onSwitchWorkspace}
             onOpenFile={onOpenFile}
+            onOpenFileInSplit={onOpenFileInSplit}
             onOpenDirectoryGrid={onOpenDirectoryGrid}
           />
         </div>

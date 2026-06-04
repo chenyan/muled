@@ -1219,3 +1219,116 @@
   justify-content: center;
   height: 100%;
 }
+
+.EditorSplitView {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.EditorSplitView--horizontal {
+  flex-direction: row;
+}
+
+.EditorSplitView--vertical {
+  flex-direction: column;
+}
+
+.EditorSplitView--resizing .EditorSplitView__pane {
+  transition: none;
+}
+
+.EditorSplitView__pane {
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.EditorSplitView__resize {
+  flex: 0 0 1px;
+  touch-action: none;
+  background: var(--muled-border);
+  position: relative;
+  z-index: 1;
+}
+
+.EditorSplitView--horizontal .EditorSplitView__resize {
+  width: 1px;
+  align-self: stretch;
+  cursor: col-resize;
+}
+
+.EditorSplitView--horizontal .EditorSplitView__resize::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -5px;
+  width: 11px;
+  cursor: col-resize;
+}
+
+.EditorSplitView--vertical .EditorSplitView__resize {
+  height: 1px;
+  align-self: stretch;
+  cursor: row-resize;
+}
+
+.EditorSplitView--vertical .EditorSplitView__resize::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -5px;
+  height: 11px;
+  cursor: row-resize;
+}
+
+.EditorSplitView__resize:hover,
+.EditorSplitView__resize:focus-visible,
+.EditorSplitView__resize--active {
+  background: var(--muled-accent);
+}
+
+.TabContent--pane {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  box-shadow: inset 0 0 0 1px var(--muled-border);
+}
+
+.TabContent--pane-focused {
+  box-shadow: inset 0 0 0 1px var(--muled-accent);
+}
+
+.TabContent--pane .TabContent__header {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.TabContent__paneClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  padding: 0;
+  border: 1px solid var(--muled-border);
+  border-radius: 0;
+  background: var(--muled-surface);
+  color: var(--muled-muted-fg);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.TabContent__paneClose:hover {
+  background: var(--muled-surface-muted);
+  color: var(--muled-fg);
+}

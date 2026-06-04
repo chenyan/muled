@@ -44,8 +44,11 @@ import './AppShell.css';
 import { buildTabOutline } from '../../lib/outlineIndex';
 import type { PdfOutlineItem } from '../../../shared/types/ipc';
 import { getEditorOutlineHandlers } from '../../lib/editorOutlineBridge';
+import type { SplitPaneId, SplitPlacement } from '../../../shared/editorSplit';
 import { clampSidebarWidth } from '../../../shared/sidebarLayout';
+import { useEditorSplit } from '../../hooks/useEditorSplit';
 import { useSidebarResize } from '../../hooks/useSidebarResize';
+import EditorSplitView from './EditorSplitView';
 
 export default function AppShell() {
   const [config, setConfig] = useState<PublicConfig | null>(null);
@@ -55,6 +58,14 @@ export default function AppShell() {
   const editor = useEditorTabs(config, {
     confirmUnsaved: unsavedDialog.confirmUnsaved,
   });
+  const {
+    split,
+    assignSplit,
+    clearSplit,
+    setSplitRatio,
+    focusSplitPane,
+    getSurvivorTabIdAfterClosePane,
+  } = useEditorSplit(editor.tabs);
   const [treeSelectionResetKey, setTreeSelectionResetKey] = useState(0);
   const [treeRevealRequest, setTreeRevealRequest] =
     useState<WorkspaceTreeRevealRequest | null>(null);
@@ -78,6 +89,7 @@ export default function AppShell() {
       try {
         await workspace.cd(targetPath);
         editor.initFromConfig(config);
+        clearSplit();
         resetTreeSelection();
         pushStatusToast(`工作区: ${targetPath}`, 'success');
       } catch (err) {
@@ -85,7 +97,7 @@ export default function AppShell() {
         pushStatusToast(`切换工作区失败: ${message}`, 'error');
       }
     },
-    [config, editor, resetTreeSelection, workspace],
+    [clearSplit, config, editor, resetTreeSelection, workspace],
   );
 
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -317,6 +329,7 @@ export default function AppShell() {
         try {
           await workspace.cd(newRoot);
           editor.initFromConfig(next);
+          clearSplit();
           resetTreeSelection();
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
@@ -325,7 +338,46 @@ export default function AppShell() {
       }
       pushStatusToast('设置已保存', 'success');
     },
-    [editor, resetTreeSelection, workspace],
+    [clearSplit, editor, resetTreeSelection, workspace],
+  );
+
+  const handleOpenFileInSplit = useCallback(
+    (relativePath: string, placement: SplitPlacement) => {
+      editor
+        .openPathInSplit(relativePath, placement, split, assignSplit)
+        .catch(() => undefined);
+    },
+    [assignSplit, editor, split],
+  );
+
+  const handleSelectTab = useCallback(
+    (tabId: string) => {
+      if (split) {
+        if (tabId === split.primaryTabId) {
+          focusSplitPane('primary');
+          editor.setActiveTab(tabId);
+          return;
+        }
+        if (tabId === split.secondaryTabId) {
+          focusSplitPane('secondary');
+          editor.setActiveTab(tabId);
+          return;
+        }
+        clearSplit();
+      }
+      editor.setActiveTab(tabId);
+    },
+    [clearSplit, editor, focusSplitPane, split],
+  );
+
+  const handleCloseSplitPane = useCallback(
+    (pane: SplitPaneId) => {
+      if (!split) return;
+      const survivorId = getSurvivorTabIdAfterClosePane(split, pane);
+      clearSplit();
+      editor.setActiveTab(survivorId);
+    },
+    [clearSplit, editor, getSurvivorTabIdAfterClosePane, split],
   );
 
   const notifySaveFailure = useCallback((reason: string) => {
@@ -452,46 +504,112 @@ export default function AppShell() {
     ['--app-sidebar-width' as string]: `${sidebarWidth}px`,
   } as CSSProperties;
 
-  const tabContent = (
-    <TabContent
-      tab={editor.activeTab}
-      sourceFont={uiConfig.editor.source}
-      wysiwygFont={uiConfig.editor.wysiwyg}
-      hasApiKey={uiConfig.openai.has_api_key}
-      onContentChange={editor.updateActiveContent}
-      onAiOpen={openAiDialog}
-      onViewModeChange={(tabId, viewMode, content) => {
-        editor.setViewMode(tabId, viewMode, content);
-      }}
-      onSave={(tabId) => {
-        handleSave(tabId).catch((err) => {
-          const message = err instanceof Error ? err.message : String(err);
-          pushStatusToast(`保存失败: ${message}`, 'error');
-        });
-      }}
-      onOpenFile={(path) => {
-        editor.openPath(path).catch(() => {
-          /* toast in openPath */
-        });
-      }}
-      onOpenFileFromEditor={(path) => {
-        editor.openPathFromEditorLink(path).catch(() => {
-          /* toast in openPathFromEditorLink */
-        });
-      }}
-      tabNavigation={editor.tabNavigation}
-      onTabNavigateBack={() => {
-        editor.navigateTabBack().catch(() => undefined);
-      }}
-      onTabNavigateForward={() => {
-        editor.navigateTabForward().catch(() => undefined);
-      }}
-      onOpenDirectoryGrid={(path) => {
-        editor.openDirectoryGrid(path).catch(() => {
-          /* openDirectoryGrid is sync-safe */
-        });
-      }}
+  const renderTabContent = useCallback(
+    (
+      tab: typeof editor.activeTab,
+      options?: {
+        layout?: 'full' | 'pane';
+        pane?: SplitPaneId;
+        focused?: boolean;
+      },
+    ) => {
+      const tabId = tab?.id;
+      const nav = tabId ? editor.getTabNavigation(tabId) : editor.tabNavigation;
+      return (
+        <TabContent
+          tab={tab}
+          layout={options?.layout ?? 'full'}
+          focused={options?.focused ?? true}
+          sourceFont={uiConfig.editor.source}
+          wysiwygFont={uiConfig.editor.wysiwyg}
+          hasApiKey={uiConfig.openai.has_api_key}
+          onContentChange={(content) => {
+            if (tabId) {
+              editor.updateTabContent(tabId, content);
+            }
+          }}
+          onAiOpen={openAiDialog}
+          onViewModeChange={(id, viewMode, content) => {
+            editor.setViewMode(id, viewMode, content);
+          }}
+          onSave={(id) => {
+            handleSave(id).catch((err) => {
+              const message = err instanceof Error ? err.message : String(err);
+              pushStatusToast(`保存失败: ${message}`, 'error');
+            });
+          }}
+          onOpenFile={(path) => {
+            editor.openPath(path).catch(() => undefined);
+          }}
+          onOpenFileFromEditor={(path) => {
+            editor.openPathFromEditorLink(path).catch(() => undefined);
+          }}
+          tabNavigation={nav}
+          onTabNavigateBack={() => {
+            if (tabId) {
+              editor.navigateTabBack(tabId).catch(() => undefined);
+            }
+          }}
+          onTabNavigateForward={() => {
+            if (tabId) {
+              editor.navigateTabForward(tabId).catch(() => undefined);
+            }
+          }}
+          onOpenDirectoryGrid={(path) => {
+            editor.openDirectoryGrid(path).catch(() => undefined);
+          }}
+          onFocusPane={
+            options?.pane
+              ? () => {
+                  focusSplitPane(options.pane!);
+                  if (tabId) editor.setActiveTab(tabId);
+                }
+              : undefined
+          }
+          onClosePane={
+            options?.pane
+              ? () => handleCloseSplitPane(options.pane!)
+              : undefined
+          }
+        />
+      );
+    },
+    [
+      editor,
+      focusSplitPane,
+      handleCloseSplitPane,
+      handleSave,
+      openAiDialog,
+      uiConfig.editor.source,
+      uiConfig.editor.wysiwyg,
+      uiConfig.openai.has_api_key,
+    ],
+  );
+
+  const primarySplitTab = split
+    ? (editor.tabs.find((t) => t.id === split.primaryTabId) ?? null)
+    : null;
+  const secondarySplitTab = split
+    ? (editor.tabs.find((t) => t.id === split.secondaryTabId) ?? null)
+    : null;
+
+  const tabContent = split ? (
+    <EditorSplitView
+      layout={split}
+      onRatioChange={setSplitRatio}
+      primary={renderTabContent(primarySplitTab, {
+        layout: 'pane',
+        pane: 'primary',
+        focused: split.focusedPane === 'primary',
+      })}
+      secondary={renderTabContent(secondarySplitTab, {
+        layout: 'pane',
+        pane: 'secondary',
+        focused: split.focusedPane === 'secondary',
+      })}
     />
+  ) : (
+    renderTabContent(editor.activeTab)
   );
 
   return (
@@ -554,10 +672,9 @@ export default function AppShell() {
             });
           }}
           onOpenFile={(path) => {
-            editor.openPath(path).catch(() => {
-              /* alert in openPath */
-            });
+            editor.openPath(path).catch(() => undefined);
           }}
+          onOpenFileInSplit={handleOpenFileInSplit}
           onOpenDirectoryGrid={(path) => {
             editor.openDirectoryGrid(path).catch(() => {
               /* openDirectoryGrid is sync-safe */
@@ -604,7 +721,7 @@ export default function AppShell() {
             activeTabId={editor.activeTabId}
             sidebarVisible={sidebarVisible}
             onToggleSidebar={() => setSidebarVisible((v) => !v)}
-            onSelect={editor.setActiveTab}
+            onSelect={handleSelectTab}
             onClose={(tabId) => {
               editor
                 .closeTab(tabId)

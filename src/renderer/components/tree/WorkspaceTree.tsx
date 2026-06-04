@@ -8,6 +8,7 @@ import {
   revealPathInFileTree,
   type FileTreeRevealModel,
 } from '../../lib/workspaceTreeReveal';
+import type { SplitPlacement } from '../../../shared/editorSplit';
 import WorkspaceTreeContextMenu from './WorkspaceTreeContextMenu';
 
 export type WorkspaceTreeRevealRequest = {
@@ -30,6 +31,7 @@ interface WorkspaceTreeProps {
   /** 状态栏路径点击等：在树中展开并选中，不重复打开文件 */
   revealRequest?: WorkspaceTreeRevealRequest | null;
   onOpenFile: (relativePath: string) => void;
+  onOpenFileInSplit?: (relativePath: string, placement: SplitPlacement) => void;
   onOpenDirectoryGrid: (relativePath: string) => void;
   onSwitchWorkspace: (absolutePath: string) => void;
 }
@@ -41,6 +43,7 @@ interface WorkspaceTreeFileListProps {
   selectionResetKey: number;
   revealRequest?: WorkspaceTreeRevealRequest | null;
   onOpenFile: (relativePath: string) => void;
+  onOpenFileInSplit?: (relativePath: string, placement: SplitPlacement) => void;
   onOpenDirectoryGrid: (relativePath: string) => void;
 }
 
@@ -52,6 +55,7 @@ function WorkspaceTreeFileList({
   selectionResetKey,
   revealRequest,
   onOpenFile,
+  onOpenFileInSplit,
   onOpenDirectoryGrid,
 }: WorkspaceTreeFileListProps) {
   const onOpenFileRef = useRef(onOpenFile);
@@ -225,6 +229,7 @@ function WorkspaceTreeFileList({
           item={item}
           workspaceRoot={workspaceRoot}
           onOpenDirectoryGrid={onOpenDirectoryGrid}
+          onOpenFileInSplit={onOpenFileInSplit}
           onClose={context.close}
         />
       )}
@@ -244,6 +249,7 @@ export default function WorkspaceTree({
   selectionResetKey,
   revealRequest,
   onOpenFile,
+  onOpenFileInSplit,
   onOpenDirectoryGrid,
   onSwitchWorkspace,
 }: WorkspaceTreeProps) {
@@ -311,6 +317,7 @@ export default function WorkspaceTree({
           selectionResetKey={selectionResetKey}
           revealRequest={revealRequest}
           onOpenFile={onOpenFile}
+          onOpenFileInSplit={onOpenFileInSplit}
           onOpenDirectoryGrid={onOpenDirectoryGrid}
         />
       </div>

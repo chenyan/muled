@@ -46,10 +46,15 @@ import { isEditableTextTab, tabLabel } from '../../types/tab';
 
 interface TabContentProps {
   tab: EditorTab | null;
+  /** 分隔视图中的单分区 */
+  layout?: 'full' | 'pane';
+  focused?: boolean;
   sourceFont: EditorFontSettings;
   wysiwygFont: EditorFontSettings;
   hasApiKey: boolean;
   onContentChange: (content: string) => void;
+  onFocusPane?: () => void;
+  onClosePane?: () => void;
   onViewModeChange: (
     tabId: string,
     viewMode: EditorViewMode,
@@ -67,6 +72,8 @@ interface TabContentProps {
 
 export default function TabContent({
   tab,
+  layout = 'full',
+  focused = true,
   sourceFont,
   wysiwygFont,
   hasApiKey,
@@ -77,10 +84,13 @@ export default function TabContent({
   onOpenFileFromEditor,
   onOpenDirectoryGrid,
   onAiOpen,
+  onFocusPane,
+  onClosePane,
   tabNavigation,
   onTabNavigateBack,
   onTabNavigateForward,
 }: TabContentProps) {
+  const isPane = layout === 'pane';
   const mdxRef = useRef<MarkdownEditorHandle>(null);
   const sourceRef = useRef<SourceCodeEditorHandle>(null);
   const editorPaneRef = useRef<HTMLDivElement>(null);
@@ -314,8 +324,21 @@ export default function TabContent({
   const canSave =
     isEditableTextTab(tab) && tab.relativePath && !tab.truncated && tab.dirty;
 
+  const paneClass = isPane
+    ? ` TabContent--pane${focused ? ' TabContent--pane-focused' : ''}`
+    : '';
+
   return (
-    <div className="TabContent">
+    <div
+      className={`TabContent${paneClass}`}
+      onPointerDown={
+        isPane && onFocusPane
+          ? () => {
+              onFocusPane();
+            }
+          : undefined
+      }
+    >
       <EditorContextMenu
         open={contextMenu !== null}
         x={contextMenu?.x ?? 0}
@@ -333,7 +356,11 @@ export default function TabContent({
       />
       <header className="TabContent__header">
         <div className="TabContent__headerLeft">
-          {tab.kind === 'markdown' && tabNavigation && onTabNavigateBack && onTabNavigateForward ? (
+          {!isPane &&
+          tab.kind === 'markdown' &&
+          tabNavigation &&
+          onTabNavigateBack &&
+          onTabNavigateForward ? (
             <MarkdownTabNavigation
               canGoBack={tabNavigation.canGoBack}
               canGoForward={tabNavigation.canGoForward}
@@ -354,7 +381,7 @@ export default function TabContent({
               onChange={handleViewModeChange}
             />
           )}
-          {isEditableTextTab(tab) && (
+          {!isPane && isEditableTextTab(tab) && (
             <button
               type="button"
               className="TabContent__save"
@@ -369,6 +396,20 @@ export default function TabContent({
               保存
             </button>
           )}
+          {isPane && onClosePane ? (
+            <button
+              type="button"
+              className="TabContent__paneClose"
+              title="关闭此分区"
+              aria-label="关闭此分区"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClosePane();
+              }}
+            >
+              ×
+            </button>
+          ) : null}
         </div>
       </header>
       <div className="TabContent__body">
