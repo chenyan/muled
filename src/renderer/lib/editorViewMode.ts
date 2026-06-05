@@ -7,6 +7,7 @@ const MARKDOWN_VIEW_MODE_CYCLE: EditorViewMode[] = [
   'preview',
 ];
 const HTML_VIEW_MODE_CYCLE: EditorViewMode[] = ['preview', 'source'];
+const DOCX_VIEW_MODE_CYCLE: EditorViewMode[] = ['rich-text', 'preview'];
 
 export function editorViewModeLabel(mode: EditorViewMode): string {
   switch (mode) {
@@ -33,6 +34,11 @@ export function nextViewModeForTab(
     const index = HTML_VIEW_MODE_CYCLE.indexOf(current);
     if (index < 0) return 'preview';
     return HTML_VIEW_MODE_CYCLE[(index + 1) % HTML_VIEW_MODE_CYCLE.length];
+  }
+  if (tabKind === 'docx') {
+    const index = DOCX_VIEW_MODE_CYCLE.indexOf(current);
+    if (index < 0) return 'rich-text';
+    return DOCX_VIEW_MODE_CYCLE[(index + 1) % DOCX_VIEW_MODE_CYCLE.length];
   }
   if (tabKind === 'markdown') {
     return nextEditorViewMode(current);

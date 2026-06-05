@@ -3,6 +3,8 @@ import type { EditorMode, EditorViewMode } from '../../shared/types/config';
 export type TabKind =
   | 'markdown'
   | 'html'
+  | 'docx'
+  | 'pptx'
   | 'text'
   | 'image'
   | 'pdf'
@@ -33,6 +35,10 @@ export interface EditorTab {
   pdfSrc?: string;
   /** 音频 Tab：data URL */
   audioSrc?: string;
+  /** DOCX Tab：data URL */
+  docxSrc?: string;
+  /** PPTX Tab：data URL */
+  pptxSrc?: string;
   /** 打开后定位并高亮匹配 */
   reveal?: EditorRevealTarget;
 }
@@ -40,6 +46,11 @@ export interface EditorTab {
 /** 可在编辑器中修改并保存的文本类 Tab */
 export function isEditableTextTab(tab: EditorTab): boolean {
   return tab.kind === 'markdown' || tab.kind === 'html' || tab.kind === 'text';
+}
+
+/** 可保存的 Tab（文本或 DOCX） */
+export function isSavableTab(tab: EditorTab): boolean {
+  return isEditableTextTab(tab) || tab.kind === 'docx';
 }
 
 export function tabLabel(tab: EditorTab): string {

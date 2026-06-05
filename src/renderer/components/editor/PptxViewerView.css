@@ -1,0 +1,131 @@
+.PptxViewerView {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.PptxViewerView__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--muled-border);
+  flex-shrink: 0;
+}
+
+.PptxViewerView__name {
+  font-size: 12px;
+  color: var(--muled-subtle-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.PptxViewerView__controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.PptxViewerView__nav,
+.PptxViewerView__zoom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.PptxViewerView__nav button,
+.PptxViewerView__zoom button {
+  min-width: 32px;
+  padding: 4px 8px;
+  border: 1px solid var(--muled-border);
+  border-radius: 4px;
+  background: var(--muled-surface);
+  color: var(--muled-fg);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.PptxViewerView__nav button:hover:not(:disabled),
+.PptxViewerView__zoom button:hover:not(:disabled) {
+  background: var(--muled-surface-muted);
+}
+
+.PptxViewerView__nav button:disabled,
+.PptxViewerView__zoom button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.PptxViewerView__counter {
+  min-width: 64px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muled-subtle-fg);
+}
+
+.PptxViewerView__zoomLevel {
+  min-width: 52px !important;
+}
+
+.PptxViewerView__actualSize {
+  min-width: auto !important;
+  padding: 4px 10px !important;
+  font-size: 12px !important;
+}
+
+.PptxViewerView__viewport {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+  background: var(--muled-surface-muted);
+}
+
+.PptxViewerView__stage {
+  min-width: 100%;
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.PptxViewerView__canvas {
+  display: block;
+  flex-shrink: 0;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 12%);
+}
+
+.PptxViewerView__loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muled-subtle-fg);
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.PptxViewerView__error {
+  color: var(--muled-danger, #c92a2a);
+  padding: 24px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.PptxViewerView--empty {
+  color: var(--muled-placeholder);
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}

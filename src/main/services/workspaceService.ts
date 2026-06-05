@@ -1,5 +1,8 @@
 import fs from 'fs';
+import { createRequire } from 'module';
 import path from 'path';
+
+const nodeRequire = createRequire(__filename);
 import { IGNORED_DIR_NAMES, WORKSPACE_MAX_DEPTH } from '../../shared/constants';
 import { assertPathInsideRoot, resolvePath } from '../../shared/pathUtils';
 import type { PdfOutlineItem } from '../../shared/types/ipc';
@@ -95,6 +98,9 @@ export default class WorkspaceService {
     }
 
     const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    pdfjs.GlobalWorkerOptions.workerSrc = nodeRequire.resolve(
+      'pdfjs-dist/legacy/build/pdf.worker.mjs',
+    );
     const loadingTask = pdfjs.getDocument({
       data: new Uint8Array(fs.readFileSync(absolutePath)),
     });

@@ -178,6 +178,10 @@ const configuration: webpack.Configuration = {
 
   resolve: {
     conditionNames: ['import', 'require', 'browser', 'default'],
+    fallback: {
+      // sax (docx-editor transitive dep) optionally uses Node stream; not needed in renderer
+      stream: false,
+    },
     alias: {
       '@pierre/trees/react': path.join(
         webpackPaths.rootPath,

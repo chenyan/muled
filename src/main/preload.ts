@@ -46,6 +46,8 @@ const muled = {
     readBinary: (path: string) => invoke('file:readBinary', { path }),
     write: (path: string, content: string) =>
       invoke('file:write', { path, content }),
+    writeBinary: (path: string, base64: string) =>
+      invoke('file:writeBinary', { path, base64 }),
   },
   ai: {
     complete: (args: { prompt: string; selection: string }) =>

@@ -13,6 +13,11 @@ jest.mock('../renderer/components/editor/pdf/PdfViewer', () => ({
   default: () => null,
 }));
 
+jest.mock('../renderer/components/editor/PptxViewerView', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
 const mockConfig: PublicConfig = {
   editor: {
     buffer_bytes: 16777216,
@@ -93,6 +98,7 @@ beforeEach(() => {
       }),
       readBinary: async () => ({ base64: '', mime: 'image/png' }),
       write: async () => ({ ok: true }),
+      writeBinary: async () => ({ ok: true }),
     },
     ai: {
       complete: async () => ({ text: '' }),

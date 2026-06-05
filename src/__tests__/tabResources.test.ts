@@ -46,6 +46,27 @@ describe('releaseTabBinaryPayload', () => {
     });
     expect(released.audioSrc).toBeUndefined();
   });
+
+  it('strips docxSrc from docx tabs', () => {
+    const released = releaseTabBinaryPayload({
+      ...pdfTab(),
+      kind: 'docx',
+      pdfSrc: undefined,
+      docxSrc: 'data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,abc',
+    });
+    expect(released.docxSrc).toBeUndefined();
+  });
+
+  it('strips pptxSrc from pptx tabs', () => {
+    const released = releaseTabBinaryPayload({
+      ...pdfTab(),
+      kind: 'pptx',
+      pdfSrc: undefined,
+      pptxSrc:
+        'data:application/vnd.openxmlformats-officedocument.presentationml.presentation;base64,abc',
+    });
+    expect(released.pptxSrc).toBeUndefined();
+  });
 });
 
 describe('needsBinaryHydration', () => {
@@ -64,6 +85,28 @@ describe('needsBinaryHydration', () => {
         kind: 'audio',
         pdfSrc: undefined,
         audioSrc: undefined,
+      }),
+    ).toBe(true);
+  });
+
+  it('is true when docx tab has no docxSrc', () => {
+    expect(
+      needsBinaryHydration({
+        ...pdfTab(),
+        kind: 'docx',
+        pdfSrc: undefined,
+        docxSrc: undefined,
+      }),
+    ).toBe(true);
+  });
+
+  it('is true when pptx tab has no pptxSrc', () => {
+    expect(
+      needsBinaryHydration({
+        ...pdfTab(),
+        kind: 'pptx',
+        pdfSrc: undefined,
+        pptxSrc: undefined,
       }),
     ).toBe(true);
   });

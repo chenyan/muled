@@ -19,6 +19,12 @@ export function releaseTabBinaryPayload(tab: EditorTab): EditorTab {
   if (tab.kind === 'audio' && tab.audioSrc) {
     return { ...tab, audioSrc: undefined };
   }
+  if (tab.kind === 'docx' && tab.docxSrc) {
+    return { ...tab, docxSrc: undefined };
+  }
+  if (tab.kind === 'pptx' && tab.pptxSrc) {
+    return { ...tab, pptxSrc: undefined };
+  }
   return tab;
 }
 
@@ -27,5 +33,7 @@ export function needsBinaryHydration(tab: EditorTab): boolean {
   if (tab.kind === 'pdf') return !tab.pdfSrc;
   if (tab.kind === 'image') return !tab.imageSrc;
   if (tab.kind === 'audio') return !tab.audioSrc;
+  if (tab.kind === 'docx') return !tab.docxSrc;
+  if (tab.kind === 'pptx') return !tab.pptxSrc;
   return false;
 }

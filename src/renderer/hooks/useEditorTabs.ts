@@ -12,12 +12,16 @@ import type {
   PublicConfig,
 } from '../../shared/types/config';
 import { isHtmlPath, isMarkdownPath } from '../lib/fileLanguage';
+import { arrayBufferToBase64, arrayBufferToDataUrl } from '../lib/dataUrl';
+import { getDocxEditorBuffer } from '../lib/editorDocxBridge';
 import { exportWikiImagesFromMarkdown } from '../lib/normalizeMarkdownWikiImages';
 import {
   isAudioPath,
   isDirectoryPath,
+  isDocxPath,
   isImagePath,
   isPdfPath,
+  isPptxPath,
 } from '../lib/mime';
 import keybindingModePatch from '../lib/keybindingMode';
 import { pushStatusToast } from '../lib/statusToast';
@@ -81,8 +85,41 @@ async function loadFileIntoTab(
     | 'imageSrc'
     | 'pdfSrc'
     | 'audioSrc'
+    | 'docxSrc'
+    | 'pptxSrc'
   >,
 ): Promise<EditorTab> {
+  if (isPptxPath(relativePath)) {
+    const { base64, mime } = await window.muled.file.readBinary(relativePath);
+    return {
+      ...base,
+      id: newId(),
+      relativePath,
+      kind: 'pptx',
+      content: '',
+      truncated: false,
+      fileSize: 0,
+      pptxSrc: `data:${mime};base64,${base64}`,
+      dirty: false,
+    };
+  }
+
+  if (isDocxPath(relativePath)) {
+    const { base64, mime } = await window.muled.file.readBinary(relativePath);
+    return {
+      ...base,
+      id: newId(),
+      relativePath,
+      kind: 'docx',
+      viewMode: 'rich-text',
+      content: '',
+      truncated: false,
+      fileSize: 0,
+      docxSrc: `data:${mime};base64,${base64}`,
+      dirty: false,
+    };
+  }
+
   if (isPdfPath(relativePath)) {
     const { base64, mime } = await window.muled.file.readBinary(relativePath);
     return {
@@ -279,8 +316,38 @@ export function useEditorTabs(
     if (tab.truncated) {
       return { ok: false, reason: 'truncated' };
     }
-    if (tab.kind === 'image' || tab.kind === 'pdf' || tab.kind === 'audio') {
+    if (
+      tab.kind === 'image' ||
+      tab.kind === 'pdf' ||
+      tab.kind === 'audio' ||
+      tab.kind === 'pptx'
+    ) {
       return { ok: false, reason: 'image' };
+    }
+
+    if (tab.kind === 'docx') {
+      const buffer = await getDocxEditorBuffer(tabId);
+      if (!buffer) {
+        return { ok: false, reason: 'not_found' };
+      }
+      const mime =
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      await window.muled.file.writeBinary(
+        tab.relativePath,
+        arrayBufferToBase64(buffer),
+      );
+      setTabs((prev) =>
+        prev.map((t) =>
+          t.id === tabId
+            ? {
+                ...t,
+                dirty: false,
+                docxSrc: arrayBufferToDataUrl(buffer, mime),
+              }
+            : t,
+        ),
+      );
+      return { ok: true };
     }
 
     await window.muled.file.write(tab.relativePath, tab.content);
@@ -326,7 +393,9 @@ export function useEditorTabs(
         dirty: false,
         keybindingMode: target.keybindingMode,
         viewMode:
-          target.kind === 'markdown' || target.kind === 'html'
+          target.kind === 'markdown' ||
+          target.kind === 'html' ||
+          target.kind === 'docx'
             ? target.viewMode
             : cfg.editor.default_view,
       } as const;
@@ -857,6 +926,8 @@ export function useEditorTabs(
             if (t.kind === 'pdf') return { ...t, pdfSrc: dataUrl };
             if (t.kind === 'image') return { ...t, imageSrc: dataUrl };
             if (t.kind === 'audio') return { ...t, audioSrc: dataUrl };
+            if (t.kind === 'docx') return { ...t, docxSrc: dataUrl };
+            if (t.kind === 'pptx') return { ...t, pptxSrc: dataUrl };
             return t;
           }),
         );
@@ -877,7 +948,15 @@ export function useEditorTabs(
     activeTab?.pdfSrc,
     activeTab?.imageSrc,
     activeTab?.audioSrc,
+    activeTab?.docxSrc,
+    activeTab?.pptxSrc,
   ]);
+
+  const markTabDirty = useCallback((tabId: string) => {
+    setTabs((prev) =>
+      prev.map((t) => (t.id === tabId && !t.dirty ? { ...t, dirty: true } : t)),
+    );
+  }, []);
 
   const updateActiveContent = useCallback(
     (content: string) => {
@@ -960,6 +1039,7 @@ export function useEditorTabs(
     setViewMode,
     setKeybindingMode,
     saveTab,
+    markTabDirty,
     initFromConfig,
   };
 }

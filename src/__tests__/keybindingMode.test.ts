@@ -22,6 +22,11 @@ describe('editorViewMode', () => {
     expect(nextViewModeForTab('html', 'preview')).toBe('source');
     expect(nextViewModeForTab('html', 'source')).toBe('preview');
   });
+
+  it('cycles docx rich-text ↔ preview', () => {
+    expect(nextViewModeForTab('docx', 'rich-text')).toBe('preview');
+    expect(nextViewModeForTab('docx', 'preview')).toBe('rich-text');
+  });
 });
 
 describe('keybindingModePatch', () => {

@@ -19,6 +19,8 @@ import EditorContextMenu, {
 import TranslationPopup from '../ai/TranslationPopup';
 import { useTabTranslation } from '../../hooks/useTabTranslation';
 import EditorViewSwitch from '../editor/EditorViewSwitch';
+import DocxEditorView from '../editor/DocxEditorView';
+import DocxViewSwitch from '../editor/DocxViewSwitch';
 import HtmlPreview from '../editor/HtmlPreview';
 import HtmlViewSwitch from '../editor/HtmlViewSwitch';
 import MarkdownTabNavigation from './MarkdownTabNavigation';
@@ -26,6 +28,7 @@ import AudioPreview from '../editor/AudioPreview';
 import ImagePreview from '../editor/ImagePreview';
 import DirectoryGridView from '../editor/DirectoryGridView';
 import PdfViewer from '../editor/pdf/PdfViewer';
+import PptxViewerView from '../editor/PptxViewerView';
 import MarkdownEditor, {
   type MarkdownEditorHandle,
 } from '../editor/MarkdownEditor';
@@ -45,7 +48,7 @@ import { appendTextAtDocumentEnd } from '../../lib/appendTextAtDocumentEnd';
 import { registerEditorViewHandlers } from '../../lib/editorViewBridge';
 import { registerEditorOutlineHandlers } from '../../lib/editorOutlineBridge';
 import type { EditorTab } from '../../types/tab';
-import { isEditableTextTab, tabLabel } from '../../types/tab';
+import { isEditableTextTab, isSavableTab, tabLabel } from '../../types/tab';
 
 interface TabContentProps {
   tab: EditorTab | null;
@@ -57,6 +60,7 @@ interface TabContentProps {
   wysiwygFont: EditorFontSettings;
   hasApiKey: boolean;
   onContentChange: (content: string) => void;
+  onDocxDirty?: (tabId: string) => void;
   onFocusPane?: () => void;
   onClosePane?: () => void;
   onViewModeChange: (
@@ -85,6 +89,7 @@ export default function TabContent({
   wysiwygFont,
   hasApiKey,
   onContentChange,
+  onDocxDirty,
   onViewModeChange,
   onSave,
   onOpenFile,
@@ -268,6 +273,10 @@ export default function TabContent({
             ? (sourceRef.current?.getValue() ?? tab.content)
             : tab.content;
         onViewModeChange(tab.id, next, content);
+        return;
+      }
+      if (tab.kind === 'docx') {
+        onViewModeChange(tab.id, next);
       }
     },
     [getEditableContent, tab, onViewModeChange],
@@ -376,7 +385,7 @@ export default function TabContent({
     (tab.kind === 'markdown' && tab.viewMode === 'source');
 
   const canSave =
-    isEditableTextTab(tab) && tab.relativePath && !tab.truncated && tab.dirty;
+    isSavableTab(tab) && tab.relativePath && !tab.truncated && tab.dirty;
 
   const paneClass = isPane
     ? ` TabContent--pane${focused ? ' TabContent--pane-focused' : ''}`
@@ -442,7 +451,14 @@ export default function TabContent({
               onChange={handleViewModeChange}
             />
           )}
-          {!isPane && isEditableTextTab(tab) && (
+          {tab.kind === 'docx' && (
+            <DocxViewSwitch
+              viewMode={tab.viewMode}
+              disabled={tab.truncated}
+              onChange={handleViewModeChange}
+            />
+          )}
+          {!isPane && isSavableTab(tab) && (
             <button
               type="button"
               className="TabContent__save"
@@ -489,6 +505,8 @@ export default function TabContent({
             onTranslate={handlePdfTranslate}
             onCopySelectionToOtherPane={onCopyPdfSelectionToOtherPane}
           />
+        ) : tab.kind === 'pptx' ? (
+          <PptxViewerView tab={tab} />
         ) : tab.kind === 'audio' ? (
           <AudioPreview tab={tab} />
         ) : tab.kind === 'directory-grid' ? (
@@ -499,6 +517,12 @@ export default function TabContent({
           />
         ) : tab.kind === 'html' && showHtmlPreview ? (
           <HtmlPreview tab={tab} workspaceRoot={workspaceRoot} />
+        ) : tab.kind === 'docx' ? (
+          <DocxEditorView
+            tab={tab}
+            viewMode={tab.viewMode}
+            onDirty={() => onDocxDirty?.(tab.id)}
+          />
         ) : (
           <div
             ref={editorPaneRef}

@@ -177,6 +177,14 @@ export function registerIpc(
       return services.file.write(filePath, content);
     },
 
+    'file:writeBinary': (arg) => {
+      const { path: filePath, base64 } = arg as {
+        path: string;
+        base64: string;
+      };
+      return services.file.writeBinary(filePath, base64);
+    },
+
     'ai:complete': (arg) => {
       const { prompt, selection } = arg as {
         prompt: string;

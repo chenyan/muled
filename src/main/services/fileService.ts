@@ -15,7 +15,7 @@ import type { ConfigService } from './configService';
 import type { WorkspaceService } from './workspaceService';
 
 const BINARY_PREVIEW_EXT =
-  /\.(png|jpe?g|gif|webp|svg|bmp|ico|pdf|mp3|wav|ogg|m4a|aac|flac|weba)$/i;
+  /\.(png|jpe?g|gif|webp|svg|bmp|ico|pdf|docx|pptx|mp3|wav|ogg|m4a|aac|flac|weba)$/i;
 
 const MIME_BY_EXT: Record<string, string> = {
   '.png': 'image/png',
@@ -27,6 +27,10 @@ const MIME_BY_EXT: Record<string, string> = {
   '.bmp': 'image/bmp',
   '.ico': 'image/x-icon',
   '.pdf': 'application/pdf',
+  '.docx':
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.pptx':
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   '.mp3': 'audio/mpeg',
   '.wav': 'audio/wav',
   '.ogg': 'audio/ogg',
@@ -120,6 +124,13 @@ export default class FileService {
   write(filePath: string, content: string): { ok: boolean } {
     const absolutePath = this.resolveFilePath(filePath);
     fs.writeFileSync(absolutePath, content, 'utf8');
+    return { ok: true };
+  }
+
+  writeBinary(filePath: string, base64: string): { ok: boolean } {
+    const absolutePath = this.resolveFilePath(filePath);
+    const data = Buffer.from(base64, 'base64');
+    fs.writeFileSync(absolutePath, data);
     return { ok: true };
   }
 }

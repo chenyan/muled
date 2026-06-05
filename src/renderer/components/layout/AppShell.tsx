@@ -457,11 +457,16 @@ export default function AppShell() {
 
   const toggleTabViewMode = useCallback(() => {
     const tab = editor.activeTab;
-    if (
-      !tab ||
-      (tab.kind !== 'markdown' && tab.kind !== 'html') ||
-      tab.truncated
-    ) {
+    if (!tab || tab.truncated) {
+      return;
+    }
+    if (tab.kind === 'docx') {
+      const next = nextViewModeForTab(tab.kind, tab.viewMode);
+      editor.setViewMode(tab.id, next);
+      pushStatusToast(`视图: ${editorViewModeLabel(next)}`, 'info');
+      return;
+    }
+    if (tab.kind !== 'markdown' && tab.kind !== 'html') {
       return;
     }
     const content = getEditorViewContent(tab.id) ?? tab.content;
@@ -637,6 +642,9 @@ export default function AppShell() {
             if (tabId) {
               editor.updateTabContent(tabId, content);
             }
+          }}
+          onDocxDirty={(id) => {
+            editor.markTabDirty(id);
           }}
           onAiOpen={openAiDialog}
           onViewModeChange={(id, viewMode, content) => {

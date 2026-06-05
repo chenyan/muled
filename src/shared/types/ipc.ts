@@ -59,6 +59,7 @@ export type IpcChannel =
   | 'file:read'
   | 'file:readBinary'
   | 'file:write'
+  | 'file:writeBinary'
   | 'ai:complete'
   | 'ai:translate'
   | 'search:start'
@@ -109,6 +110,10 @@ export interface IpcInvokeMap {
   };
   'file:write': {
     args: { path: string; content: string };
+    result: { ok: boolean };
+  };
+  'file:writeBinary': {
+    args: { path: string; base64: string };
     result: { ok: boolean };
   };
   'ai:complete': {

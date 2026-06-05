@@ -47,7 +47,7 @@ export default function StatusBar({
     truncated = tab.truncated;
     if (isEditableTextTab(tab)) {
       keyMode = tab.keybindingMode;
-      if (tab.kind === 'markdown' || tab.kind === 'html') {
+      if (tab.kind === 'markdown' || tab.kind === 'html' || tab.kind === 'docx') {
         viewMode = tab.viewMode;
       }
     }

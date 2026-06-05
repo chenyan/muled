@@ -42,6 +42,9 @@
 [data-muled-ui-theme='acme'] .TranslationPopup,
 [data-muled-ui-theme='acme'] .StatusToast,
 [data-muled-ui-theme='acme'] .ImagePreview__zoom button,
+[data-muled-ui-theme='acme'] .DocxEditorView .docx-responsive-toolbar button,
+[data-muled-ui-theme='acme'] .DocxEditorView .docx-responsive-toolbar [role='combobox'],
+[data-muled-ui-theme='acme'] .DocxEditorView .docx-responsive-toolbar-overflow-menu,
 [data-muled-ui-theme='acme'] .MuledSourceEditor__cm .cm-searchMatch {
   border-radius: 0;
   box-shadow: none;
@@ -407,9 +410,19 @@
 }
 
 [data-muled-ui-theme='acme'] .ImagePreview__toolbar,
-[data-muled-ui-theme='acme'] .PdfPreview__toolbar {
+[data-muled-ui-theme='acme'] .PdfPreview__toolbar,
+[data-muled-ui-theme='acme'] .DocxEditorView [data-testid='title-bar'],
+[data-muled-ui-theme='acme'] .DocxEditorView .docx-responsive-toolbar {
   background: var(--muled-chrome-bg);
   border-bottom: 1px solid #000;
+  font-family: var(--muled-chrome-font);
+  font-size: 11px;
+}
+
+[data-muled-ui-theme='acme'] .DocxEditorView .docx-responsive-toolbar button,
+[data-muled-ui-theme='acme'] .DocxEditorView .docx-responsive-toolbar [role='combobox'] {
+  border-radius: 0;
+  border-color: #000;
   font-family: var(--muled-chrome-font);
   font-size: 11px;
 }

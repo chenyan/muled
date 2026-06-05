@@ -1,0 +1,269 @@
+/* ── 布局 ── */
+.DocxEditorView {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--muled-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.DocxEditorView--loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muled-muted-fg);
+  font-size: 13px;
+}
+
+.DocxEditorView .docx-editor {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── docx-editor 设计令牌 → muled 主题（变量可继承到 Radix Portal）── */
+body:has(.DocxEditorView) {
+  --doc-toolbar-bg: var(--muled-surface);
+  --doc-bg: var(--muled-bg);
+  --doc-primary: var(--muled-accent);
+  --doc-primary-hover: var(--muled-accent);
+  --doc-primary-light: var(--muled-active-soft-bg);
+  --doc-text: var(--muled-fg);
+  --doc-text-muted: var(--muled-muted-fg);
+  --doc-text-subtle: var(--muled-placeholder);
+  --doc-text-placeholder: var(--muled-placeholder);
+  --doc-border: var(--muled-border);
+  --doc-border-light: var(--muled-input-border);
+  --doc-border-dark: var(--muled-border);
+  --doc-border-input: var(--muled-input-border);
+  --doc-bg-subtle: var(--muled-surface-muted);
+  --doc-bg-hover: var(--muled-hover);
+  --doc-bg-input: var(--muled-input-bg);
+  --doc-link: var(--muled-accent);
+  --doc-error: var(--muled-danger);
+  --doc-error-bg: var(--muled-danger-bg);
+
+  /* shadcn / Radix 组件（HSL 分量） */
+  --background: 0 0% 100%;
+  --foreground: 240 6% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 6% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 6% 10%;
+  --primary: 217 91% 60%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 5% 96%;
+  --secondary-foreground: 240 6% 10%;
+  --muted: 240 5% 96%;
+  --muted-foreground: 240 4% 46%;
+  --accent: 240 5% 96%;
+  --accent-foreground: 240 6% 10%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 6% 90%;
+  --input: 240 6% 90%;
+  --ring: 217 91% 60%;
+  --radius: 0.375rem;
+}
+
+[data-muled-ui-theme='dark'] body:has(.DocxEditorView) {
+  --background: 240 6% 10%;
+  --foreground: 0 0% 98%;
+  --card: 240 6% 10%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 6% 10%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 213 94% 68%;
+  --primary-foreground: 240 6% 10%;
+  --secondary: 240 4% 16%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 4% 16%;
+  --muted-foreground: 240 5% 65%;
+  --accent: 240 4% 16%;
+  --accent-foreground: 0 0% 98%;
+  --border: 240 4% 26%;
+  --input: 240 4% 26%;
+  --ring: 213 94% 68%;
+}
+
+/* 菜单栏：保留 File 等菜单，隐藏左侧 logo；文件名由 Muled Tab 展示 */
+.DocxEditorView [data-testid='title-bar'] {
+  background: var(--muled-surface) !important;
+  border-bottom: 1px solid var(--muled-border);
+  align-items: center !important;
+  padding: 0 12px !important;
+  min-height: 24px;
+}
+
+.DocxEditorView [data-testid='title-bar'] > div:first-child {
+  display: none !important;
+}
+
+/* 覆盖 docx-editor 默认 pt-2 / py-1 */
+.DocxEditorView [data-testid='title-bar'] > div:nth-child(2) {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.DocxEditorView [data-testid='title-bar'] [role='menubar'] {
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--muled-fg);
+}
+
+.DocxEditorView [data-testid='title-bar'] [role='menubar'] button {
+  height: 22px;
+  min-height: 22px;
+  padding: 0 6px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--muled-subtle-fg);
+  font-size: 11px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.DocxEditorView [data-testid='title-bar'] [role='menubar'] button:hover:not(:disabled) {
+  background: var(--muled-surface-muted);
+  color: var(--muled-fg);
+}
+
+/* ── 格式工具栏 ── */
+.DocxEditorView .docx-responsive-toolbar {
+  height: auto !important;
+  min-height: 36px;
+  padding: 6px 12px !important;
+  background-color: var(--muled-surface) !important;
+  border-bottom: 1px solid var(--muled-border) !important;
+  gap: 4px !important;
+}
+
+.DocxEditorView .docx-responsive-toolbar-separator,
+.DocxEditorView .docx-toolbar-group-separator {
+  height: 20px !important;
+  background-color: var(--muled-border) !important;
+  margin: 0 2px !important;
+}
+
+/* 工具栏按钮：对齐 PdfPreview 控件密度，边框固定 1px */
+.DocxEditorView .docx-responsive-toolbar button,
+.DocxEditorView .docx-responsive-toolbar-overflow-button {
+  height: 28px !important;
+  min-height: 28px !important;
+  min-width: 28px;
+  padding: 0 6px !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-color: var(--muled-border) !important;
+  border-radius: 4px !important;
+  background: var(--muled-surface) !important;
+  color: var(--muled-fg) !important;
+  font-size: 12px !important;
+  box-shadow: none !important;
+  --tw-ring-offset-width: 0px !important;
+  --tw-ring-width: 0px !important;
+}
+
+.DocxEditorView .docx-responsive-toolbar button:hover:not(:disabled),
+.DocxEditorView .docx-responsive-toolbar-overflow-button:hover:not(:disabled) {
+  background: var(--muled-surface-muted) !important;
+  color: var(--muled-fg) !important;
+}
+
+.DocxEditorView .docx-responsive-toolbar button:focus-visible,
+.DocxEditorView .docx-responsive-toolbar-overflow-button:focus-visible {
+  outline: 1px solid var(--muled-accent) !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+}
+
+.DocxEditorView .docx-responsive-toolbar button:disabled {
+  opacity: 0.45;
+}
+
+.DocxEditorView .docx-responsive-toolbar button[aria-expanded='true'],
+.DocxEditorView .docx-responsive-toolbar-overflow-button[aria-expanded='true'] {
+  background: var(--muled-active-soft-bg) !important;
+  border-color: var(--muled-active-soft-border) !important;
+  color: var(--muled-active-soft-fg) !important;
+}
+
+/* 下拉 / 选择器触发器 */
+.DocxEditorView .docx-responsive-toolbar [role='combobox'] {
+  height: 28px !important;
+  min-height: 28px !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-color: var(--muled-border) !important;
+  border-radius: 4px !important;
+  background: var(--muled-surface) !important;
+  color: var(--muled-fg) !important;
+  font-size: 12px !important;
+  box-shadow: none !important;
+  --tw-ring-offset-width: 0px !important;
+  --tw-ring-width: 0px !important;
+}
+
+.DocxEditorView .docx-responsive-toolbar [role='combobox']:hover {
+  background: var(--muled-surface-muted) !important;
+}
+
+.DocxEditorView .docx-responsive-toolbar [role='combobox']:focus-visible {
+  outline: 1px solid var(--muled-accent) !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+}
+
+/* 取消 shadcn focus ring，避免视觉上像 2px 边框 */
+.DocxEditorView .docx-responsive-toolbar .focus-visible\:ring-2:focus-visible,
+.DocxEditorView .docx-responsive-toolbar .focus-visible\:ring-offset-2:focus-visible {
+  box-shadow: none !important;
+}
+
+/* 溢出菜单 */
+.DocxEditorView .docx-responsive-toolbar-overflow-menu {
+  background-color: var(--muled-surface) !important;
+  border: 1px solid var(--muled-border) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 8px 24px var(--muled-shadow) !important;
+}
+
+/* 覆盖 docx-editor 内嵌 Tailwind 硬编码色 */
+.DocxEditorView .ep-root .bg-white {
+  background-color: var(--muled-surface) !important;
+}
+
+.DocxEditorView .ep-root .bg-slate-100,
+.DocxEditorView .ep-root .bg-\[\#f1f5f9\] {
+  background-color: var(--muled-surface-muted) !important;
+}
+
+.DocxEditorView .ep-root .hover\:bg-slate-50:hover,
+.DocxEditorView .ep-root .hover\:bg-slate-100:hover,
+.DocxEditorView .ep-root .focus\:bg-slate-100:focus {
+  background-color: var(--muled-surface-muted) !important;
+}
+
+.DocxEditorView .ep-root .text-slate-800,
+.DocxEditorView .ep-root .text-slate-700 {
+  color: var(--muled-fg) !important;
+}
+
+.DocxEditorView .ep-root .text-slate-500,
+.DocxEditorView .ep-root .text-slate-400 {
+  color: var(--muled-muted-fg) !important;
+}
+
+.DocxEditorView .ep-root .border-slate-200,
+.DocxEditorView .ep-root .border-slate-300,
+.DocxEditorView .ep-root .border-input {
+  border-color: var(--muled-border) !important;
+}
+
+/* 文档画布区保持纸张感，与壳层区分 */
+.DocxEditorView .ep-root .bg-doc-bg {
+  background-color: var(--muled-bg) !important;
+}
