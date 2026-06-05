@@ -90,6 +90,12 @@ export function isMarkdownPath(relativePath: string | null): boolean {
   return /\.(md|mdx|markdown)$/i.test(base);
 }
 
+export function isHtmlPath(relativePath: string | null): boolean {
+  if (!relativePath) return false;
+  const base = relativePath.replace(/\/$/, '');
+  return /\.(html|htm)$/i.test(base);
+}
+
 export function getSourceLanguageId(
   relativePath: string | null,
 ): SourceLanguageId {

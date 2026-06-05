@@ -38,6 +38,12 @@ export interface OpenExternalDocumentPayload {
   switchWorkspace: boolean;
 }
 
+export interface OpenExternalDirectoryPayload {
+  /** 工作区内目录的相对路径（`''` 表示工作区根）；`null` 表示需切换工作区 */
+  relativePath: string | null;
+  absolutePath: string;
+}
+
 export type IpcChannel =
   | 'config:get'
   | 'config:getSettings'

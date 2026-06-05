@@ -74,6 +74,36 @@ function toPdfOutline(items: PdfOutlineItem[]): SidebarOutlineItem[] {
   }));
 }
 
+function parseHtmlOutline(content: string): SidebarOutlineItem[] {
+  const items: SidebarOutlineItem[] = [];
+  const titleMatch = content.match(/<title[^>]*>([^<]*)<\/title>/i);
+  if (titleMatch?.[1]?.trim()) {
+    items.push({
+      id: 'html-title',
+      title: titleMatch[1].trim(),
+      depth: 1,
+      line: null,
+      page: null,
+    });
+  }
+  const headingPattern = /<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/gi;
+  let match: RegExpExecArray | null;
+  let index = 0;
+  while ((match = headingPattern.exec(content)) !== null) {
+    const title = match[2].replace(/<[^>]+>/g, '').trim();
+    if (!title) continue;
+    index += 1;
+    items.push({
+      id: `html-${index}`,
+      title,
+      depth: Number(match[1]),
+      line: null,
+      page: null,
+    });
+  }
+  return items;
+}
+
 export function buildTabOutline(
   tab: EditorTab | null,
   pdfItems: PdfOutlineItem[],
@@ -81,6 +111,9 @@ export function buildTabOutline(
   if (!tab || !tab.relativePath) return [];
   if (tab.kind === 'markdown') {
     return parseMarkdownOutline(tab.content);
+  }
+  if (tab.kind === 'html') {
+    return parseHtmlOutline(tab.content);
   }
   if (tab.kind === 'text') {
     return parseCodeTopLevelSymbols(tab.content);

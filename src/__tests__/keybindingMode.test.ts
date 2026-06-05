@@ -1,6 +1,7 @@
 import {
   editorViewModeLabel,
   nextEditorViewMode,
+  nextViewModeForTab,
 } from '../renderer/lib/editorViewMode';
 import keybindingModePatch from '../renderer/lib/keybindingMode';
 
@@ -15,6 +16,11 @@ describe('editorViewMode', () => {
     expect(nextEditorViewMode('rich-text')).toBe('source');
     expect(nextEditorViewMode('source')).toBe('preview');
     expect(nextEditorViewMode('preview')).toBe('rich-text');
+  });
+
+  it('cycles html preview ↔ source', () => {
+    expect(nextViewModeForTab('html', 'preview')).toBe('source');
+    expect(nextViewModeForTab('html', 'source')).toBe('preview');
   });
 });
 

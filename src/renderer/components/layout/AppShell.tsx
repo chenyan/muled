@@ -31,7 +31,7 @@ import {
 } from '../../lib/editorViewBridge';
 import {
   editorViewModeLabel,
-  nextEditorViewMode,
+  nextViewModeForTab,
 } from '../../lib/editorViewMode';
 import { getActiveEditorSelection } from '../../lib/editorSelectionBridge';
 import { runPaletteCommand } from '../../lib/runPaletteCommand';
@@ -455,11 +455,17 @@ export default function AppShell() {
     [editor, notifySaveFailure],
   );
 
-  const toggleMarkdownViewMode = useCallback(() => {
+  const toggleTabViewMode = useCallback(() => {
     const tab = editor.activeTab;
-    if (!tab || tab.kind !== 'markdown' || tab.truncated) return;
+    if (
+      !tab ||
+      (tab.kind !== 'markdown' && tab.kind !== 'html') ||
+      tab.truncated
+    ) {
+      return;
+    }
     const content = getEditorViewContent(tab.id) ?? tab.content;
-    const next = nextEditorViewMode(tab.viewMode);
+    const next = nextViewModeForTab(tab.kind, tab.viewMode);
     editor.setViewMode(tab.id, next, content);
     pushStatusToast(`视图: ${editorViewModeLabel(next)}`, 'info');
   }, [editor]);
@@ -487,7 +493,7 @@ export default function AppShell() {
         e.key.toLowerCase() === 'm'
       ) {
         e.preventDefault();
-        toggleMarkdownViewMode();
+        toggleTabViewMode();
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -496,7 +502,7 @@ export default function AppShell() {
     editor.activeTabId,
     handleSave,
     openCommandPalette,
-    toggleMarkdownViewMode,
+    toggleTabViewMode,
   ]);
 
   useEffect(() => {
@@ -543,6 +549,21 @@ export default function AppShell() {
           await handleSwitchWorkspace(parentDir);
         }
         editor.openPath(openPath).catch(() => undefined);
+      },
+    );
+  }, [editor, handleSwitchWorkspace]);
+
+  useEffect(() => {
+    if (!window.muled?.menu?.onOpenExternalDirectory) {
+      return undefined;
+    }
+    return window.muled.menu.onOpenExternalDirectory(
+      async ({ relativePath, absolutePath }) => {
+        if (relativePath === null) {
+          await handleSwitchWorkspace(absolutePath);
+          return;
+        }
+        editor.openDirectoryGrid(relativePath).catch(() => undefined);
       },
     );
   }, [editor, handleSwitchWorkspace]);
@@ -605,6 +626,7 @@ export default function AppShell() {
       return (
         <TabContent
           tab={tab}
+          workspaceRoot={workspace.root}
           layout={options?.layout ?? 'full'}
           focused={options?.focused ?? true}
           onCopyPdfSelectionToOtherPane={makeCopyPdfToOtherPane(tab, options?.pane)}
@@ -679,6 +701,7 @@ export default function AppShell() {
       uiConfig.editor.source,
       uiConfig.editor.wysiwyg,
       uiConfig.openai.has_api_key,
+      workspace.root,
     ],
   );
 

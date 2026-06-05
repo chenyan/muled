@@ -102,6 +102,22 @@ const muled = {
         ipcRenderer.removeListener('menu:openExternalDocument', handler);
       };
     },
+    onOpenExternalDirectory: (
+      listener: (
+        payload: import('../shared/types/ipc').OpenExternalDirectoryPayload,
+      ) => void,
+    ) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        payload: import('../shared/types/ipc').OpenExternalDirectoryPayload,
+      ) => {
+        listener(payload);
+      };
+      ipcRenderer.on('menu:openExternalDirectory', handler);
+      return () => {
+        ipcRenderer.removeListener('menu:openExternalDirectory', handler);
+      };
+    },
   },
 };
 

@@ -1,6 +1,7 @@
 import {
   getSourceLanguageId,
   getSourceLanguageLabel,
+  isHtmlPath,
   isMarkdownPath,
 } from '../renderer/lib/fileLanguage';
 
@@ -10,6 +11,13 @@ describe('fileLanguage', () => {
     expect(isMarkdownPath('doc.mdx')).toBe(true);
     expect(isMarkdownPath(null)).toBe(true);
     expect(isMarkdownPath('main.ts')).toBe(false);
+  });
+
+  it('detects html paths', () => {
+    expect(isHtmlPath('index.html')).toBe(true);
+    expect(isHtmlPath('legacy.htm')).toBe(true);
+    expect(isHtmlPath('notes.md')).toBe(false);
+    expect(isHtmlPath(null)).toBe(false);
   });
 
   it('maps extensions to source languages', () => {

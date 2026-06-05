@@ -11,7 +11,7 @@ import type {
   EditorViewMode,
   PublicConfig,
 } from '../../shared/types/config';
-import { isMarkdownPath } from '../lib/fileLanguage';
+import { isHtmlPath, isMarkdownPath } from '../lib/fileLanguage';
 import { exportWikiImagesFromMarkdown } from '../lib/normalizeMarkdownWikiImages';
 import {
   isAudioPath,
@@ -130,6 +130,7 @@ async function loadFileIntoTab(
 
   const file = await window.muled.file.read(relativePath);
   const markdown = isMarkdownPath(relativePath);
+  const html = isHtmlPath(relativePath);
   const content = markdown
     ? exportWikiImagesFromMarkdown(file.content)
     : file.content;
@@ -137,8 +138,8 @@ async function loadFileIntoTab(
     ...base,
     id: newId(),
     relativePath,
-    kind: markdown ? 'markdown' : 'text',
-    viewMode: markdown ? 'rich-text' : 'source',
+    kind: markdown ? 'markdown' : html ? 'html' : 'text',
+    viewMode: markdown ? 'rich-text' : html ? 'preview' : 'source',
     content,
     truncated: file.truncated,
     fileSize: file.fileSize,
@@ -325,7 +326,9 @@ export function useEditorTabs(
         dirty: false,
         keybindingMode: target.keybindingMode,
         viewMode:
-          target.kind === 'markdown' ? target.viewMode : cfg.editor.default_view,
+          target.kind === 'markdown' || target.kind === 'html'
+            ? target.viewMode
+            : cfg.editor.default_view,
       } as const;
 
       try {
@@ -660,7 +663,7 @@ export function useEditorTabs(
               ? {
                   ...t,
                   reveal,
-                  ...(t.kind === 'markdown'
+                  ...(t.kind === 'markdown' || t.kind === 'html'
                     ? { viewMode: 'source' as const }
                     : {}),
                 }
@@ -688,7 +691,9 @@ export function useEditorTabs(
         const withReveal = {
           ...loaded,
           reveal,
-          ...(loaded.kind === 'markdown' ? { viewMode: 'source' as const } : {}),
+          ...(loaded.kind === 'markdown' || loaded.kind === 'html'
+            ? { viewMode: 'source' as const }
+            : {}),
         };
 
         let nextActiveId: string | null = null;
@@ -719,7 +724,10 @@ export function useEditorTabs(
   const openDirectoryGrid = useCallback(
     async (relativePath: string) => {
       const cfg = configRef.current;
-      if (!cfg || !isDirectoryPath(relativePath)) {
+      if (
+        !cfg ||
+        !(relativePath === '' || isDirectoryPath(relativePath))
+      ) {
         return;
       }
 

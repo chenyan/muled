@@ -19,6 +19,8 @@ import EditorContextMenu, {
 import TranslationPopup from '../ai/TranslationPopup';
 import { useTabTranslation } from '../../hooks/useTabTranslation';
 import EditorViewSwitch from '../editor/EditorViewSwitch';
+import HtmlPreview from '../editor/HtmlPreview';
+import HtmlViewSwitch from '../editor/HtmlViewSwitch';
 import MarkdownTabNavigation from './MarkdownTabNavigation';
 import AudioPreview from '../editor/AudioPreview';
 import ImagePreview from '../editor/ImagePreview';
@@ -47,6 +49,7 @@ import { isEditableTextTab, tabLabel } from '../../types/tab';
 
 interface TabContentProps {
   tab: EditorTab | null;
+  workspaceRoot: string;
   /** 分隔视图中的单分区 */
   layout?: 'full' | 'pane';
   focused?: boolean;
@@ -75,6 +78,7 @@ interface TabContentProps {
 
 export default function TabContent({
   tab,
+  workspaceRoot,
   layout = 'full',
   focused = true,
   sourceFont,
@@ -114,11 +118,17 @@ export default function TabContent({
   }, [tab?.content]);
 
   const getEditableContent = useCallback((): string => {
-    if (!tab || tab.kind !== 'markdown') return '';
-    if (tab.viewMode === 'rich-text') {
-      return getWysiwygContent();
+    if (!tab || !isEditableTextTab(tab)) return '';
+    if (tab.kind === 'markdown') {
+      if (tab.viewMode === 'rich-text') {
+        return getWysiwygContent();
+      }
+      if (tab.viewMode === 'source') {
+        return sourceRef.current?.getValue() ?? tab.content;
+      }
+      return tab.content;
     }
-    if (tab.viewMode === 'source') {
+    if (tab.kind === 'html' && tab.viewMode === 'source') {
       return sourceRef.current?.getValue() ?? tab.content;
     }
     return tab.content;
@@ -247,8 +257,18 @@ export default function TabContent({
 
   const handleViewModeChange = useCallback(
     (next: EditorViewMode) => {
-      if (!tab || tab.kind !== 'markdown' || next === tab.viewMode) return;
-      onViewModeChange(tab.id, next, getEditableContent());
+      if (!tab || next === tab.viewMode) return;
+      if (tab.kind === 'markdown') {
+        onViewModeChange(tab.id, next, getEditableContent());
+        return;
+      }
+      if (tab.kind === 'html') {
+        const content =
+          tab.viewMode === 'source'
+            ? (sourceRef.current?.getValue() ?? tab.content)
+            : tab.content;
+        onViewModeChange(tab.id, next, content);
+      }
     },
     [getEditableContent, tab, onViewModeChange],
   );
@@ -347,9 +367,12 @@ export default function TabContent({
   }
 
   const showWysiwyg = tab.kind === 'markdown' && tab.viewMode === 'rich-text';
-  const showPreview = tab.kind === 'markdown' && tab.viewMode === 'preview';
+  const showMarkdownPreview =
+    tab.kind === 'markdown' && tab.viewMode === 'preview';
+  const showHtmlPreview = tab.kind === 'html' && tab.viewMode === 'preview';
   const showSource =
     tab.kind === 'text' ||
+    (tab.kind === 'html' && tab.viewMode === 'source') ||
     (tab.kind === 'markdown' && tab.viewMode === 'source');
 
   const canSave =
@@ -412,6 +435,13 @@ export default function TabContent({
               onChange={handleViewModeChange}
             />
           )}
+          {tab.kind === 'html' && (
+            <HtmlViewSwitch
+              viewMode={tab.viewMode}
+              disabled={tab.truncated}
+              onChange={handleViewModeChange}
+            />
+          )}
           {!isPane && isEditableTextTab(tab) && (
             <button
               type="button"
@@ -467,10 +497,12 @@ export default function TabContent({
             onOpenFile={onOpenFile}
             onOpenDirectory={onOpenDirectoryGrid}
           />
+        ) : tab.kind === 'html' && showHtmlPreview ? (
+          <HtmlPreview tab={tab} workspaceRoot={workspaceRoot} />
         ) : (
           <div
             ref={editorPaneRef}
-            className={`TabContent__editorPane${showPreview ? ' TabContent__editorPane--preview' : ''}`}
+            className={`TabContent__editorPane${showMarkdownPreview ? ' TabContent__editorPane--preview' : ''}`}
             style={editorPaneFontVars(sourceFont, wysiwygFont)}
           >
             {showWysiwyg && (
@@ -484,7 +516,7 @@ export default function TabContent({
                 onOpenFile={onOpenFileFromEditor}
               />
             )}
-            {showPreview && (
+            {showMarkdownPreview && (
               <MarkdownEditor
                 ref={mdxRef}
                 tabKey={`${tab.id}:${tab.relativePath ?? 'untitled'}:preview`}

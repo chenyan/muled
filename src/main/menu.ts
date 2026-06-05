@@ -114,6 +114,34 @@ export default class MenuBuilder {
     });
   }
 
+  async openExternalDirectory(): Promise<void> {
+    if (this.mainWindow.isDestroyed()) return;
+
+    const { canceled, filePaths } = await dialog.showOpenDialog(this.mainWindow, {
+      title: '打开外部目录',
+      properties: ['openDirectory'],
+    });
+    if (canceled || filePaths.length === 0) {
+      return;
+    }
+
+    const absolutePath = path.resolve(filePaths[0]);
+    const workspaceRoot = this.getWorkspaceRoot();
+    const relative = toWorkspaceRelativePath(workspaceRoot, absolutePath);
+    let relativePath: string | null = null;
+
+    if (relative !== null) {
+      relativePath =
+        relative === '' ? '' : relative.endsWith('/') ? relative : `${relative}/`;
+    }
+
+    if (this.mainWindow.isDestroyed()) return;
+    this.mainWindow.webContents.send('menu:openExternalDirectory', {
+      relativePath,
+      absolutePath,
+    });
+  }
+
   buildFileSubmenu(): MenuItemConstructorOptions[] {
     const quitAccelerator =
       process.platform === 'darwin' ? 'Command+Q' : 'Ctrl+Q';
@@ -126,6 +154,12 @@ export default class MenuBuilder {
             label: '打开外部文档',
             click: () => {
               void this.openExternalDocument();
+            },
+          },
+          {
+            label: '目录',
+            click: () => {
+              void this.openExternalDirectory();
             },
           },
         ],

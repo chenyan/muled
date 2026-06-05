@@ -49,6 +49,7 @@ export default function SidebarTabs({
   const outlineHint = useMemo(() => {
     if (!activeEditorTab) return '打开文件后显示大纲';
     if (activeEditorTab.kind === 'markdown') return '显示 H1-H3 标题';
+    if (activeEditorTab.kind === 'html') return '显示标题与 H1-H6';
     if (activeEditorTab.kind === 'text') return '显示顶层符号';
     if (activeEditorTab.kind === 'pdf') return '显示 PDF 目录';
     return '当前类型暂无大纲';

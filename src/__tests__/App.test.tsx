@@ -109,6 +109,7 @@ beforeEach(() => {
     menu: {
       onOpenTranslationHistory: () => () => undefined,
       onOpenExternalDocument: () => () => undefined,
+      onOpenExternalDirectory: () => () => undefined,
     },
   };
 });
