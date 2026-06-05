@@ -202,6 +202,26 @@ export default `
   max-width: 100%;
 }
 
+.MuledFrontmatterTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+  font-size: 0.92em;
+}
+
+.MuledFrontmatterTable td {
+  border: 1px solid #e4e4e7;
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.MuledFrontmatterTable td:first-child {
+  width: 28%;
+  color: #71717a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
 .MuledInlineHtml {
   display: inline;
 }

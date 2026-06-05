@@ -1,12 +1,14 @@
 import fs from 'fs';
 import os from 'os';
 import yaml from 'js-yaml';
+import { didWorkspacePathChange } from '../../shared/configChange';
 import type {
   EditorMode,
   EditorViewMode,
   MuledConfig,
   PublicConfig,
 } from '../../shared/types/config';
+import type { ConfigSaveResult } from '../../shared/types/ipc';
 import {
   DEFAULT_BUFFER_BYTES,
   DEFAULT_TREE_INITIAL_EXPANSION_DEPTH,
@@ -183,6 +185,12 @@ export function ensureConfigFile(): void {
 export default class ConfigService {
   private config: MuledConfig = DEFAULT_CONFIG;
 
+  private onBeforePersist?: () => void;
+
+  setOnBeforePersist(callback: () => void): void {
+    this.onBeforePersist = callback;
+  }
+
   load(): MuledConfig {
     const configPath = getConfigFilePath();
     if (!fs.existsSync(configPath)) {
@@ -269,8 +277,9 @@ export default class ConfigService {
     };
   }
 
-  saveSettings(input: SettingsForm): PublicConfig {
+  saveSettings(input: SettingsForm): ConfigSaveResult {
     const previousKey = this.config.openai.api_key;
+    const previousWorkspacePath = this.config.workspace.path;
     const parsed = parseConfig(input);
     const apiKey =
       typeof input.openai?.api_key === 'string' &&
@@ -285,11 +294,19 @@ export default class ConfigService {
         path: resolvePath(parsed.workspace.path),
       },
     };
+    const workspacePathChanged = didWorkspacePathChange(
+      previousWorkspacePath,
+      this.config.workspace.path,
+    );
     this.persist();
-    return this.getPublicConfig();
+    return {
+      config: this.getPublicConfig(),
+      workspacePathChanged,
+    };
   }
 
   private persist(): void {
+    this.onBeforePersist?.();
     const configPath = getConfigFilePath();
     ensureParentDir(configPath);
     const { openai, editor, workspace, ui, theme } = this.config;

@@ -1,5 +1,12 @@
 import { ipcMain, nativeTheme, shell, type BrowserWindow, type WebContents } from 'electron';
-import type { IpcChannel, ThemeChangedPayload } from '../../shared/types/ipc';
+import fs from 'fs';
+import type {
+  ConfigChangedPayload,
+  IpcChannel,
+  ThemeChangedPayload,
+} from '../../shared/types/ipc';
+import { didWorkspacePathChange } from '../../shared/configChange';
+import { getConfigFilePath, getWysiwygStyleDir } from '../../shared/pathUtils';
 import type {
   SearchStreamEvent,
   ShellSearchError,
@@ -72,6 +79,23 @@ function sendThemeChanged(
   win.webContents.send('config:themeChanged', buildThemePayload(config));
 }
 
+function sendConfigChanged(
+  win: BrowserWindow,
+  payload: ConfigChangedPayload,
+): void {
+  if (win.isDestroyed()) return;
+  win.webContents.send('config:changed', payload);
+}
+
+function notifyConfigUpdate(
+  win: BrowserWindow,
+  services: MuledServices,
+  payload: ConfigChangedPayload,
+): void {
+  sendThemeChanged(win, services.config);
+  sendConfigChanged(win, payload);
+}
+
 function sendSearchEvent(
   sender: WebContents,
   event: SearchStreamEvent,
@@ -106,9 +130,9 @@ export function registerIpc(
 
     'config:save': (arg) => {
       const settings = arg as Parameters<ConfigService['saveSettings']>[0];
-      const publicConfig = services.config.saveSettings(settings);
-      const nextRoot = services.config.get().workspace.path;
-      if (services.workspace.getRoot() !== nextRoot) {
+      const result = services.config.saveSettings(settings);
+      if (result.workspacePathChanged) {
+        const nextRoot = services.config.get().workspace.path;
         try {
           services.workspace.setRoot(nextRoot);
         } catch {
@@ -119,7 +143,7 @@ export function registerIpc(
       if (win) {
         sendThemeChanged(win, services.config);
       }
-      return publicConfig;
+      return result;
     },
 
     'config:getWysiwygCss': () => buildThemePayload(services.config).wysiwyg,
@@ -268,4 +292,83 @@ export function registerThemeWatcher(
     if (!win) return;
     sendThemeChanged(win, services.config);
   });
+}
+
+function debounce(fn: () => void, ms: number): () => void {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  return () => {
+    if (timer) {
+      clearTimeout(timer);
+    }
+    timer = setTimeout(fn, ms);
+  };
+}
+
+/** 监听配置文件与 WYSIWYG 样式变更，热更新或按需重载工作区 */
+export function registerConfigWatcher(
+  services: MuledServices,
+  getWindow: () => BrowserWindow | null,
+): void {
+  let suppressWatchUntil = 0;
+  services.config.setOnBeforePersist(() => {
+    suppressWatchUntil = Date.now() + 500;
+  });
+
+  const reloadFromConfigFile = debounce(() => {
+    if (Date.now() < suppressWatchUntil) {
+      return;
+    }
+    const win = getWindow();
+    if (!win || win.isDestroyed()) {
+      return;
+    }
+
+    const previousWorkspacePath = services.config.get().workspace.path;
+    services.config.load();
+    const nextWorkspacePath = services.config.get().workspace.path;
+    const workspacePathChanged = didWorkspacePathChange(
+      previousWorkspacePath,
+      nextWorkspacePath,
+    );
+
+    if (workspacePathChanged) {
+      try {
+        services.workspace.setRoot(nextWorkspacePath);
+      } catch {
+        /* 无效路径时保留当前工作区 */
+      }
+    }
+
+    notifyConfigUpdate(win, services, {
+      config: services.config.getPublicConfig(),
+      workspacePathChanged,
+    });
+  }, 200);
+
+  const reloadWysiwygStyles = debounce(() => {
+    if (Date.now() < suppressWatchUntil) {
+      return;
+    }
+    const win = getWindow();
+    if (!win || win.isDestroyed()) {
+      return;
+    }
+    sendThemeChanged(win, services.config);
+  }, 200);
+
+  const configPath = getConfigFilePath();
+  if (fs.existsSync(configPath)) {
+    fs.watch(configPath, () => {
+      reloadFromConfigFile();
+    });
+  }
+
+  const wysiwygDir = getWysiwygStyleDir();
+  if (fs.existsSync(wysiwygDir)) {
+    fs.watch(wysiwygDir, (_event, filename) => {
+      if (typeof filename === 'string' && filename.endsWith('.css')) {
+        reloadWysiwygStyles();
+      }
+    });
+  }
 }

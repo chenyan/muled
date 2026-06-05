@@ -1,0 +1,27 @@
+.CsvSpreadsheetView {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  background: var(--muled-bg);
+}
+
+.CsvSpreadsheetView__grid {
+  flex: 1;
+  min-height: 0;
+  block-size: 100% !important;
+  inline-size: 100%;
+  font-family: var(--muled-font-mono, ui-monospace, monospace);
+  --rdg-color: var(--muled-fg);
+  --rdg-border-color: var(--muled-border);
+  /* 数据区：基本背景/前景 */
+  --rdg-background-color: var(--muled-bg);
+  /* 列标题：略抬升的 muted 表面 */
+  --rdg-header-background-color: var(--muled-surface-muted);
+  --rdg-header-draggable-background-color: var(--muled-surface-muted);
+  --rdg-row-hover-background-color: var(--muled-hover);
+  --rdg-row-selected-background-color: var(--muled-active-soft-bg);
+  --rdg-row-selected-hover-background-color: var(--muled-active-soft-bg);
+}

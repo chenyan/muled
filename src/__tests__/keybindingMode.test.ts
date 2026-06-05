@@ -23,6 +23,11 @@ describe('editorViewMode', () => {
     expect(nextViewModeForTab('html', 'source')).toBe('preview');
   });
 
+  it('cycles ipynb preview ↔ source', () => {
+    expect(nextViewModeForTab('ipynb', 'preview')).toBe('source');
+    expect(nextViewModeForTab('ipynb', 'source')).toBe('preview');
+  });
+
   it('cycles docx rich-text ↔ preview', () => {
     expect(nextViewModeForTab('docx', 'rich-text')).toBe('preview');
     expect(nextViewModeForTab('docx', 'preview')).toBe('rich-text');

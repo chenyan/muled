@@ -21,6 +21,10 @@ import { useTabTranslation } from '../../hooks/useTabTranslation';
 import EditorViewSwitch from '../editor/EditorViewSwitch';
 import DocxEditorView from '../editor/DocxEditorView';
 import DocxViewSwitch from '../editor/DocxViewSwitch';
+import CsvSpreadsheetView from '../editor/CsvSpreadsheetView';
+import CsvViewSwitch from '../editor/CsvViewSwitch';
+import IpynbPreview from '../editor/IpynbPreview';
+import IpynbViewSwitch from '../editor/IpynbViewSwitch';
 import HtmlPreview from '../editor/HtmlPreview';
 import HtmlViewSwitch from '../editor/HtmlViewSwitch';
 import MarkdownTabNavigation from './MarkdownTabNavigation';
@@ -134,6 +138,12 @@ export default function TabContent({
       return tab.content;
     }
     if (tab.kind === 'html' && tab.viewMode === 'source') {
+      return sourceRef.current?.getValue() ?? tab.content;
+    }
+    if (tab.kind === 'csv' && tab.viewMode === 'source') {
+      return sourceRef.current?.getValue() ?? tab.content;
+    }
+    if (tab.kind === 'ipynb' && tab.viewMode === 'source') {
       return sourceRef.current?.getValue() ?? tab.content;
     }
     return tab.content;
@@ -267,7 +277,7 @@ export default function TabContent({
         onViewModeChange(tab.id, next, getEditableContent());
         return;
       }
-      if (tab.kind === 'html') {
+      if (tab.kind === 'html' || tab.kind === 'csv' || tab.kind === 'ipynb') {
         const content =
           tab.viewMode === 'source'
             ? (sourceRef.current?.getValue() ?? tab.content)
@@ -379,9 +389,13 @@ export default function TabContent({
   const showMarkdownPreview =
     tab.kind === 'markdown' && tab.viewMode === 'preview';
   const showHtmlPreview = tab.kind === 'html' && tab.viewMode === 'preview';
+  const showCsvSpreadsheet = tab.kind === 'csv' && tab.viewMode === 'preview';
+  const showIpynbPreview = tab.kind === 'ipynb' && tab.viewMode === 'preview';
   const showSource =
     tab.kind === 'text' ||
     (tab.kind === 'html' && tab.viewMode === 'source') ||
+    (tab.kind === 'csv' && tab.viewMode === 'source') ||
+    (tab.kind === 'ipynb' && tab.viewMode === 'source') ||
     (tab.kind === 'markdown' && tab.viewMode === 'source');
 
   const canSave =
@@ -446,6 +460,20 @@ export default function TabContent({
           )}
           {tab.kind === 'html' && (
             <HtmlViewSwitch
+              viewMode={tab.viewMode}
+              disabled={tab.truncated}
+              onChange={handleViewModeChange}
+            />
+          )}
+          {tab.kind === 'csv' && (
+            <CsvViewSwitch
+              viewMode={tab.viewMode}
+              disabled={tab.truncated}
+              onChange={handleViewModeChange}
+            />
+          )}
+          {tab.kind === 'ipynb' && (
+            <IpynbViewSwitch
               viewMode={tab.viewMode}
               disabled={tab.truncated}
               onChange={handleViewModeChange}
@@ -517,6 +545,10 @@ export default function TabContent({
           />
         ) : tab.kind === 'html' && showHtmlPreview ? (
           <HtmlPreview tab={tab} workspaceRoot={workspaceRoot} />
+        ) : showCsvSpreadsheet ? (
+          <CsvSpreadsheetView tab={tab} onChange={onContentChange} />
+        ) : showIpynbPreview ? (
+          <IpynbPreview tab={tab} sourceFont={sourceFont} />
         ) : tab.kind === 'docx' ? (
           <DocxEditorView
             tab={tab}

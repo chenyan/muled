@@ -8,6 +8,27 @@ const INLINE_CODE_RE = /(`+)([^`\n]*?)\1/g;
 const PRESERVED_HTML_PLACEHOLDER_PREFIX = '\uE000muled-html-';
 const PRESERVED_HTML_PLACEHOLDER_SUFFIX = '\uE001';
 
+/** MDX JSX 要求自闭合的 void 元素（PMC 等来源常写 <hr> 而非 <hr />） */
+const VOID_HTML_OPEN_TAG_RE =
+  /<(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)\b([^>/]*?)>/gi;
+
+/** 将 HTML 表格块内的 * 转为实体，避免 mdxMd 把 significance stars 当成 emphasis */
+export function normalizeMdxJsxHtmlTableAsterisks(html: string): string {
+  if (!/<table\b/i.test(html)) {
+    return html;
+  }
+  return html.replace(/\*/g, '&#42;');
+}
+
+export function normalizeVoidHtmlOpenTags(html: string): string {
+  return html.replace(VOID_HTML_OPEN_TAG_RE, '<$1$2 />');
+}
+
+/** WYSIWYG 载入：使嵌入 HTML 通过 MDXEditor（mdxJsx/mdxMd）解析 */
+export function normalizeHtmlForMdxJsx(html: string): string {
+  return normalizeMdxJsxHtmlTableAsterisks(normalizeVoidHtmlOpenTags(html));
+}
+
 function normalizeDisplayMathDelimiters(block: string): string {
   return block.replace(
     /^\$\$([\s\S]*?)\$\$/gm,
@@ -48,7 +69,7 @@ export function shouldKeepHtmlTag(match: string): boolean {
 
 function preserveHtmlTag(match: string, preserved: string[]): string {
   const id = preserved.length;
-  preserved.push(match);
+  preserved.push(normalizeVoidHtmlOpenTags(match));
   return `${PRESERVED_HTML_PLACEHOLDER_PREFIX}${id}${PRESERVED_HTML_PLACEHOLDER_SUFFIX}`;
 }
 
@@ -76,7 +97,8 @@ function normalizeAngleTagsInSegment(segment: string): string {
     return escapeAngleTag(match);
   });
   const escaped = escapeOrphanLessThan(afterPairs);
-  return restorePreservedHtmlTags(escaped, preserved);
+  const restored = restorePreservedHtmlTags(escaped, preserved);
+  return normalizeMdxJsxHtmlTableAsterisks(restored);
 }
 
 function splitByInlineCode(text: string): { code: boolean; text: string }[] {

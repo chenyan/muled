@@ -43,9 +43,11 @@ describe('normalizeMarkdownHtmlTags', () => {
     );
   });
 
-  it('keeps common html tags', () => {
+  it('keeps common html tags and self-closes void elements for MDX', () => {
     const source = 'line<br>break and <strong>bold</strong>';
-    expect(normalizeMarkdownHtmlTags(source)).toBe(source);
+    expect(normalizeMarkdownHtmlTags(source)).toBe(
+      'line<br />break and <strong>bold</strong>',
+    );
   });
 
   it('escapes mixed wiki book title syntax', () => {

@@ -47,7 +47,13 @@ export default function StatusBar({
     truncated = tab.truncated;
     if (isEditableTextTab(tab)) {
       keyMode = tab.keybindingMode;
-      if (tab.kind === 'markdown' || tab.kind === 'html' || tab.kind === 'docx') {
+      if (
+        tab.kind === 'markdown' ||
+        tab.kind === 'html' ||
+        tab.kind === 'docx' ||
+        tab.kind === 'csv' ||
+        tab.kind === 'ipynb'
+      ) {
         viewMode = tab.viewMode;
       }
     }

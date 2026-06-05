@@ -70,7 +70,7 @@ beforeEach(() => {
         tools: { fd: '', rg: '' },
         found: { fd: false, rg: false },
       }),
-      save: async () => mockConfig,
+      save: async () => ({ config: mockConfig, workspacePathChanged: false }),
       getWysiwygCss: async () => ({
         css: '',
         theme: 'light' as const,
@@ -81,6 +81,7 @@ beforeEach(() => {
         },
       }),
       onThemeChanged: () => () => undefined,
+      onConfigChanged: () => () => undefined,
     },
     workspace: {
       get: async () => ({ root: '/tmp', recent: ['/tmp'] }),

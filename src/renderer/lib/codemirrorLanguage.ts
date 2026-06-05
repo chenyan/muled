@@ -15,7 +15,12 @@ import { sql } from '@codemirror/lang-sql';
 import { vue } from '@codemirror/lang-vue';
 import { xml } from '@codemirror/lang-xml';
 import { yaml } from '@codemirror/lang-yaml';
+import { StreamLanguage } from '@codemirror/language';
+import { scala } from '@codemirror/legacy-modes/mode/clike';
+import { scheme } from '@codemirror/legacy-modes/mode/scheme';
+import { stex } from '@codemirror/legacy-modes/mode/stex';
 import type { Extension } from '@codemirror/state';
+import orgMode from './codemirrorOrgMode';
 import type { SourceLanguageId } from './fileLanguage';
 
 export default function languageExtensionForId(
@@ -62,6 +67,14 @@ export default function languageExtensionForId(
       return cpp();
     case 'vue':
       return vue();
+    case 'latex':
+      return StreamLanguage.define(stex);
+    case 'org':
+      return orgMode();
+    case 'scheme':
+      return StreamLanguage.define(scheme);
+    case 'scala':
+      return StreamLanguage.define(scala);
     case 'plain':
     default:
       return null;

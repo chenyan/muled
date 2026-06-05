@@ -17,9 +17,11 @@ import { getDocxEditorBuffer } from '../lib/editorDocxBridge';
 import { exportWikiImagesFromMarkdown } from '../lib/normalizeMarkdownWikiImages';
 import {
   isAudioPath,
+  isCsvPath,
   isDirectoryPath,
   isDocxPath,
   isImagePath,
+  isIpynbPath,
   isPdfPath,
   isPptxPath,
 } from '../lib/mime';
@@ -166,17 +168,34 @@ async function loadFileIntoTab(
   }
 
   const file = await window.muled.file.read(relativePath);
+  const csv = isCsvPath(relativePath);
+  const ipynb = isIpynbPath(relativePath);
   const markdown = isMarkdownPath(relativePath);
   const html = isHtmlPath(relativePath);
   const content = markdown
     ? exportWikiImagesFromMarkdown(file.content)
     : file.content;
+  const kind: TabKind = csv
+    ? 'csv'
+    : ipynb
+      ? 'ipynb'
+      : markdown
+        ? 'markdown'
+        : html
+          ? 'html'
+          : 'text';
+  const viewMode: EditorViewMode =
+    csv || ipynb || html
+      ? 'preview'
+      : markdown
+        ? 'rich-text'
+        : 'source';
   return {
     ...base,
     id: newId(),
     relativePath,
-    kind: markdown ? 'markdown' : html ? 'html' : 'text',
-    viewMode: markdown ? 'rich-text' : html ? 'preview' : 'source',
+    kind,
+    viewMode,
     content,
     truncated: file.truncated,
     fileSize: file.fileSize,
@@ -395,7 +414,9 @@ export function useEditorTabs(
         viewMode:
           target.kind === 'markdown' ||
           target.kind === 'html' ||
-          target.kind === 'docx'
+          target.kind === 'docx' ||
+          target.kind === 'csv' ||
+          target.kind === 'ipynb'
             ? target.viewMode
             : cfg.editor.default_view,
       } as const;
@@ -732,7 +753,9 @@ export function useEditorTabs(
               ? {
                   ...t,
                   reveal,
-                  ...(t.kind === 'markdown' || t.kind === 'html'
+                  ...(t.kind === 'markdown' ||
+                  t.kind === 'html' ||
+                  t.kind === 'ipynb'
                     ? { viewMode: 'source' as const }
                     : {}),
                 }
@@ -760,7 +783,9 @@ export function useEditorTabs(
         const withReveal = {
           ...loaded,
           reveal,
-          ...(loaded.kind === 'markdown' || loaded.kind === 'html'
+          ...(loaded.kind === 'markdown' ||
+          loaded.kind === 'html' ||
+          loaded.kind === 'ipynb'
             ? { viewMode: 'source' as const }
             : {}),
         };

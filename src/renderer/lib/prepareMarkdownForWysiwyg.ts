@@ -1,3 +1,4 @@
+import { normalizeMarkdownFrontmatterForWysiwyg } from './markdownFrontmatter';
 import normalizeMarkdownHtmlTags from './normalizeMarkdownHtmlTags';
 import normalizeMarkdownMath from './normalizeMarkdownMath';
 import { normalizeMarkdownWikiImages } from './normalizeMarkdownWikiImages';
@@ -12,10 +13,11 @@ function joinPreparedBlocks(blocks: string[], fallback: string): string {
   return blocks.map(normalizeMarkdownBlockMathAndHtml).join('\n\n');
 }
 
-/** WYSIWYG 载入：单次块拆分 + math/html 合并，再处理 wiki 图片/链接 */
+/** WYSIWYG 载入：frontmatter 表格化 → 块拆分 + math/html 合并，再处理 wiki 图片/链接 */
 export function prepareMarkdownForWysiwyg(raw: string): string {
-  const blocks = splitTopLevelMarkdownBlocks(raw);
-  const body = joinPreparedBlocks(blocks, raw);
+  const withoutFrontmatter = normalizeMarkdownFrontmatterForWysiwyg(raw);
+  const blocks = splitTopLevelMarkdownBlocks(withoutFrontmatter);
+  const body = joinPreparedBlocks(blocks, withoutFrontmatter);
   return normalizeMarkdownWikiLinks(normalizeMarkdownWikiImages(body));
 }
 

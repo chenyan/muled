@@ -6,6 +6,8 @@ export type TabKind =
   | 'docx'
   | 'pptx'
   | 'text'
+  | 'csv'
+  | 'ipynb'
   | 'image'
   | 'pdf'
   | 'audio'
@@ -45,7 +47,13 @@ export interface EditorTab {
 
 /** 可在编辑器中修改并保存的文本类 Tab */
 export function isEditableTextTab(tab: EditorTab): boolean {
-  return tab.kind === 'markdown' || tab.kind === 'html' || tab.kind === 'text';
+  return (
+    tab.kind === 'markdown' ||
+    tab.kind === 'html' ||
+    tab.kind === 'text' ||
+    tab.kind === 'csv' ||
+    tab.kind === 'ipynb'
+  );
 }
 
 /** 可保存的 Tab（文本或 DOCX） */

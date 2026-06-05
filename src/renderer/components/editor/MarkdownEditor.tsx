@@ -82,6 +82,8 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
     const documentRelativePathRef = useRef(relativePath);
     documentRelativePathRef.current = relativePath;
     const recoveryAttemptRef = useRef(0);
+    const pendingRecoveryMarkdownRef = useRef<string | null>(null);
+    const pendingRecoveryNotifyRef = useRef<(() => void) | null>(null);
     const [editorEpoch, setEditorEpoch] = useState(0);
     const wysiwygTheme = useWysiwygTheme();
     const hydratingRef = useRef(false);
@@ -240,13 +242,39 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
       (raw: string, options?: { prepare?: boolean; notifyRecovery?: boolean }) => {
         const prepared =
           options?.prepare === false ? raw : prepareForEditor(raw);
-        innerRef.current?.setMarkdown(prepared);
-        if (options?.notifyRecovery && prepared !== raw) {
-          pushStatusToast(
-            '部分 Markdown 语法无法解析，已降级为代码块保留内容。',
-            'info',
-          );
+
+        const notify =
+          options?.notifyRecovery === true && prepared !== raw
+            ? () => {
+                pushStatusToast(
+                  '部分 Markdown 语法无法解析，已降级为代码块保留内容。',
+                  'info',
+                );
+              }
+            : null;
+
+        const apply = () => {
+          if (!innerRef.current) {
+            return false;
+          }
+          innerRef.current.setMarkdown(prepared);
+          notify?.();
+          return true;
+        };
+
+        if (apply()) {
+          return;
         }
+
+        queueMicrotask(() => {
+          if (apply()) {
+            return;
+          }
+          pendingRecoveryMarkdownRef.current = prepared;
+          if (notify) {
+            pendingRecoveryNotifyRef.current = notify;
+          }
+        });
       },
       [prepareForEditor],
     );
@@ -259,6 +287,17 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
     useEffect(() => {
       clearWikiImagePreviewCache();
     }, [tabKey]);
+
+    useEffect(() => {
+      const pending = pendingRecoveryMarkdownRef.current;
+      if (!pending || !innerRef.current) {
+        return;
+      }
+      pendingRecoveryMarkdownRef.current = null;
+      innerRef.current.setMarkdown(pending);
+      pendingRecoveryNotifyRef.current?.();
+      pendingRecoveryNotifyRef.current = null;
+    }, [tabKey, editorEpoch]);
 
     useEffect(() => {
       recoveryAttemptRef.current = 0;

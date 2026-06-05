@@ -17,6 +17,7 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import {
   createServices,
+  registerConfigWatcher,
   registerIpc,
   registerThemeWatcher,
   type MuledServices,
@@ -139,6 +140,7 @@ app
     services = createServices();
     registerIpc(services, () => mainWindow);
     registerThemeWatcher(services, () => mainWindow);
+    registerConfigWatcher(services, () => mainWindow);
     createWindow();
     app.on('activate', () => {
       // On macOS it's common to re-create a window in the app when the

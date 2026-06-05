@@ -18,3 +18,16 @@ declare module 'cm6-theme-basic-dark' {
   export const basicDarkTheme: Extension;
   export const basicDarkHighlightStyle: unknown;
 }
+
+interface NotebookMathDelimiter {
+  left: string;
+  right: string;
+  display: boolean;
+}
+
+interface Window {
+  renderMathInElement?: (
+    element: HTMLElement,
+    options?: { delimiters?: NotebookMathDelimiter[] },
+  ) => void;
+}

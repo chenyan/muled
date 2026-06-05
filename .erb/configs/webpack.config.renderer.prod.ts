@@ -108,6 +108,10 @@ const configuration: webpack.Configuration = {
       stream: false,
     },
     alias: {
+      notebookjs: path.join(
+        webpackPaths.rootPath,
+        '.erb/mocks/notebookjsBrowser.js',
+      ),
       '@pierre/trees/react': path.join(
         webpackPaths.rootPath,
         'node_modules/@pierre/trees/dist/react/index.js',

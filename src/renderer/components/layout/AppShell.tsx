@@ -339,12 +339,51 @@ export default function AppShell() {
       return;
     }
     const { settings } = await window.muled.config.getSettings();
-    const next = await window.muled.config.save({
+    const { config: next } = await window.muled.config.save({
       ...settings,
       ui: { ...settings.ui, sidebar_width: width },
     });
     setConfig(next);
   }, []);
+
+  const applyConfigUpdate = useCallback(
+    async (
+      next: PublicConfig,
+      workspacePathChanged: boolean,
+    ) => {
+      setConfig(next);
+      if (!workspacePathChanged) {
+        return;
+      }
+      const newRoot = next.workspace.path;
+      if (!newRoot || newRoot === workspace.root) {
+        return;
+      }
+      try {
+        await workspace.cd(newRoot);
+        editor.initFromConfig(next);
+        clearSplit();
+        resetTreeSelection();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        pushStatusToast(`工作区路径无效: ${message}`, 'error');
+      }
+    },
+    [clearSplit, editor, resetTreeSelection, workspace],
+  );
+
+  const handleSettingsSaved = useCallback(
+    async (form: SettingsForm) => {
+      if (!window.muled?.config?.save) {
+        throw new Error('应用 API 未就绪');
+      }
+      const { config: next, workspacePathChanged } =
+        await window.muled.config.save(form);
+      await applyConfigUpdate(next, workspacePathChanged);
+      pushStatusToast('设置已保存', 'success');
+    },
+    [applyConfigUpdate],
+  );
 
   const { resizing: sidebarResizing, resizeHandleProps } = useSidebarResize({
     enabled: sidebarVisible,
@@ -354,30 +393,6 @@ export default function AppShell() {
       persistSidebarWidth(width).catch(() => undefined);
     },
   });
-
-  const handleSettingsSaved = useCallback(
-    async (form: SettingsForm) => {
-      if (!window.muled?.config?.save) {
-        throw new Error('应用 API 未就绪');
-      }
-      const next = await window.muled.config.save(form);
-      setConfig(next);
-      const newRoot = next.workspace.path;
-      if (newRoot && newRoot !== workspace.root) {
-        try {
-          await workspace.cd(newRoot);
-          editor.initFromConfig(next);
-          clearSplit();
-          resetTreeSelection();
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          pushStatusToast(`工作区路径无效: ${message}`, 'error');
-        }
-      }
-      pushStatusToast('设置已保存', 'success');
-    },
-    [clearSplit, editor, resetTreeSelection, workspace],
-  );
 
   const handleOpenFileInSplit = useCallback(
     (relativePath: string, placement: SplitPlacement) => {
@@ -466,7 +481,12 @@ export default function AppShell() {
       pushStatusToast(`视图: ${editorViewModeLabel(next)}`, 'info');
       return;
     }
-    if (tab.kind !== 'markdown' && tab.kind !== 'html') {
+    if (
+      tab.kind !== 'markdown' &&
+      tab.kind !== 'html' &&
+      tab.kind !== 'csv' &&
+      tab.kind !== 'ipynb'
+    ) {
       return;
     }
     const content = getEditorViewContent(tab.id) ?? tab.content;
@@ -534,6 +554,17 @@ export default function AppShell() {
     // initFromConfig only on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!window.muled?.config?.onConfigChanged) {
+      return undefined;
+    }
+    return window.muled.config.onConfigChanged(
+      ({ config: next, workspacePathChanged }) => {
+        applyConfigUpdate(next, workspacePathChanged).catch(() => undefined);
+      },
+    );
+  }, [applyConfigUpdate]);
 
   useEffect(() => {
     if (!window.muled?.menu?.onOpenTranslationHistory) {

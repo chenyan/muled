@@ -1,0 +1,374 @@
+/* 布局与排版参考 nbpreview: https://jsvine.github.io/nbpreview/ */
+
+.IpynbPreview {
+  height: 100%;
+  overflow: auto;
+  padding: 16px 24px 32px calc(7.5em + 16px);
+  background: var(--muled-bg);
+  color: var(--muled-fg);
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  --ipynb-code-bg: var(--muled-surface-muted);
+}
+
+.IpynbPreview__inner {
+  width: 99%;
+  max-width: 750px;
+  margin: 0 auto;
+}
+
+/* 与 Source 编辑器共用 --muled-source-font-*（editor.source 配置） */
+.IpynbPreview .nb-stdout,
+.IpynbPreview .nb-stderr,
+.IpynbPreview .nb-raw-cell,
+.IpynbPreview .nb-output::before,
+.IpynbPreview .nb-input::before,
+.IpynbPreview .nb-input pre,
+.IpynbPreview .nb-text-output,
+.IpynbPreview .nb-pyerr,
+.IpynbPreview .nb-markdown-cell code,
+.IpynbPreview .nb-markdown-cell pre code {
+  font-family: var(
+    --muled-source-font-family,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    monospace
+  );
+}
+
+.IpynbPreview .nb-stdout,
+.IpynbPreview .nb-stderr,
+.IpynbPreview .nb-raw-cell,
+.IpynbPreview .nb-input pre,
+.IpynbPreview .nb-text-output,
+.IpynbPreview .nb-pyerr,
+.IpynbPreview .nb-markdown-cell code,
+.IpynbPreview .nb-markdown-cell pre code {
+  font-size: var(--muled-source-font-size, 13px);
+}
+
+.IpynbPreview__error {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--muled-danger-border);
+  border-radius: 6px;
+  background: var(--muled-danger-bg);
+  color: var(--muled-danger);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.IpynbPreview .nb-notebook {
+  line-height: 1.5;
+}
+
+.IpynbPreview .nb-stdout,
+.IpynbPreview .nb-stderr {
+  white-space: pre-wrap;
+  margin: 1em 0;
+  padding: 0.1em 0.5em;
+}
+
+.IpynbPreview .nb-stderr {
+  background-color: var(--muled-danger-bg);
+  color: var(--muled-danger);
+}
+
+.IpynbPreview .nb-cell + .nb-cell {
+  margin-top: 0.5em;
+}
+
+.IpynbPreview .nb-output table {
+  border: 1px solid var(--muled-border);
+  border-collapse: collapse;
+}
+
+.IpynbPreview .nb-output th {
+  font-weight: bold;
+}
+
+.IpynbPreview .nb-output th,
+.IpynbPreview .nb-output td {
+  border: 1px solid var(--muled-border);
+  padding: 0.25em;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.IpynbPreview .nb-notebook blockquote {
+  border-left: 5px solid var(--muled-border);
+  margin-left: 0;
+  padding-left: 1em;
+  color: var(--muled-text-secondary);
+}
+
+.IpynbPreview .nb-cell {
+  position: relative;
+}
+
+.IpynbPreview .nb-raw-cell {
+  white-space: pre-wrap;
+  background-color: var(--ipynb-code-bg);
+  padding: 1em;
+  margin: 0.5em 0;
+}
+
+.IpynbPreview .nb-output {
+  min-height: 1em;
+  width: 100%;
+  overflow-x: auto;
+  border-right: 1px dotted var(--muled-border);
+}
+
+.IpynbPreview .nb-output img {
+  max-width: 100%;
+}
+
+.IpynbPreview .nb-output::before,
+.IpynbPreview .nb-input::before {
+  position: absolute;
+  color: var(--muled-muted-fg);
+  left: -7.5em;
+  width: 7em;
+  text-align: right;
+}
+
+.IpynbPreview .nb-input::before {
+  content: 'In [' attr(data-prompt-number) ']:';
+}
+
+.IpynbPreview .nb-output::before {
+  content: 'Out [' attr(data-prompt-number) ']:';
+}
+
+/* 代码输入 — 参考 nbpreview / Prism pre 样式 */
+.IpynbPreview .nb-input pre {
+  padding: 1em;
+  margin: 0.5em 0;
+  overflow: auto;
+  background: var(--ipynb-code-bg);
+  border: 0;
+  line-height: 1.5;
+  white-space: pre;
+  text-align: left;
+  color: var(--muled-fg);
+}
+
+.IpynbPreview .nb-input code {
+  font-family: inherit;
+  font-size: inherit;
+  background: transparent;
+  color: inherit;
+}
+
+.IpynbPreview .nb-text-output,
+.IpynbPreview .nb-pyerr {
+  line-height: 1.5;
+}
+
+.IpynbPreview .nb-markdown-cell {
+  font-size: 14px;
+}
+
+.IpynbPreview .nb-markdown-cell h1,
+.IpynbPreview .nb-markdown-cell h2,
+.IpynbPreview .nb-markdown-cell h3,
+.IpynbPreview .nb-markdown-cell h4,
+.IpynbPreview .nb-markdown-cell h5,
+.IpynbPreview .nb-markdown-cell h6 {
+  margin: 0.75em 0 0.35em;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--muled-fg);
+}
+
+.IpynbPreview .nb-markdown-cell h1 {
+  font-size: 1.75em;
+}
+
+.IpynbPreview .nb-markdown-cell h2 {
+  font-size: 1.5em;
+}
+
+.IpynbPreview .nb-markdown-cell h3 {
+  font-size: 1.25em;
+}
+
+.IpynbPreview .nb-markdown-cell p {
+  margin: 0.5em 0;
+}
+
+.IpynbPreview .nb-markdown-cell ul,
+.IpynbPreview .nb-markdown-cell ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.IpynbPreview .nb-markdown-cell code {
+  background: var(--ipynb-code-bg);
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+  color: var(--muled-fg);
+}
+
+.IpynbPreview .nb-markdown-cell pre code {
+  display: block;
+  padding: 1em;
+  margin: 0.5em 0;
+  overflow: auto;
+  background: var(--ipynb-code-bg);
+  border-radius: 0;
+}
+
+.IpynbPreview .nb-markdown-cell pre {
+  background: var(--ipynb-code-bg);
+  margin: 0.5em 0;
+}
+
+.IpynbPreview .nb-markdown-cell a {
+  color: var(--muled-accent);
+}
+
+.IpynbPreview .nb-heading-cell {
+  margin: 0.75em 0 0.25em;
+  font-weight: 600;
+  color: var(--muled-fg);
+}
+
+.IpynbPreview .nb-latex-output {
+  margin: 0.5em 0;
+  overflow-x: auto;
+}
+
+/* pandas dataframe 容器 */
+.IpynbPreview
+  div[style='max-height:1000px;max-width:1500px;overflow:auto;'] {
+  max-height: none !important;
+}
+
+/* KaTeX 跟随主题文字色 */
+.IpynbPreview .katex {
+  color: var(--muled-fg);
+}
+
+.IpynbPreview .katex-display {
+  margin: 0.75em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Acme：code 块用背景色的浅色混合，不用 chrome 浅色 */
+[data-muled-ui-theme='acme'] .IpynbPreview {
+  --ipynb-code-bg: color-mix(in srgb, var(--muled-bg) 38%, white);
+}
+
+/* Prism 语法高亮（参考 nbpreview） */
+.IpynbPreview .token.comment,
+.IpynbPreview .token.prolog,
+.IpynbPreview .token.doctype,
+.IpynbPreview .token.cdata {
+  color: #708090;
+}
+
+.IpynbPreview .token.punctuation {
+  color: var(--muled-muted-fg);
+}
+
+.IpynbPreview .token.property,
+.IpynbPreview .token.tag,
+.IpynbPreview .token.boolean,
+.IpynbPreview .token.number,
+.IpynbPreview .token.constant,
+.IpynbPreview .token.symbol,
+.IpynbPreview .token.deleted {
+  color: #905;
+}
+
+.IpynbPreview .token.selector,
+.IpynbPreview .token.attr-name,
+.IpynbPreview .token.string,
+.IpynbPreview .token.char,
+.IpynbPreview .token.builtin,
+.IpynbPreview .token.inserted {
+  color: #690;
+}
+
+.IpynbPreview .token.operator,
+.IpynbPreview .token.entity,
+.IpynbPreview .token.url,
+.IpynbPreview .language-css .token.string,
+.IpynbPreview .style .token.string {
+  color: #9a6e3a;
+}
+
+.IpynbPreview .token.atrule,
+.IpynbPreview .token.attr-value,
+.IpynbPreview .token.keyword {
+  color: #07a;
+}
+
+.IpynbPreview .token.function,
+.IpynbPreview .token.class-name {
+  color: #dd4a68;
+}
+
+.IpynbPreview .token.regex,
+.IpynbPreview .token.important,
+.IpynbPreview .token.variable {
+  color: #e90;
+}
+
+[data-muled-ui-theme='dark'] .IpynbPreview .token.comment,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.prolog,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.doctype,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.cdata {
+  color: #8b949e;
+}
+
+[data-muled-ui-theme='dark'] .IpynbPreview .token.property,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.tag,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.boolean,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.number,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.constant,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.symbol,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.deleted {
+  color: #f69d50;
+}
+
+[data-muled-ui-theme='dark'] .IpynbPreview .token.selector,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.attr-name,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.string,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.char,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.builtin,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.inserted {
+  color: #7ee787;
+}
+
+[data-muled-ui-theme='dark'] .IpynbPreview .token.operator,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.entity,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.url,
+[data-muled-ui-theme='dark'] .IpynbPreview .language-css .token.string,
+[data-muled-ui-theme='dark'] .IpynbPreview .style .token.string {
+  color: #ffa657;
+}
+
+[data-muled-ui-theme='dark'] .IpynbPreview .token.atrule,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.attr-value,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.keyword {
+  color: #79c0ff;
+}
+
+[data-muled-ui-theme='dark'] .IpynbPreview .token.function,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.class-name {
+  color: #d2a8ff;
+}
+
+[data-muled-ui-theme='dark'] .IpynbPreview .token.regex,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.important,
+[data-muled-ui-theme='dark'] .IpynbPreview .token.variable {
+  color: #ffa657;
+}

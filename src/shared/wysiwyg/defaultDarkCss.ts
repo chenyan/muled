@@ -288,6 +288,26 @@ export default `
   max-width: 100%;
 }
 
+.MuledFrontmatterTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+  font-size: 0.92em;
+}
+
+.MuledFrontmatterTable td {
+  border: 1px solid var(--wysiwyg-border, ${P.border});
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.MuledFrontmatterTable td:first-child {
+  width: 28%;
+  color: var(--wysiwyg-muted, ${P.muted});
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
 .MuledInlineHtml {
   display: inline;
 }

@@ -23,12 +23,21 @@ describe('fileLanguage', () => {
   it('maps extensions to source languages', () => {
     expect(getSourceLanguageId('app.ts')).toBe('typescript');
     expect(getSourceLanguageId('data.json')).toBe('json');
+    expect(getSourceLanguageId('notebook.ipynb')).toBe('json');
     expect(getSourceLanguageId('readme.md')).toBe('markdown');
+    expect(getSourceLanguageId('paper.tex')).toBe('latex');
+    expect(getSourceLanguageId('notes.org')).toBe('org');
+    expect(getSourceLanguageId('main.scm')).toBe('scheme');
+    expect(getSourceLanguageId('App.scala')).toBe('scala');
     expect(getSourceLanguageId('unknown')).toBe('plain');
   });
 
   it('provides human-readable labels', () => {
     expect(getSourceLanguageLabel('typescript')).toBe('TypeScript');
+    expect(getSourceLanguageLabel('latex')).toBe('LaTeX');
+    expect(getSourceLanguageLabel('org')).toBe('Org Mode');
+    expect(getSourceLanguageLabel('scheme')).toBe('Scheme');
+    expect(getSourceLanguageLabel('scala')).toBe('Scala');
     expect(getSourceLanguageLabel('plain')).toBe('Plain Text');
   });
 });

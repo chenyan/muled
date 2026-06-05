@@ -31,6 +31,22 @@ const muled = {
         ipcRenderer.removeListener('config:themeChanged', handler);
       };
     },
+    onConfigChanged: (
+      listener: (
+        payload: import('../shared/types/ipc').ConfigChangedPayload,
+      ) => void,
+    ) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        payload: import('../shared/types/ipc').ConfigChangedPayload,
+      ) => {
+        listener(payload);
+      };
+      ipcRenderer.on('config:changed', handler);
+      return () => {
+        ipcRenderer.removeListener('config:changed', handler);
+      };
+    },
   },
   workspace: {
     get: () => invoke('workspace:get'),

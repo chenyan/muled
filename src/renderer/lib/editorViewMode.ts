@@ -7,6 +7,8 @@ const MARKDOWN_VIEW_MODE_CYCLE: EditorViewMode[] = [
   'preview',
 ];
 const HTML_VIEW_MODE_CYCLE: EditorViewMode[] = ['preview', 'source'];
+const CSV_VIEW_MODE_CYCLE: EditorViewMode[] = ['preview', 'source'];
+const IPYNB_VIEW_MODE_CYCLE: EditorViewMode[] = ['preview', 'source'];
 const DOCX_VIEW_MODE_CYCLE: EditorViewMode[] = ['rich-text', 'preview'];
 
 export function editorViewModeLabel(mode: EditorViewMode): string {
@@ -30,10 +32,16 @@ export function nextViewModeForTab(
   tabKind: TabKind,
   current: EditorViewMode,
 ): EditorViewMode {
-  if (tabKind === 'html') {
-    const index = HTML_VIEW_MODE_CYCLE.indexOf(current);
+  if (tabKind === 'html' || tabKind === 'csv' || tabKind === 'ipynb') {
+    const cycle =
+      tabKind === 'csv'
+        ? CSV_VIEW_MODE_CYCLE
+        : tabKind === 'ipynb'
+          ? IPYNB_VIEW_MODE_CYCLE
+          : HTML_VIEW_MODE_CYCLE;
+    const index = cycle.indexOf(current);
     if (index < 0) return 'preview';
-    return HTML_VIEW_MODE_CYCLE[(index + 1) % HTML_VIEW_MODE_CYCLE.length];
+    return cycle[(index + 1) % cycle.length];
   }
   if (tabKind === 'docx') {
     const index = DOCX_VIEW_MODE_CYCLE.indexOf(current);

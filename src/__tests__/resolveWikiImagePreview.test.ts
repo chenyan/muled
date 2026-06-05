@@ -40,6 +40,7 @@ describe('resolveWikiImagePreview', () => {
         get: jest.fn(),
         getWysiwygCss: jest.fn(),
         onThemeChanged: () => () => undefined,
+        onConfigChanged: () => () => undefined,
       },
       workspace: {
         get: jest.fn(),

@@ -82,11 +82,22 @@ export interface ThemeChangedPayload {
   wysiwyg: WysiwygCssResult;
 }
 
+export interface ConfigSaveResult {
+  config: PublicConfig;
+  /** 设置中的 workspace.path 相对保存前是否发生变化 */
+  workspacePathChanged: boolean;
+}
+
+export interface ConfigChangedPayload {
+  config: PublicConfig;
+  workspacePathChanged: boolean;
+}
+
 export interface IpcInvokeMap {
   'config:get': { args: void; result: PublicConfig };
   'config:getSettings': { args: void; result: SettingsGetResult };
   'config:detectTools': { args: void; result: DetectToolsResult };
-  'config:save': { args: SettingsForm; result: PublicConfig };
+  'config:save': { args: SettingsForm; result: ConfigSaveResult };
   'config:getWysiwygCss': { args: void; result: WysiwygCssResult };
   'workspace:get': { args: void; result: WorkspaceInfo };
   'workspace:cd': { args: { path: string }; result: WorkspaceState };

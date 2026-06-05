@@ -1,8 +1,10 @@
 import {
   isAudioPath,
+  isCsvPath,
   isDirectoryPath,
   isDocxPath,
   isImagePath,
+  isIpynbPath,
   isPdfPath,
   isPptxPath,
 } from '../renderer/lib/mime';
@@ -41,5 +43,17 @@ describe('mime', () => {
   it('detects directory paths', () => {
     expect(isDirectoryPath('src/')).toBe(true);
     expect(isDirectoryPath('file.ts')).toBe(false);
+  });
+
+  it('detects csv extension', () => {
+    expect(isCsvPath('data/sales.csv')).toBe(true);
+    expect(isCsvPath('sales.CSV')).toBe(true);
+    expect(isCsvPath('readme.md')).toBe(false);
+  });
+
+  it('detects ipynb extension', () => {
+    expect(isIpynbPath('notebooks/demo.ipynb')).toBe(true);
+    expect(isIpynbPath('demo.IPYNB')).toBe(true);
+    expect(isIpynbPath('readme.md')).toBe(false);
   });
 });

@@ -20,6 +20,10 @@ export type SourceLanguageId =
   | 'php'
   | 'cpp'
   | 'vue'
+  | 'latex'
+  | 'org'
+  | 'scheme'
+  | 'scala'
   | 'plain';
 
 const EXT_TO_LANGUAGE: Record<string, SourceLanguageId> = {
@@ -58,6 +62,20 @@ const EXT_TO_LANGUAGE: Record<string, SourceLanguageId> = {
   h: 'cpp',
   hpp: 'cpp',
   vue: 'vue',
+  tex: 'latex',
+  ltx: 'latex',
+  sty: 'latex',
+  cls: 'latex',
+  dtx: 'latex',
+  org: 'org',
+  scm: 'scheme',
+  ss: 'scheme',
+  sch: 'scheme',
+  rkt: 'scheme',
+  scala: 'scala',
+  sc: 'scala',
+  csv: 'plain',
+  ipynb: 'json',
 };
 
 const LANGUAGE_LABELS: Record<SourceLanguageId, string> = {
@@ -81,6 +99,10 @@ const LANGUAGE_LABELS: Record<SourceLanguageId, string> = {
   php: 'PHP',
   cpp: 'C++',
   vue: 'Vue',
+  latex: 'LaTeX',
+  org: 'Org Mode',
+  scheme: 'Scheme',
+  scala: 'Scala',
   plain: 'Plain Text',
 };
 
@@ -151,6 +173,18 @@ const CODE_BLOCK_LANG: Record<string, SourceLanguageId> = {
   h: 'cpp',
   hpp: 'cpp',
   vue: 'vue',
+  tex: 'latex',
+  latex: 'latex',
+  ltx: 'latex',
+  sty: 'latex',
+  org: 'org',
+  'org-mode': 'org',
+  scm: 'scheme',
+  scheme: 'scheme',
+  ss: 'scheme',
+  rkt: 'scheme',
+  scala: 'scala',
+  sc: 'scala',
 };
 
 export function codeBlockLanguageId(language: string): SourceLanguageId {
