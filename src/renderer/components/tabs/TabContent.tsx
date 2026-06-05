@@ -39,6 +39,7 @@ import {
   type EditorAiSnapshot,
 } from '../../lib/editorAiBridge';
 import { editorPaneFontVars } from '../../lib/editorFontStyle';
+import { appendTextAtDocumentEnd } from '../../lib/appendTextAtDocumentEnd';
 import { registerEditorViewHandlers } from '../../lib/editorViewBridge';
 import { registerEditorOutlineHandlers } from '../../lib/editorOutlineBridge';
 import type { EditorTab } from '../../types/tab';
@@ -68,6 +69,8 @@ interface TabContentProps {
   tabNavigation?: { canGoBack: boolean; canGoForward: boolean };
   onTabNavigateBack?: () => void;
   onTabNavigateForward?: () => void;
+  /** 分屏时：将 PDF 选区复制到另一侧编辑器末尾 */
+  onCopyPdfSelectionToOtherPane?: (text: string) => void;
 }
 
 export default function TabContent({
@@ -89,6 +92,7 @@ export default function TabContent({
   tabNavigation,
   onTabNavigateBack,
   onTabNavigateForward,
+  onCopyPdfSelectionToOtherPane,
 }: TabContentProps) {
   const isPane = layout === 'pane';
   const mdxRef = useRef<MarkdownEditorHandle>(null);
@@ -176,6 +180,30 @@ export default function TabContent({
     return sourceRef.current?.getValue() ?? tab.content;
   }, [getEditableContent, tab]);
 
+  const appendToEditorEnd = useCallback(
+    (text: string) => {
+      if (!tab || !isEditableTextTab(tab) || tab.truncated) return;
+
+      const trimmed = text.trim();
+      if (!trimmed) return;
+
+      const current = getEditorContent();
+      const next = appendTextAtDocumentEnd(current, trimmed);
+
+      if (
+        tab.kind === 'markdown' &&
+        (tab.viewMode === 'rich-text' || tab.viewMode === 'preview')
+      ) {
+        mdxRef.current?.markUserEdited();
+        mdxRef.current?.setMarkdown(prepareMarkdownForWysiwyg(next));
+      } else {
+        sourceRef.current?.setDocument(next);
+      }
+      onContentChange(next);
+    },
+    [getEditorContent, onContentChange, tab],
+  );
+
   useEffect(() => {
     if (!tab || !isEditableTextTab(tab) || tab.truncated) {
       if (tab) {
@@ -190,7 +218,10 @@ export default function TabContent({
       captureSnapshot,
       applyAiResult,
     });
-    registerEditorViewHandlers(tab.id, { getEditorContent });
+    registerEditorViewHandlers(tab.id, {
+      getEditorContent,
+      appendToEnd: appendToEditorEnd,
+    });
     registerEditorOutlineHandlers(tab.id, {
       revealOutlineTarget: ({ line, title }) => {
         if (
@@ -212,7 +243,7 @@ export default function TabContent({
       registerEditorViewHandlers(tab.id, null);
       registerEditorOutlineHandlers(tab.id, null);
     };
-  }, [applyAiResult, captureSnapshot, getEditorContent, tab]);
+  }, [appendToEditorEnd, applyAiResult, captureSnapshot, getEditorContent, tab]);
 
   const handleViewModeChange = useCallback(
     (next: EditorViewMode) => {
@@ -426,6 +457,7 @@ export default function TabContent({
             tab={tab}
             hasApiKey={hasApiKey}
             onTranslate={handlePdfTranslate}
+            onCopySelectionToOtherPane={onCopyPdfSelectionToOtherPane}
           />
         ) : tab.kind === 'audio' ? (
           <AudioPreview tab={tab} />

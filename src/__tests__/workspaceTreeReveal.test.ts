@@ -1,7 +1,9 @@
 import {
   ancestorDirectoryPaths,
   buildPathBreadcrumbs,
+  collectExpandedDirectoryPaths,
   directoryPath,
+  type FileTreeRevealModel,
 } from '../renderer/lib/workspaceTreeReveal';
 
 describe('buildPathBreadcrumbs', () => {
@@ -34,5 +36,31 @@ describe('ancestorDirectoryPaths', () => {
 describe('directoryPath', () => {
   it('joins with trailing slash', () => {
     expect(directoryPath(['a', 'b'])).toBe('a/b/');
+  });
+});
+
+describe('collectExpandedDirectoryPaths', () => {
+  it('returns only expanded directory paths', () => {
+    const model = {
+      getItem: (path: string) => {
+        if (path === 'src/') {
+          return {
+            isDirectory: () => true,
+            isExpanded: () => true,
+          };
+        }
+        if (path === 'docs/') {
+          return {
+            isDirectory: () => true,
+            isExpanded: () => false,
+          };
+        }
+        return null;
+      },
+    } as FileTreeRevealModel;
+
+    expect(
+      collectExpandedDirectoryPaths(model, ['src/', 'docs/', 'readme.md']),
+    ).toEqual(['src/']);
   });
 });

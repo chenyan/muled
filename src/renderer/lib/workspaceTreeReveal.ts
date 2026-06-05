@@ -42,6 +42,7 @@ export function ancestorDirectoryPaths(treePath: string): string[] {
 type TreeDirectoryItem = {
   isDirectory(): boolean;
   expand(): void;
+  isExpanded(): boolean;
 };
 
 type TreeSelectableItem = {
@@ -57,6 +58,22 @@ export type FileTreeRevealModel = {
     options?: { focus?: boolean; offset?: 'top' | 'center' | 'nearest' },
   ): void;
 };
+
+/** 收集当前已展开的目录路径，供 resetPaths 时保留展开态 */
+export function collectExpandedDirectoryPaths(
+  model: FileTreeRevealModel,
+  treePaths: readonly string[],
+): string[] {
+  const expanded: string[] = [];
+  for (const path of treePaths) {
+    if (!path.endsWith('/')) continue;
+    const item = model.getItem(path);
+    if (item?.isDirectory() && item.isExpanded()) {
+      expanded.push(path);
+    }
+  }
+  return expanded;
+}
 
 export function clearFileTreeSelection(model: FileTreeRevealModel): void {
   model.getSelectedPaths().forEach((path) => {

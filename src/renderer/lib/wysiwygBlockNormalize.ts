@@ -1,7 +1,5 @@
 import { isCommonHtmlTagName } from './commonHtmlTagNames';
-
-/** 行内公式：$a$ 且非 $$ */
-const INLINE_MATH_RE = /(?<!\$)\$(?!\$)((?:\\.|[^$\\\n])+?)\$(?!\$)/g;
+import { replaceInlineMathDelimiters } from './inlineMathDelimiters';
 
 const ANGLE_TAG_RE = /<[^>\n]+>/g;
 
@@ -9,13 +7,6 @@ const INLINE_CODE_RE = /(`+)([^`\n]*?)\1/g;
 
 const PRESERVED_HTML_PLACEHOLDER_PREFIX = '\uE000muled-html-';
 const PRESERVED_HTML_PLACEHOLDER_SUFFIX = '\uE001';
-
-function escapeHtmlAttr(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;');
-}
 
 function normalizeDisplayMathDelimiters(block: string): string {
   return block.replace(
@@ -25,11 +16,7 @@ function normalizeDisplayMathDelimiters(block: string): string {
 }
 
 function normalizeInlineMathDelimiters(block: string): string {
-  return block.replace(
-    INLINE_MATH_RE,
-    (_, latex: string) =>
-      `<span data-muled-math="${escapeHtmlAttr(latex)}"></span>`,
-  );
+  return replaceInlineMathDelimiters(block);
 }
 
 function escapeAngleTag(raw: string): string {
@@ -124,9 +111,12 @@ export function normalizeMarkdownBlockMath(block: string): string {
   if (isMarkdownFenceBlock(block)) {
     return block;
   }
-  let normalized = normalizeDisplayMathDelimiters(block);
-  normalized = normalizeInlineMathDelimiters(normalized);
-  return normalized;
+  const normalized = normalizeDisplayMathDelimiters(block);
+  return splitByInlineCode(normalized)
+    .map((part) =>
+      part.code ? part.text : normalizeInlineMathDelimiters(part.text),
+    )
+    .join('');
 }
 
 /** 单块：HTML 尖括号处理（跳过围栏代码块） */
@@ -146,9 +136,13 @@ export function normalizeMarkdownBlockMathAndHtml(block: string): string {
   if (isMarkdownFenceBlock(block)) {
     return block;
   }
-  let normalized = normalizeDisplayMathDelimiters(block);
-  normalized = normalizeInlineMathDelimiters(normalized);
-  return splitByInlineCode(normalized)
+  const withDisplayMath = normalizeDisplayMathDelimiters(block);
+  const withInlineMath = splitByInlineCode(withDisplayMath)
+    .map((part) =>
+      part.code ? part.text : normalizeInlineMathDelimiters(part.text),
+    )
+    .join('');
+  return splitByInlineCode(withInlineMath)
     .map((part) =>
       part.code ? part.text : normalizeAngleTagsInSegment(part.text),
     )

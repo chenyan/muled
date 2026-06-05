@@ -27,6 +27,7 @@ interface PdfContextMenuHostProps {
   documentId: string;
   hasApiKey: boolean;
   onTranslate: (request: PdfTranslateRequest) => void;
+  onCopySelectionToOtherPane?: (text: string) => void;
   children: ReactNode;
 }
 
@@ -38,6 +39,7 @@ export default function PdfContextMenuHost({
   documentId,
   hasApiKey,
   onTranslate,
+  onCopySelectionToOtherPane,
   children,
 }: PdfContextMenuHostProps) {
   const { provides: selectionCap } = useSelectionCapability();
@@ -71,6 +73,19 @@ export default function PdfContextMenuHost({
     selectionCap?.forDocument(documentId).copyToClipboard();
     setMenu(null);
   }, [documentId, selectionCap]);
+
+  const handleCopyToOtherPane = useCallback(async () => {
+    if (!onCopySelectionToOtherPane) return;
+    setMenu(null);
+
+    const scope = selectionCap?.forDocument(documentId);
+    if (!scope) return;
+
+    const text = await getPdfSelectionSentence(scope);
+    if (!text) return;
+
+    onCopySelectionToOtherPane(text);
+  }, [documentId, onCopySelectionToOtherPane, selectionCap]);
 
   const handleTranslate = useCallback(async () => {
     const currentMenu = menu;
@@ -127,8 +142,13 @@ export default function PdfContextMenuHost({
             canCopy={menu.canCopy}
             showTranslate={!isPanning}
             canTranslate={menu.canTranslate}
+            showCopyToOtherPane={Boolean(onCopySelectionToOtherPane)}
+            canCopyToOtherPane={menu.canCopy}
             hasApiKey={hasApiKey}
             onCopy={handleCopy}
+            onCopyToOtherPane={() => {
+              void handleCopyToOtherPane();
+            }}
             onTranslate={() => {
               void handleTranslate();
             }}

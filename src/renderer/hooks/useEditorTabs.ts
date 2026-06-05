@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MutableRefObject,
+} from 'react';
 import type {
   EditorMode,
   EditorViewMode,
@@ -175,9 +182,14 @@ export function resolveActiveAfterClose(
 
 export function useEditorTabs(
   config: PublicConfig | null,
-  options?: { confirmUnsaved?: ConfirmUnsavedChanges },
+  options?: {
+    confirmUnsaved?: ConfirmUnsavedChanges;
+    /** 分屏等仍渲染在界面上的标签，切换焦点时不释放 pdfSrc/imageSrc */
+    retainBinaryTabIdsRef?: MutableRefObject<readonly string[]>;
+  },
 ) {
   const confirmUnsaved = options?.confirmUnsaved;
+  const retainBinaryTabIdsRef = options?.retainBinaryTabIdsRef;
   const [tabs, setTabs] = useState<EditorTab[]>(() =>
     config ? [createEmptyTab(config)] : [],
   );
@@ -334,20 +346,23 @@ export function useEditorTabs(
   );
 
   const activateTabId = useCallback(
-    async (tabId: string) => {
+    async (tabId: string, options?: { checkUnsaved?: boolean }) => {
       if (tabId === activeTabIdRef.current) return;
 
       const leavingId = activeTabIdRef.current;
       const leaving = tabsRef.current.find((t) => t.id === leavingId);
-      if (!(await ensureCanProceed(leaving))) return;
+      const checkUnsaved = options?.checkUnsaved !== false;
+      if (checkUnsaved && !(await ensureCanProceed(leaving))) return;
 
       clearTabNavigation(leavingId);
 
+      const retainIds = new Set(retainBinaryTabIdsRef?.current ?? []);
       setTabs((prev) =>
         prev.map((t) => {
           if (
             t.id === activeTabIdRef.current &&
-            activeTabIdRef.current !== tabId
+            activeTabIdRef.current !== tabId &&
+            !retainIds.has(t.id)
           ) {
             return releaseTabBinaryPayload(t);
           }
@@ -527,6 +542,7 @@ export function useEditorTabs(
       const existing = currentTabs.find((t) => t.relativePath === relativePath);
       let newTabId: string | null =
         existing && existing.id !== currentId ? existing.id : null;
+      let createdPaneOnlyTab = false;
       if (!newTabId) {
         const cfg2 = configRef.current;
         if (!cfg2) return;
@@ -540,6 +556,7 @@ export function useEditorTabs(
           const id = newId();
           setTabs((prev) => [...prev, { ...loaded, id }]);
           newTabId = id;
+          createdPaneOnlyTab = true;
         } catch (e) {
           const message = e instanceof Error ? e.message : String(e);
           pushStatusToast(`无法打开文件: ${message}`, 'error');
@@ -557,8 +574,9 @@ export function useEditorTabs(
         primaryTabId,
         secondaryTabId,
         focusedPane: newPane,
+        paneOnlyTabIds: createdPaneOnlyTab ? [newTabId] : undefined,
       });
-      setActiveTabId(newTabId);
+      setActiveTabId(createdPaneOnlyTab ? currentId : newTabId);
     },
     [ensureCanProceed, openPathInNewTab],
   );
@@ -802,6 +820,14 @@ export function useEditorTabs(
     [activateTabId],
   );
 
+  /** 分屏内切换焦点：两侧标签仍可见，不提示未保存 */
+  const setActiveTabInSplit = useCallback(
+    (tabId: string) => {
+      activateTabId(tabId, { checkUnsaved: false }).catch(() => undefined);
+    },
+    [activateTabId],
+  );
+
   useEffect(() => {
     if (!activeTab || !needsBinaryHydration(activeTab)) return undefined;
 
@@ -919,6 +945,8 @@ export function useEditorTabs(
     addTab,
     closeTab,
     setActiveTab,
+    setActiveTabInSplit,
+    ensureCanProceed,
     updateActiveContent,
     updateTabContent,
     setViewMode,

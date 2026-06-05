@@ -90,6 +90,7 @@
 [data-muled-ui-theme='acme'] .WorkspaceTree__tree {
   color-scheme: light;
   background: var(--muled-editor-bg);
+  --trees-border-radius-override: 0;
   --trees-bg-override: var(--muled-editor-bg);
   --trees-bg-muted-override: var(--muled-hover);
   --trees-fg-override: #000000;

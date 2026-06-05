@@ -6,7 +6,9 @@ import {
 } from '../renderer/lib/normalizeMarkdownWikiLinks';
 import { exportMarkdownFromWysiwyg } from '../renderer/lib/normalizeMarkdownWikiImages';
 import {
+  buildWikiLinkFdQuery,
   rankWikiLinkMatches,
+  wikiLinkTitleLooksLikeFile,
   wikiPageBasename,
 } from '../renderer/lib/searchFdOnce';
 import type { FdSearchMatch } from '../shared/types/search';
@@ -72,5 +74,36 @@ describe('rankWikiLinkMatches', () => {
 
   it('compares page basenames without extension', () => {
     expect(wikiPageBasename('folder/My Page.md')).toBe('My Page');
+  });
+
+  it('matches non-markdown wiki links by full filename', () => {
+    const ranked = rankWikiLinkMatches('report.pdf', [
+      fd('docs/report.pdf'),
+      fd('archive/report copy.pdf'),
+      fd('notes/Report.md'),
+    ]);
+    expect(ranked.map((item) => item.path)).toEqual(['docs/report.pdf']);
+  });
+});
+
+describe('wikiLinkTitleLooksLikeFile', () => {
+  it('treats extension other than md as file', () => {
+    expect(wikiLinkTitleLooksLikeFile('xxx.pdf')).toBe(true);
+    expect(wikiLinkTitleLooksLikeFile('assets/foo.pdf')).toBe(true);
+  });
+
+  it('treats page title without extension or md extension as page', () => {
+    expect(wikiLinkTitleLooksLikeFile('Notes')).toBe(false);
+    expect(wikiLinkTitleLooksLikeFile('Notes.md')).toBe(false);
+  });
+});
+
+describe('buildWikiLinkFdQuery', () => {
+  it('uses fd --glob for file titles', () => {
+    expect(buildWikiLinkFdQuery('xxx.pdf')).toBe('--glob xxx.pdf');
+  });
+
+  it('quotes page titles with spaces', () => {
+    expect(buildWikiLinkFdQuery('My Page')).toBe('"My Page"');
   });
 });

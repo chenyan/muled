@@ -15,6 +15,7 @@ interface PdfViewportShellProps {
   documentId: string;
   hasApiKey: boolean;
   onTranslate: (request: PdfTranslateRequest) => void;
+  onCopySelectionToOtherPane?: (text: string) => void;
   children: ReactNode;
 }
 
@@ -57,6 +58,7 @@ export default function PdfViewportShell({
   documentId,
   hasApiKey,
   onTranslate,
+  onCopySelectionToOtherPane,
   children,
 }: PdfViewportShellProps) {
   const { isPanning } = usePan(documentId);
@@ -87,6 +89,7 @@ export default function PdfViewportShell({
             documentId={documentId}
             hasApiKey={hasApiKey}
             onTranslate={onTranslate}
+            onCopySelectionToOtherPane={onCopySelectionToOtherPane}
           >
             <PdfViewportContextMenuListener />
             {children}
@@ -106,6 +109,7 @@ export default function PdfViewportShell({
         documentId={documentId}
         hasApiKey={hasApiKey}
         onTranslate={onTranslate}
+        onCopySelectionToOtherPane={onCopySelectionToOtherPane}
       >
         <PdfViewportContextMenuListener />
         <PdfSelectViewportScrollGuard />

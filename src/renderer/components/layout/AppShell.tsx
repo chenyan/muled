@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
 } from 'react';
@@ -23,7 +24,11 @@ import {
   getEditorAiHandlers,
   type EditorAiSnapshot,
 } from '../../lib/editorAiBridge';
-import { getEditorViewContent } from '../../lib/editorViewBridge';
+import { appendTextAtDocumentEnd } from '../../lib/appendTextAtDocumentEnd';
+import {
+  appendTextToEditorTab,
+  getEditorViewContent,
+} from '../../lib/editorViewBridge';
 import {
   editorViewModeLabel,
   nextEditorViewMode,
@@ -32,7 +37,7 @@ import { getActiveEditorSelection } from '../../lib/editorSelectionBridge';
 import { runPaletteCommand } from '../../lib/runPaletteCommand';
 import { getCdPaletteCompletion } from '../../../shared/paletteAutoCompletion';
 import { pushStatusToast } from '../../lib/statusToast';
-import { isEditableTextTab } from '../../types/tab';
+import { isEditableTextTab, type EditorTab } from '../../types/tab';
 import TabBar from '../tabs/TabBar';
 import PdfEngineProvider from '../editor/pdf/PdfEngineProvider';
 import TabContent from '../tabs/TabContent';
@@ -44,7 +49,13 @@ import './AppShell.css';
 import { buildTabOutline } from '../../lib/outlineIndex';
 import type { PdfOutlineItem } from '../../../shared/types/ipc';
 import { getEditorOutlineHandlers } from '../../lib/editorOutlineBridge';
-import type { SplitPaneId, SplitPlacement } from '../../../shared/editorSplit';
+import {
+  splitPaneTabId,
+  tabBarActiveTabId,
+  tabsForTabBar,
+  type SplitPaneId,
+  type SplitPlacement,
+} from '../../../shared/editorSplit';
 import { clampSidebarWidth } from '../../../shared/sidebarLayout';
 import { useEditorSplit } from '../../hooks/useEditorSplit';
 import { useSidebarResize } from '../../hooks/useSidebarResize';
@@ -55,8 +66,10 @@ export default function AppShell() {
   const [configError, setConfigError] = useState<string | null>(null);
   const workspace = useWorkspace();
   const unsavedDialog = useUnsavedChangesDialog();
+  const retainBinaryTabIdsRef = useRef<readonly string[]>([]);
   const editor = useEditorTabs(config, {
     confirmUnsaved: unsavedDialog.confirmUnsaved,
+    retainBinaryTabIdsRef,
   });
   const {
     split,
@@ -66,6 +79,31 @@ export default function AppShell() {
     focusSplitPane,
     getSurvivorTabIdAfterClosePane,
   } = useEditorSplit(editor.tabs);
+  retainBinaryTabIdsRef.current = split
+    ? [split.primaryTabId, split.secondaryTabId]
+    : [];
+  const prevSplitRef = useRef<typeof split>(null);
+  const tabBarTabs = useMemo(
+    () => tabsForTabBar(editor.tabs, split),
+    [editor.tabs, split],
+  );
+  const tabBarActiveId = useMemo(
+    () => tabBarActiveTabId(editor.activeTabId, split),
+    [editor.activeTabId, split],
+  );
+
+  useEffect(() => {
+    const prev = prevSplitRef.current;
+    if (prev && !split) {
+      const keepId = editor.activeTabId;
+      for (const id of prev.paneOnlyTabIds ?? []) {
+        if (id !== keepId && editor.tabs.some((t) => t.id === id)) {
+          editor.closeTab(id).catch(() => undefined);
+        }
+      }
+    }
+    prevSplitRef.current = split;
+  }, [editor.activeTabId, editor.tabs, editor, split]);
   const [treeSelectionResetKey, setTreeSelectionResetKey] = useState(0);
   const [treeRevealRequest, setTreeRevealRequest] =
     useState<WorkspaceTreeRevealRequest | null>(null);
@@ -355,13 +393,18 @@ export default function AppShell() {
       if (split) {
         if (tabId === split.primaryTabId) {
           focusSplitPane('primary');
-          editor.setActiveTab(tabId);
+          editor.setActiveTabInSplit(tabId);
           return;
         }
         if (tabId === split.secondaryTabId) {
           focusSplitPane('secondary');
-          editor.setActiveTab(tabId);
+          editor.setActiveTabInSplit(tabId);
           return;
+        }
+        for (const id of split.paneOnlyTabIds ?? []) {
+          if (id !== tabId) {
+            editor.closeTab(id).catch(() => undefined);
+          }
         }
         clearSplit();
       }
@@ -373,9 +416,18 @@ export default function AppShell() {
   const handleCloseSplitPane = useCallback(
     (pane: SplitPaneId) => {
       if (!split) return;
+      const closedTabId = splitPaneTabId(split, pane);
+      const closedTab = editor.tabs.find((t) => t.id === closedTabId);
       const survivorId = getSurvivorTabIdAfterClosePane(split, pane);
-      clearSplit();
-      editor.setActiveTab(survivorId);
+      const closePaneOnlyTab = (split.paneOnlyTabIds ?? []).includes(closedTabId);
+      void (async () => {
+        if (!(await editor.ensureCanProceed(closedTab))) return;
+        clearSplit();
+        editor.setActiveTabInSplit(survivorId);
+        if (closePaneOnlyTab) {
+          await editor.closeTab(closedTabId);
+        }
+      })();
     },
     [clearSplit, editor, getSurvivorTabIdAfterClosePane, split],
   );
@@ -504,6 +556,41 @@ export default function AppShell() {
     ['--app-sidebar-width' as string]: `${sidebarWidth}px`,
   } as CSSProperties;
 
+  const makeCopyPdfToOtherPane = useCallback(
+    (tab: EditorTab | null | undefined, pane?: SplitPaneId) => {
+      if (!split || !pane || !tab || tab.kind !== 'pdf') {
+        return undefined;
+      }
+      const otherPane: SplitPaneId = pane === 'primary' ? 'secondary' : 'primary';
+      const otherTabId = splitPaneTabId(split, otherPane);
+      return (text: string) => {
+        const trimmed = text.trim();
+        if (!trimmed) return;
+
+        const otherTab = editor.tabs.find((t) => t.id === otherTabId);
+        if (!otherTab) return;
+        if (!isEditableTextTab(otherTab)) {
+          pushStatusToast('另一侧不是可编辑文本', 'info');
+          return;
+        }
+        if (otherTab.truncated) {
+          pushStatusToast('另一侧为只读截断预览，无法写入', 'info');
+          return;
+        }
+
+        if (!appendTextToEditorTab(otherTabId, trimmed)) {
+          const current = getEditorViewContent(otherTabId) ?? otherTab.content;
+          editor.updateTabContent(
+            otherTabId,
+            appendTextAtDocumentEnd(current, trimmed),
+          );
+        }
+        pushStatusToast('已复制到另一侧', 'success');
+      };
+    },
+    [editor, split],
+  );
+
   const renderTabContent = useCallback(
     (
       tab: typeof editor.activeTab,
@@ -520,6 +607,7 @@ export default function AppShell() {
           tab={tab}
           layout={options?.layout ?? 'full'}
           focused={options?.focused ?? true}
+          onCopyPdfSelectionToOtherPane={makeCopyPdfToOtherPane(tab, options?.pane)}
           sourceFont={uiConfig.editor.source}
           wysiwygFont={uiConfig.editor.wysiwyg}
           hasApiKey={uiConfig.openai.has_api_key}
@@ -562,7 +650,13 @@ export default function AppShell() {
             options?.pane
               ? () => {
                   focusSplitPane(options.pane!);
-                  if (tabId) editor.setActiveTab(tabId);
+                  if (tabId) {
+                    if (split) {
+                      editor.setActiveTabInSplit(tabId);
+                    } else {
+                      editor.setActiveTab(tabId);
+                    }
+                  }
                 }
               : undefined
           }
@@ -579,6 +673,8 @@ export default function AppShell() {
       focusSplitPane,
       handleCloseSplitPane,
       handleSave,
+      makeCopyPdfToOtherPane,
+      split,
       openAiDialog,
       uiConfig.editor.source,
       uiConfig.editor.wysiwyg,
@@ -717,8 +813,8 @@ export default function AppShell() {
       <main className="AppShell__main">
         <div className="AppShell__mainBody">
           <TabBar
-            tabs={editor.tabs}
-            activeTabId={editor.activeTabId}
+            tabs={tabBarTabs}
+            activeTabId={tabBarActiveId}
             sidebarVisible={sidebarVisible}
             onToggleSidebar={() => setSidebarVisible((v) => !v)}
             onSelect={handleSelectTab}

@@ -10,12 +10,14 @@ import { $createTextNode, type ElementNode, type LexicalNode } from 'lexical';
 import type { Nodes, Text } from 'mdast';
 import { unescapeHtmlAttr } from '../../../lib/denormalizeMarkdownMath';
 import {
+  splitTextWithInlineMath,
+  textMayContainInlineMath,
+} from '../../../lib/inlineMathDelimiters';
+import {
   $createInlineMathNode,
   $isInlineMathNode,
   InlineMathNode,
 } from './InlineMathNode';
-
-const INLINE_MATH_IN_TEXT = /(?<!\$)\$(?!\$)((?:\\.|[^$\\\n])+?)\$(?!\$)/g;
 
 function readMuledMathAttribute(node: Nodes): string | null {
   if (node.type !== 'mdxJsxTextElement' || node.name !== 'span') {
@@ -69,24 +71,20 @@ const MDAST_INLINE_MATH_SPAN_VISITOR: MdastImportVisitor<Nodes> = {
 const MDAST_INLINE_MATH_TEXT_VISITOR: MdastImportVisitor<Text> = {
   priority: 40,
   testNode: (node) =>
-    node.type === 'text' && INLINE_MATH_IN_TEXT.test(node.value),
+    node.type === 'text' && textMayContainInlineMath(node.value),
   visitNode({ mdastNode, lexicalParent, actions }) {
     if (!canLexicalAppend(lexicalParent)) {
       actions.nextVisitor();
       return;
     }
     const formatting = actions.getParentFormatting();
-    const value = mdastNode.value;
-    INLINE_MATH_IN_TEXT.lastIndex = 0;
-    let lastIndex = 0;
-    let match = INLINE_MATH_IN_TEXT.exec(value);
-    while (match) {
-      appendTextFragment(lexicalParent, value.slice(lastIndex, match.index), formatting);
-      lexicalParent.append($createInlineMathNode(match[1]));
-      lastIndex = match.index + match[0].length;
-      match = INLINE_MATH_IN_TEXT.exec(value);
+    for (const part of splitTextWithInlineMath(mdastNode.value)) {
+      if (part.kind === 'text') {
+        appendTextFragment(lexicalParent, part.text, formatting);
+      } else {
+        lexicalParent.append($createInlineMathNode(part.latex));
+      }
     }
-    appendTextFragment(lexicalParent, value.slice(lastIndex), formatting);
   },
 };
 

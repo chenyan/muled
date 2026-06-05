@@ -4,6 +4,8 @@ import {
   splitPlacementDirection,
   splitPlacementNewPane,
   splitSurvivorPane,
+  tabBarActiveTabId,
+  tabsForTabBar,
   SPLIT_RATIO_DEFAULT,
 } from '../shared/editorSplit';
 
@@ -41,5 +43,24 @@ describe('editorSplit', () => {
     expect(splitPaneTabId(layout, 'secondary')).toBe('b');
     expect(splitSurvivorPane('primary')).toBe('secondary');
     expect(splitSurvivorPane('secondary')).toBe('primary');
+  });
+
+  it('hides pane-only tabs from tab bar', () => {
+    const tabs = [
+      { id: 'a', label: 'A' },
+      { id: 'b', label: 'B' },
+      { id: 'c', label: 'C' },
+    ];
+    const split = {
+      direction: 'horizontal' as const,
+      ratio: 0.5,
+      primaryTabId: 'a',
+      secondaryTabId: 'b',
+      focusedPane: 'secondary' as const,
+      paneOnlyTabIds: ['b'],
+    };
+    expect(tabsForTabBar(tabs, split).map((t) => t.id)).toEqual(['a', 'c']);
+    expect(tabBarActiveTabId('b', split)).toBe('a');
+    expect(tabBarActiveTabId('a', split)).toBe('a');
   });
 });

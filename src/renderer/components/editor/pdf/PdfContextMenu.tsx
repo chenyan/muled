@@ -7,8 +7,11 @@ interface PdfContextMenuProps {
   canCopy: boolean;
   showTranslate: boolean;
   canTranslate: boolean;
+  showCopyToOtherPane: boolean;
+  canCopyToOtherPane: boolean;
   hasApiKey: boolean;
   onCopy: () => void;
+  onCopyToOtherPane: () => void;
   onTranslate: () => void;
   onClose: () => void;
 }
@@ -19,8 +22,11 @@ export default function PdfContextMenu({
   canCopy,
   showTranslate,
   canTranslate,
+  showCopyToOtherPane,
+  canCopyToOtherPane,
   hasApiKey,
   onCopy,
+  onCopyToOtherPane,
   onTranslate,
   onClose,
 }: PdfContextMenuProps) {
@@ -73,6 +79,18 @@ export default function PdfContextMenu({
       )}
       {showTranslate && (
         <div className="PdfContextMenu__separator" role="separator" />
+      )}
+      {showCopyToOtherPane && (
+        <button
+          type="button"
+          role="menuitem"
+          className="PdfContextMenu__item"
+          disabled={!canCopyToOtherPane}
+          title={canCopyToOtherPane ? undefined : '请先选中文字'}
+          onClick={onCopyToOtherPane}
+        >
+          复制到另一侧
+        </button>
       )}
       <button
         type="button"

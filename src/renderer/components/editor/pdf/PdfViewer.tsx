@@ -30,9 +30,15 @@ interface PdfViewerProps {
   tab: EditorTab;
   hasApiKey: boolean;
   onTranslate: (request: PdfTranslateRequest) => void;
+  onCopySelectionToOtherPane?: (text: string) => void;
 }
 
-export default function PdfViewer({ tab, hasApiKey, onTranslate }: PdfViewerProps) {
+export default function PdfViewer({
+  tab,
+  hasApiKey,
+  onTranslate,
+  onCopySelectionToOtherPane,
+}: PdfViewerProps) {
   const { engine, isLoading, error } = usePdfEngine();
   const pdfSrc = tab.pdfSrc;
   const name = tab.relativePath ? tabLabel(tab) : 'document.pdf';
@@ -108,6 +114,7 @@ export default function PdfViewer({ tab, hasApiKey, onTranslate }: PdfViewerProp
                           documentId={activeDocumentId}
                           hasApiKey={hasApiKey}
                           onTranslate={onTranslate}
+                          onCopySelectionToOtherPane={onCopySelectionToOtherPane}
                         >
                           <Scroller
                             documentId={activeDocumentId}

@@ -1,7 +1,9 @@
 import { pushStatusToast } from './statusToast';
 import {
+  buildWikiLinkFdQuery,
   rankWikiLinkMatches,
   searchFdOnce,
+  wikiLinkTitleLooksLikeFile,
   type FdSearchOnceResult,
 } from './searchFdOnce';
 import type { FdSearchMatch, ShellSearchError } from '../../shared/types/search';
@@ -32,7 +34,7 @@ export async function resolveWikiLinkNavigation(
 
   let result: FdSearchOnceResult;
   try {
-    result = await searchFdOnce(trimmed);
+    result = await searchFdOnce(buildWikiLinkFdQuery(trimmed));
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return { kind: 'error', message };
@@ -56,7 +58,8 @@ export function notifyWikiLinkNavigationResult(
   result: WikiLinkNavigationResult,
 ): void {
   if (result.kind === 'none') {
-    pushStatusToast(`未找到页面: ${result.title}`, 'info');
+    const label = wikiLinkTitleLooksLikeFile(result.title) ? '文件' : '页面';
+    pushStatusToast(`未找到${label}: ${result.title}`, 'info');
     return;
   }
   if (result.kind === 'error') {

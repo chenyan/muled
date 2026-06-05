@@ -2,7 +2,10 @@ import normalizeMarkdownHtmlTags from '../renderer/lib/normalizeMarkdownHtmlTags
 import normalizeMarkdownMath from '../renderer/lib/normalizeMarkdownMath';
 import { unescapeHtmlAttr } from '../renderer/lib/denormalizeMarkdownMath';
 import { normalizeMathSource } from '../renderer/lib/normalizeMathSource';
-import renderMathBlock, { renderMathInline } from '../renderer/lib/renderMath';
+import renderMathBlock, {
+  isMathJaxErrorHtml,
+  renderMathInline,
+} from '../renderer/lib/renderMath';
 
 function prepareForWysiwyg(source: string): string {
   return normalizeMarkdownHtmlTags(normalizeMarkdownMath(source));
@@ -43,6 +46,13 @@ describe('renderMathInline', () => {
     const { html, error } = renderMathInline('E=mc^2');
     expect(error).toBeNull();
     expect(html).toContain('mjx-container');
+    expect(isMathJaxErrorHtml(html)).toBe(false);
+  });
+
+  it('marks MathJax soft errors in html', () => {
+    const { html, error } = renderMathInline(String.raw`\broken`);
+    expect(error).toBeNull();
+    expect(isMathJaxErrorHtml(html)).toBe(true);
   });
 });
 

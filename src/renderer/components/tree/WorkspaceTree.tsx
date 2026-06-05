@@ -64,8 +64,25 @@ function WorkspaceTreeFileList({
   const loadedDirsRef = useRef(new Set<string>());
   const loadedChildrenRef = useRef(new Map<string, string[]>());
   const inFlightLoadsRef = useRef(new Map<string, Promise<string[]>>());
-  const pendingExpandDirsRef = useRef(new Set<string>());
+  const expandedDirsSnapshotRef = useRef(new Set<string>());
+  const knownModelPathsRef = useRef(new Set<string>(paths));
+  const modelRef = useRef<ReturnType<typeof useFileTree>['model'] | null>(null);
   const [treePaths, setTreePaths] = useState<string[]>(paths);
+
+  const appendPathsToModel = useCallback((newPaths: string[]) => {
+    const treeModel = modelRef.current;
+    if (!treeModel) return;
+    const toAdd = newPaths.filter((path) => !knownModelPathsRef.current.has(path));
+    if (toAdd.length === 0) return;
+    if (toAdd.length === 1) {
+      treeModel.add(toAdd[0]!);
+    } else {
+      treeModel.batch(toAdd.map((path) => ({ type: 'add' as const, path })));
+    }
+    for (const path of toAdd) {
+      knownModelPathsRef.current.add(path);
+    }
+  }, []);
 
   const mergePaths = useCallback((prevPaths: string[], nextPaths: string[]) => {
     if (nextPaths.length === 0) return prevPaths;
@@ -98,8 +115,7 @@ function WorkspaceTreeFileList({
       const loadPromise = window.muled.workspace
         .listChildren(normalized)
         .then(({ paths: children }) => {
-          // listChildren 完成后会触发 resetPaths，这里记录需要恢复展开态的目录。
-          pendingExpandDirsRef.current.add(normalized);
+          appendPathsToModel(children);
           setTreePaths((prev) => mergePaths(prev, children));
           loadedDirsRef.current.add(normalized);
           loadedChildrenRef.current.set(normalized, children);
@@ -112,7 +128,7 @@ function WorkspaceTreeFileList({
       inFlightLoadsRef.current.set(normalized, loadPromise);
       return loadPromise;
     },
-    [mergePaths],
+    [appendPathsToModel, mergePaths],
   );
 
   const { model } = useFileTree({
@@ -127,38 +143,47 @@ function WorkspaceTreeFileList({
         return;
       }
       if (last.endsWith('/')) {
-        // 首次点击目录时先立刻展开，再异步加载子项，避免“点第二次才展开”的体感。
-        const dir = (model as FileTreeRevealModel).getItem(last);
-        if (dir?.isDirectory()) {
-          dir.expand();
-        }
-        void ensureChildrenLoaded(last);
+        // 展开/折叠由 @pierre/trees 行点击 toggle 处理；懒加载见下方 subscribe。
         return;
       }
       onOpenFileRef.current(last);
     },
   });
+  modelRef.current = model;
 
   useEffect(() => {
     loadedDirsRef.current = new Set<string>();
     loadedChildrenRef.current = new Map<string, string[]>();
     inFlightLoadsRef.current = new Map<string, Promise<string[]>>();
+    expandedDirsSnapshotRef.current = new Set();
+    knownModelPathsRef.current = new Set(paths);
     setTreePaths(paths);
+    model.resetPaths(paths);
     void ensureChildrenLoaded('');
-  }, [ensureChildrenLoaded, paths, workspaceRoot]);
+  }, [ensureChildrenLoaded, model, paths, workspaceRoot]);
 
   useEffect(() => {
-    model.resetPaths(treePaths);
-    if (pendingExpandDirsRef.current.size > 0) {
-      pendingExpandDirsRef.current.forEach((dirPath) => {
-        const dir = (model as FileTreeRevealModel).getItem(dirPath);
-        if (dir?.isDirectory()) {
-          dir.expand();
+    const syncExpandedDirectoryLoads = () => {
+      if (suppressOpenRef.current) return;
+      const previousExpanded = expandedDirsSnapshotRef.current;
+      const nextExpanded = new Set<string>();
+      for (const path of treePaths) {
+        if (!path.endsWith('/')) continue;
+        const item = (model as FileTreeRevealModel).getItem(path);
+        if (!item?.isDirectory()) continue;
+        if (item.isExpanded()) {
+          nextExpanded.add(path);
+          if (!previousExpanded.has(path)) {
+            void ensureChildrenLoaded(path);
+          }
         }
-      });
-      pendingExpandDirsRef.current.clear();
-    }
-  }, [model, treePaths]);
+      }
+      expandedDirsSnapshotRef.current = nextExpanded;
+    };
+
+    syncExpandedDirectoryLoads();
+    return model.subscribe(syncExpandedDirectoryLoads);
+  }, [ensureChildrenLoaded, model, treePaths]);
 
   useEffect(() => {
     let cancelled = false;

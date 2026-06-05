@@ -6,6 +6,15 @@ export interface MathRenderResult {
   error: string | null;
 }
 
+/** MathJax 软错误（如非法命令）仍可能返回 HTML */
+export function isMathJaxErrorHtml(html: string): boolean {
+  return (
+    html.includes('fill="red"') ||
+    html.includes('data-mjx-error') ||
+    html.includes('<merror')
+  );
+}
+
 function renderMathJax(source: string, displayMode: boolean): MathRenderResult {
   const latex = normalizeMathSource(source);
   if (!latex) {

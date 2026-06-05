@@ -1,21 +1,30 @@
 export interface EditorViewHandlers {
   getEditorContent: () => string;
+  appendToEnd: (text: string) => void;
 }
 
-let active: { tabId: string; handlers: EditorViewHandlers } | null = null;
+const handlersByTabId = new Map<string, EditorViewHandlers>();
 
 export function registerEditorViewHandlers(
   tabId: string,
   handlers: EditorViewHandlers | null,
 ): void {
   if (!handlers) {
-    if (active?.tabId === tabId) active = null;
+    handlersByTabId.delete(tabId);
     return;
   }
-  active = { tabId, handlers };
+  handlersByTabId.set(tabId, handlers);
 }
 
 export function getEditorViewContent(tabId: string): string | null {
-  if (!active || active.tabId !== tabId) return null;
-  return active.handlers.getEditorContent();
+  return handlersByTabId.get(tabId)?.getEditorContent() ?? null;
+}
+
+export function appendTextToEditorTab(tabId: string, text: string): boolean {
+  const handlers = handlersByTabId.get(tabId);
+  if (!handlers) {
+    return false;
+  }
+  handlers.appendToEnd(text);
+  return true;
 }
