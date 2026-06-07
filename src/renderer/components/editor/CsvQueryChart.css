@@ -1,0 +1,16 @@
+.CsvQueryChart {
+  flex: 1;
+  min-height: 220px;
+  width: 100%;
+}
+
+.CsvQueryChart--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muled-fg-muted);
+  font-size: 12px;
+  border: 1px dashed var(--muled-border);
+  border-radius: 0;
+  background: var(--muled-surface-muted);
+}

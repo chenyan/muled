@@ -131,24 +131,39 @@ body:has(.DocxEditorView) {
   color: var(--muled-fg);
 }
 
-/* ── 格式工具栏 ── */
+/* ── 格式工具栏（docx-editor 使用 data-testid="formatting-bar"）── */
+.DocxEditorView [data-testid='formatting-bar'],
 .DocxEditorView .docx-responsive-toolbar {
   height: auto !important;
   min-height: 36px;
   padding: 6px 12px !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
   background-color: var(--muled-surface) !important;
   border-bottom: 1px solid var(--muled-border) !important;
   gap: 4px !important;
 }
 
+/* 分组容器仅作布局，不填充背景、不画竖线（按钮已有 1px 边框） */
+.DocxEditorView [data-testid='formatting-bar'] [role='group'] {
+  background: transparent !important;
+  border: none !important;
+  height: auto !important;
+  margin: 0 !important;
+}
+
+.DocxEditorView [data-testid='formatting-bar'] [role='separator'],
 .DocxEditorView .docx-responsive-toolbar-separator,
 .DocxEditorView .docx-toolbar-group-separator {
+  width: 1px !important;
   height: 20px !important;
   background-color: var(--muled-border) !important;
-  margin: 0 2px !important;
+  margin: 0 4px !important;
+  border: none !important;
 }
 
 /* 工具栏按钮：对齐 PdfPreview 控件密度，边框固定 1px */
+.DocxEditorView [data-testid='formatting-bar'] button,
 .DocxEditorView .docx-responsive-toolbar button,
 .DocxEditorView .docx-responsive-toolbar-overflow-button {
   height: 28px !important;
@@ -167,12 +182,14 @@ body:has(.DocxEditorView) {
   --tw-ring-width: 0px !important;
 }
 
+.DocxEditorView [data-testid='formatting-bar'] button:hover:not(:disabled),
 .DocxEditorView .docx-responsive-toolbar button:hover:not(:disabled),
 .DocxEditorView .docx-responsive-toolbar-overflow-button:hover:not(:disabled) {
   background: var(--muled-surface-muted) !important;
   color: var(--muled-fg) !important;
 }
 
+.DocxEditorView [data-testid='formatting-bar'] button:focus-visible,
 .DocxEditorView .docx-responsive-toolbar button:focus-visible,
 .DocxEditorView .docx-responsive-toolbar-overflow-button:focus-visible {
   outline: 1px solid var(--muled-accent) !important;
@@ -180,10 +197,12 @@ body:has(.DocxEditorView) {
   box-shadow: none !important;
 }
 
+.DocxEditorView [data-testid='formatting-bar'] button:disabled,
 .DocxEditorView .docx-responsive-toolbar button:disabled {
   opacity: 0.45;
 }
 
+.DocxEditorView [data-testid='formatting-bar'] button[aria-expanded='true'],
 .DocxEditorView .docx-responsive-toolbar button[aria-expanded='true'],
 .DocxEditorView .docx-responsive-toolbar-overflow-button[aria-expanded='true'] {
   background: var(--muled-active-soft-bg) !important;
@@ -192,6 +211,7 @@ body:has(.DocxEditorView) {
 }
 
 /* 下拉 / 选择器触发器 */
+.DocxEditorView [data-testid='formatting-bar'] [role='combobox'],
 .DocxEditorView .docx-responsive-toolbar [role='combobox'] {
   height: 28px !important;
   min-height: 28px !important;
@@ -207,10 +227,12 @@ body:has(.DocxEditorView) {
   --tw-ring-width: 0px !important;
 }
 
+.DocxEditorView [data-testid='formatting-bar'] [role='combobox']:hover,
 .DocxEditorView .docx-responsive-toolbar [role='combobox']:hover {
   background: var(--muled-surface-muted) !important;
 }
 
+.DocxEditorView [data-testid='formatting-bar'] [role='combobox']:focus-visible,
 .DocxEditorView .docx-responsive-toolbar [role='combobox']:focus-visible {
   outline: 1px solid var(--muled-accent) !important;
   outline-offset: 0 !important;
@@ -218,6 +240,8 @@ body:has(.DocxEditorView) {
 }
 
 /* 取消 shadcn focus ring，避免视觉上像 2px 边框 */
+.DocxEditorView [data-testid='formatting-bar'] .focus-visible\:ring-2:focus-visible,
+.DocxEditorView [data-testid='formatting-bar'] .focus-visible\:ring-offset-2:focus-visible,
 .DocxEditorView .docx-responsive-toolbar .focus-visible\:ring-2:focus-visible,
 .DocxEditorView .docx-responsive-toolbar .focus-visible\:ring-offset-2:focus-visible {
   box-shadow: none !important;

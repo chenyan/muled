@@ -7,10 +7,12 @@ export type TabKind =
   | 'pptx'
   | 'text'
   | 'csv'
+  | 'xlsx'
   | 'ipynb'
   | 'image'
   | 'pdf'
   | 'audio'
+  | 'video'
   | 'directory-grid';
 
 export interface EditorRevealTarget {
@@ -37,10 +39,14 @@ export interface EditorTab {
   pdfSrc?: string;
   /** 音频 Tab：data URL */
   audioSrc?: string;
+  /** 视频 Tab：data URL */
+  videoSrc?: string;
   /** DOCX Tab：data URL */
   docxSrc?: string;
   /** PPTX Tab：data URL */
   pptxSrc?: string;
+  /** XLSX Tab：data URL */
+  xlsxSrc?: string;
   /** 打开后定位并高亮匹配 */
   reveal?: EditorRevealTarget;
 }
@@ -56,9 +62,9 @@ export function isEditableTextTab(tab: EditorTab): boolean {
   );
 }
 
-/** 可保存的 Tab（文本或 DOCX） */
+/** 可保存的 Tab（文本、DOCX 或 XLSX） */
 export function isSavableTab(tab: EditorTab): boolean {
-  return isEditableTextTab(tab) || tab.kind === 'docx';
+  return isEditableTextTab(tab) || tab.kind === 'docx' || tab.kind === 'xlsx';
 }
 
 export function tabLabel(tab: EditorTab): string {

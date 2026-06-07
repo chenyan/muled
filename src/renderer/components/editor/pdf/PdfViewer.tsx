@@ -22,6 +22,7 @@ import type { EditorTab } from '../../../types/tab';
 import { tabLabel } from '../../../types/tab';
 import { usePdfEngine } from './PdfEngineProvider';
 import type { PdfTranslateRequest } from './PdfContextMenuHost';
+import PdfPageToolbar from './PdfPageToolbar';
 import PdfToolModeToolbar from './PdfToolModeToolbar';
 import PdfViewportShell from './PdfViewportShell';
 import PdfZoomToolbar from './PdfZoomToolbar';
@@ -94,17 +95,11 @@ export default function PdfViewer({
             activeDocumentId ? (
               <div className="PdfPreview__embed">
                 <div className="PdfPreview__toolbar">
-                  <span
-                    className="PdfPreview__name"
-                    title={tab.relativePath ?? undefined}
-                  >
-                    {name}
-                  </span>
-                  <div className="PdfPreview__toolbarRight">
-                    <PdfToolModeToolbar documentId={activeDocumentId} />
-                    <span className="PdfPreview__toolbarSep" aria-hidden />
-                    <PdfZoomToolbar documentId={activeDocumentId} />
-                  </div>
+                  <PdfToolModeToolbar documentId={activeDocumentId} />
+                  <span className="PdfPreview__toolbarSep" aria-hidden />
+                  <PdfPageToolbar documentId={activeDocumentId} />
+                  <span className="PdfPreview__toolbarSep" aria-hidden />
+                  <PdfZoomToolbar documentId={activeDocumentId} />
                 </div>
                 <div className="PdfPreview__documentArea">
                   <DocumentContent documentId={activeDocumentId}>

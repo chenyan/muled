@@ -47,6 +47,16 @@ describe('releaseTabBinaryPayload', () => {
     expect(released.audioSrc).toBeUndefined();
   });
 
+  it('strips videoSrc from video tabs', () => {
+    const released = releaseTabBinaryPayload({
+      ...pdfTab(),
+      kind: 'video',
+      pdfSrc: undefined,
+      videoSrc: 'data:video/mp4;base64,abc',
+    });
+    expect(released.videoSrc).toBeUndefined();
+  });
+
   it('strips docxSrc from docx tabs', () => {
     const released = releaseTabBinaryPayload({
       ...pdfTab(),
@@ -85,6 +95,17 @@ describe('needsBinaryHydration', () => {
         kind: 'audio',
         pdfSrc: undefined,
         audioSrc: undefined,
+      }),
+    ).toBe(true);
+  });
+
+  it('is true when video tab has no videoSrc', () => {
+    expect(
+      needsBinaryHydration({
+        ...pdfTab(),
+        kind: 'video',
+        pdfSrc: undefined,
+        videoSrc: undefined,
       }),
     ).toBe(true);
   });

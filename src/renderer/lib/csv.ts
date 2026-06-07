@@ -22,6 +22,19 @@ export function parseCsv(text: string): CsvMatrix {
 }
 
 /** 将单元格矩阵序列化为 CSV 文本 */
+export function serializeCsvWithHeader(
+  matrix: CsvMatrix,
+  columnNames: readonly string[],
+  hasHeader: boolean,
+): string {
+  if (!hasHeader) {
+    return serializeCsv(matrix);
+  }
+
+  const headerRow = columnNames.map((name) => ({ value: name }));
+  return serializeCsv([headerRow, ...matrix]);
+}
+
 export function serializeCsv(matrix: CsvMatrix): string {
   const rows = matrix.map((row) =>
     (row ?? []).map((cell) => formatCsvField(String(cell?.value ?? ''))),

@@ -10,15 +10,15 @@ import { DataGrid, type Column } from 'react-data-grid';
 import 'react-data-grid/lib/styles.css';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import {
-  csvColumnHeader,
   csvColumnKey,
   getCsvColumnCount,
   gridRowsToMatrix,
   matrixToGridRows,
   parseCsv,
-  serializeCsv,
+  serializeCsvWithHeader,
   type CsvGridRow,
 } from '../../lib/csv';
+import { sniffCsvMatrix } from '../../lib/csvSniffer';
 import type { EditorTab } from '../../types/tab';
 import './CsvSpreadsheetView.css';
 
@@ -29,16 +29,26 @@ interface CsvSpreadsheetViewProps {
 
 function buildColumns(
   colCount: number,
+  columnNames: readonly string[],
   editable: boolean,
 ): Column<CsvGridRow>[] {
   return Array.from({ length: colCount }, (_, columnIndex) => ({
     key: csvColumnKey(columnIndex),
-    name: csvColumnHeader(columnIndex),
+    name: columnNames[columnIndex] ?? `column${columnIndex}`,
     editable,
     width: 120,
     minWidth: 80,
     resizable: true,
   }));
+}
+
+function sniffFromContent(content: string) {
+  const sniffed = sniffCsvMatrix(parseCsv(content));
+  return {
+    ...sniffed,
+    rows: matrixToGridRows(sniffed.dataMatrix),
+    colCount: getCsvColumnCount(sniffed.dataMatrix),
+  };
 }
 
 export default function CsvSpreadsheetView({
@@ -47,12 +57,8 @@ export default function CsvSpreadsheetView({
 }: CsvSpreadsheetViewProps) {
   const { resolved } = useAppTheme();
   const skipSyncRef = useRef(false);
-  const [colCount, setColCount] = useState(() =>
-    getCsvColumnCount(parseCsv(tab.content)),
-  );
-  const [rows, setRows] = useState<CsvGridRow[]>(() =>
-    matrixToGridRows(parseCsv(tab.content)),
-  );
+  const [sniffState, setSniffState] = useState(() => sniffFromContent(tab.content));
+  const { colCount, columnNames, hasHeader, rows } = sniffState;
 
   useEffect(() => {
     if (tab.viewMode !== 'preview') return;
@@ -60,24 +66,28 @@ export default function CsvSpreadsheetView({
       skipSyncRef.current = false;
       return;
     }
-    const matrix = parseCsv(tab.content);
-    setColCount(getCsvColumnCount(matrix));
-    setRows(matrixToGridRows(matrix));
+    setSniffState(sniffFromContent(tab.content));
   }, [tab.content, tab.viewMode]);
 
   const columns = useMemo(
-    () => buildColumns(colCount, !tab.truncated),
-    [colCount, tab.truncated],
+    () => buildColumns(colCount, columnNames, !tab.truncated),
+    [colCount, columnNames, tab.truncated],
   );
 
   const handleRowsChange = useCallback(
     (nextRows: CsvGridRow[]) => {
       if (tab.truncated) return;
-      setRows(nextRows);
+      setSniffState((current) => ({ ...current, rows: nextRows }));
       skipSyncRef.current = true;
-      onChange(serializeCsv(gridRowsToMatrix(nextRows, colCount)));
+      onChange(
+        serializeCsvWithHeader(
+          gridRowsToMatrix(nextRows, colCount),
+          columnNames,
+          hasHeader,
+        ),
+      );
     },
-    [colCount, onChange, tab.truncated],
+    [colCount, columnNames, hasHeader, onChange, tab.truncated],
   );
 
   const rowKeyGetter = useCallback((row: CsvGridRow) => row.id, []);

@@ -22,7 +22,10 @@ import FileService from '../services/fileService';
 import OpenAIService from '../services/openaiService';
 import {
   loadRecentWorkspaces,
+  loadWorkspaceHistory,
   recordRecentWorkspace,
+  removeWorkspaceFromHistory,
+  setWorkspacePinned,
 } from '../services/recentWorkspacesService';
 import { listCdPathCompletionLabels } from '../services/cdPathCompletionService';
 import {
@@ -32,12 +35,14 @@ import {
 } from '../services/shellSearchService';
 import WorkspaceService from '../services/workspaceService';
 import { detectToolPaths } from '../services/toolPathService';
+import DuckdbService from '../services/duckdbService';
 
 export interface MuledServices {
   config: ConfigService;
   workspace: WorkspaceService;
   file: FileService;
   openai: OpenAIService;
+  duckdb: DuckdbService;
 }
 
 export function createServices(): MuledServices {
@@ -49,7 +54,8 @@ export function createServices(): MuledServices {
   recordRecentWorkspace(workspace.getRoot());
   const file = new FileService(config, workspace);
   const openai = new OpenAIService(config);
-  return { config, workspace, file, openai };
+  const duckdb = new DuckdbService();
+  return { config, workspace, file, openai, duckdb };
 }
 
 function buildThemePayload(config: ConfigService): ThemeChangedPayload {
@@ -160,6 +166,32 @@ export function registerIpc(
       return { paths: services.workspace.listChildren(directoryPath) };
     },
 
+    'workspace:exists': (arg) => {
+      const { path: relativePath } = arg as { path: string };
+      return { exists: services.workspace.pathExists(relativePath) };
+    },
+
+    'workspace:createFile': (arg) => {
+      const { path: relativePath } = arg as { path: string };
+      return { path: services.workspace.createFile(relativePath) };
+    },
+
+    'workspace:createDirectory': (arg) => {
+      const { path: relativePath } = arg as { path: string };
+      return { path: services.workspace.createDirectory(relativePath) };
+    },
+
+    'workspace:rename': (arg) => {
+      const { from, to } = arg as { from: string; to: string };
+      return { path: services.workspace.renamePath(from, to) };
+    },
+
+    'workspace:delete': (arg) => {
+      const { path: relativePath } = arg as { path: string };
+      services.workspace.deletePath(relativePath);
+      return { ok: true };
+    },
+
     'workspace:pdfOutline': async (arg) => {
       const { path: relativePath } = arg as { path: string };
       return { items: await services.workspace.listPdfOutline(relativePath) };
@@ -181,6 +213,21 @@ export function registerIpc(
       return {
         labels: listCdPathCompletionLabels(partial, loadRecentWorkspaces()),
       };
+    },
+
+    'workspace:getHistory': () => loadWorkspaceHistory(),
+
+    'workspace:removeFromHistory': (arg) => {
+      const { path: workspacePath } = arg as { path: string };
+      return removeWorkspaceFromHistory(workspacePath);
+    },
+
+    'workspace:setPinned': (arg) => {
+      const { path: workspacePath, pinned } = arg as {
+        path: string;
+        pinned: boolean;
+      };
+      return setWorkspacePinned(workspacePath, pinned);
     },
 
     'file:read': (arg) => {
@@ -269,6 +316,25 @@ export function registerIpc(
     'shell:openExternal': async (arg) => {
       const { url } = arg as { url: string };
       await shell.openExternal(url);
+      return { ok: true };
+    },
+
+    'csv:register': async (arg) => {
+      const { sessionId, content } = arg as {
+        sessionId: string;
+        content: string;
+      };
+      return services.duckdb.registerCsv({ sessionId, content });
+    },
+
+    'csv:query': (arg) => {
+      const { sessionId, sql } = arg as { sessionId: string; sql: string };
+      return services.duckdb.query({ sessionId, sql });
+    },
+
+    'csv:close': async (arg) => {
+      const { sessionId } = arg as { sessionId: string };
+      await services.duckdb.closeSession(sessionId);
       return { ok: true };
     },
   };

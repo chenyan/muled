@@ -10,7 +10,12 @@
   --muled-chrome-font: 'Lucida Grande', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
-/* ── 全局：禁圆角 / 阴影 ── */
+/* ── 全局：禁圆角（覆盖各组件 CSS 与第三方库） ── */
+[data-muled-ui-theme='acme'] :is(*, *::before, *::after) {
+  border-radius: 0 !important;
+}
+
+/* ── 全局：禁阴影 ── */
 [data-muled-ui-theme='acme'] .TabBar,
 [data-muled-ui-theme='acme'] .TabBar__tab,
 [data-muled-ui-theme='acme'] .TabBar__sidebarToggle,
@@ -42,11 +47,12 @@
 [data-muled-ui-theme='acme'] .TranslationPopup,
 [data-muled-ui-theme='acme'] .StatusToast,
 [data-muled-ui-theme='acme'] .ImagePreview__zoom button,
+[data-muled-ui-theme='acme'] .DocxEditorView [data-testid='formatting-bar'] button,
 [data-muled-ui-theme='acme'] .DocxEditorView .docx-responsive-toolbar button,
+[data-muled-ui-theme='acme'] .DocxEditorView [data-testid='formatting-bar'] [role='combobox'],
 [data-muled-ui-theme='acme'] .DocxEditorView .docx-responsive-toolbar [role='combobox'],
 [data-muled-ui-theme='acme'] .DocxEditorView .docx-responsive-toolbar-overflow-menu,
 [data-muled-ui-theme='acme'] .MuledSourceEditor__cm .cm-searchMatch {
-  border-radius: 0;
   box-shadow: none;
 }
 
@@ -282,7 +288,6 @@
 }
 
 [data-muled-ui-theme='acme'] .StatusBar__dirtyDot {
-  border-radius: 0;
   width: 6px;
   height: 6px;
   background: #000;
@@ -412,6 +417,7 @@
 [data-muled-ui-theme='acme'] .ImagePreview__toolbar,
 [data-muled-ui-theme='acme'] .PdfPreview__toolbar,
 [data-muled-ui-theme='acme'] .DocxEditorView [data-testid='title-bar'],
+[data-muled-ui-theme='acme'] .DocxEditorView [data-testid='formatting-bar'],
 [data-muled-ui-theme='acme'] .DocxEditorView .docx-responsive-toolbar {
   background: var(--muled-chrome-bg);
   border-bottom: 1px solid #000;
@@ -419,9 +425,14 @@
   font-size: 11px;
 }
 
+[data-muled-ui-theme='acme'] .DocxEditorView [data-testid='formatting-bar'] button,
 [data-muled-ui-theme='acme'] .DocxEditorView .docx-responsive-toolbar button,
-[data-muled-ui-theme='acme'] .DocxEditorView .docx-responsive-toolbar [role='combobox'] {
-  border-radius: 0;
+[data-muled-ui-theme='acme'] .DocxEditorView [data-testid='formatting-bar'] [role='combobox'],
+[data-muled-ui-theme='acme'] .DocxEditorView .docx-responsive-toolbar [role='combobox'],
+[data-muled-ui-theme='acme'] .PdfPreview__pageNav button,
+[data-muled-ui-theme='acme'] .PdfPreview__zoom button,
+[data-muled-ui-theme='acme'] .PdfPreview__toolBtn,
+[data-muled-ui-theme='acme'] .PdfPreview__pageInput {
   border-color: #000;
   font-family: var(--muled-chrome-font);
   font-size: 11px;

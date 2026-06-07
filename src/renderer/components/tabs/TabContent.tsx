@@ -22,6 +22,8 @@ import EditorViewSwitch from '../editor/EditorViewSwitch';
 import DocxEditorView from '../editor/DocxEditorView';
 import DocxViewSwitch from '../editor/DocxViewSwitch';
 import CsvSpreadsheetView from '../editor/CsvSpreadsheetView';
+import XlsxSpreadsheetView from '../editor/XlsxSpreadsheetView';
+import CsvTabView from '../editor/CsvTabView';
 import CsvViewSwitch from '../editor/CsvViewSwitch';
 import IpynbPreview from '../editor/IpynbPreview';
 import IpynbViewSwitch from '../editor/IpynbViewSwitch';
@@ -29,6 +31,7 @@ import HtmlPreview from '../editor/HtmlPreview';
 import HtmlViewSwitch from '../editor/HtmlViewSwitch';
 import MarkdownTabNavigation from './MarkdownTabNavigation';
 import AudioPreview from '../editor/AudioPreview';
+import VideoPreview from '../editor/VideoPreview';
 import ImagePreview from '../editor/ImagePreview';
 import DirectoryGridView from '../editor/DirectoryGridView';
 import PdfViewer from '../editor/pdf/PdfViewer';
@@ -65,6 +68,7 @@ interface TabContentProps {
   hasApiKey: boolean;
   onContentChange: (content: string) => void;
   onDocxDirty?: (tabId: string) => void;
+  onXlsxDirty?: (tabId: string) => void;
   onFocusPane?: () => void;
   onClosePane?: () => void;
   onViewModeChange: (
@@ -94,6 +98,7 @@ export default function TabContent({
   hasApiKey,
   onContentChange,
   onDocxDirty,
+  onXlsxDirty,
   onViewModeChange,
   onSave,
   onOpenFile,
@@ -537,6 +542,8 @@ export default function TabContent({
           <PptxViewerView tab={tab} />
         ) : tab.kind === 'audio' ? (
           <AudioPreview tab={tab} />
+        ) : tab.kind === 'video' ? (
+          <VideoPreview tab={tab} />
         ) : tab.kind === 'directory-grid' ? (
           <DirectoryGridView
             tab={tab}
@@ -546,9 +553,36 @@ export default function TabContent({
         ) : tab.kind === 'html' && showHtmlPreview ? (
           <HtmlPreview tab={tab} workspaceRoot={workspaceRoot} />
         ) : showCsvSpreadsheet ? (
-          <CsvSpreadsheetView tab={tab} onChange={onContentChange} />
+          <CsvTabView tab={tab}>
+            <CsvSpreadsheetView tab={tab} onChange={onContentChange} />
+          </CsvTabView>
+        ) : tab.kind === 'csv' && showSource ? (
+          <CsvTabView tab={tab}>
+            <div
+              ref={editorPaneRef}
+              className="TabContent__editorPane"
+              style={editorPaneFontVars(sourceFont, wysiwygFont)}
+            >
+              <SourceCodeEditor
+                ref={sourceRef}
+                tabId={tab.id}
+                tabKey={`${tab.id}:${tab.relativePath ?? 'untitled'}:source`}
+                value={tab.content}
+                relativePath={tab.relativePath}
+                keybindingMode={tab.keybindingMode}
+                readOnly={tab.truncated}
+                reveal={tab.reveal ?? null}
+                onChange={onContentChange}
+              />
+            </div>
+          </CsvTabView>
         ) : showIpynbPreview ? (
           <IpynbPreview tab={tab} sourceFont={sourceFont} />
+        ) : tab.kind === 'xlsx' ? (
+          <XlsxSpreadsheetView
+            tab={tab}
+            onDirty={() => onXlsxDirty?.(tab.id)}
+          />
         ) : tab.kind === 'docx' ? (
           <DocxEditorView
             tab={tab}
@@ -583,7 +617,7 @@ export default function TabContent({
                 onOpenFile={onOpenFileFromEditor}
               />
             )}
-            {showSource && (
+            {showSource && tab.kind !== 'csv' && (
               <SourceCodeEditor
                 ref={sourceRef}
                 tabId={tab.id}

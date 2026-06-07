@@ -7,6 +7,8 @@ import {
   isIpynbPath,
   isPdfPath,
   isPptxPath,
+  isVideoPath,
+  isXlsxPath,
 } from '../renderer/lib/mime';
 
 describe('mime', () => {
@@ -40,6 +42,13 @@ describe('mime', () => {
     expect(isAudioPath('readme.md')).toBe(false);
   });
 
+  it('detects video extensions', () => {
+    expect(isVideoPath('clips/demo.mp4')).toBe(true);
+    expect(isVideoPath('screen.webm')).toBe(true);
+    expect(isVideoPath('camera.MOV')).toBe(true);
+    expect(isVideoPath('readme.md')).toBe(false);
+  });
+
   it('detects directory paths', () => {
     expect(isDirectoryPath('src/')).toBe(true);
     expect(isDirectoryPath('file.ts')).toBe(false);
@@ -55,5 +64,12 @@ describe('mime', () => {
     expect(isIpynbPath('notebooks/demo.ipynb')).toBe(true);
     expect(isIpynbPath('demo.IPYNB')).toBe(true);
     expect(isIpynbPath('readme.md')).toBe(false);
+  });
+
+  it('detects xlsx extension', () => {
+    expect(isXlsxPath('data/sales.xlsx')).toBe(true);
+    expect(isXlsxPath('sales.XLSX')).toBe(true);
+    expect(isXlsxPath('legacy.xls')).toBe(false);
+    expect(isXlsxPath('readme.md')).toBe(false);
   });
 });

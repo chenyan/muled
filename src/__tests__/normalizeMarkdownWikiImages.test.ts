@@ -9,6 +9,7 @@ import {
 import {
   resolveWikiImagePathCandidates,
 } from '../renderer/lib/resolveWikiImagePreview';
+import { buildWikiVideoEmbedHtml } from '../renderer/lib/wikiVideoEmbed';
 
 describe('normalizeMarkdownWikiImages', () => {
   it('converts wiki embed syntax to internal markdown image', () => {
@@ -50,6 +51,30 @@ describe('normalizeMarkdownWikiImages', () => {
     const url = 'https://example.com/a.png';
     expect(normalizeMarkdownWikiImages(`![](${url})`)).toBe(`![](${url})`);
   });
+
+  it('converts wiki video embed syntax to html video block', () => {
+    const source = '![[clips/demo.mp4]]';
+    expect(normalizeMarkdownWikiImages(source)).toContain(
+      buildWikiVideoEmbedHtml('clips/demo.mp4', 'wiki'),
+    );
+  });
+
+  it('exports html video block back to wiki embed syntax', () => {
+    const html = buildWikiVideoEmbedHtml('clips/demo.mp4', 'wiki');
+    expect(exportWikiImagesFromMarkdown(html)).toBe('![[clips/demo.mp4]]');
+  });
+
+  it('normalizes workspace markdown videos for WYSIWYG preview', () => {
+    const source = '![](media/demo.webm)';
+    expect(normalizeMarkdownWikiImages(source)).toContain(
+      buildWikiVideoEmbedHtml('media/demo.webm', 'file'),
+    );
+  });
+
+  it('exports file video html back to standard markdown', () => {
+    const html = buildWikiVideoEmbedHtml('media/demo.webm', 'file');
+    expect(exportWikiImagesFromMarkdown(html)).toBe('![](media/demo.webm)');
+  });
 });
 
 describe('exportWikiImageEmbedMarkdown', () => {
@@ -62,6 +87,6 @@ describe('resolveWikiImagePathCandidates', () => {
   it('tries workspace-relative and document-relative paths', () => {
     expect(
       resolveWikiImagePathCandidates('att/foo.png', 'notes/readme.md'),
-    ).toEqual(['att/foo.png', 'notes/att/foo.png']);
+    ).toEqual(['notes/att/foo.png', 'att/foo.png']);
   });
 });

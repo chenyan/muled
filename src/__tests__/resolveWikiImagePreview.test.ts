@@ -2,6 +2,7 @@ import {
   clearWikiImagePreviewCache,
   resolveWikiImagePathCandidates,
   resolveWikiImagePreview,
+  resolveWikiVideoPreview,
 } from '../renderer/lib/resolveWikiImagePreview';
 
 describe('resolveWikiImagePathCandidates', () => {
@@ -123,5 +124,51 @@ describe('resolveWikiImagePreview', () => {
       'notes/att/foo.png',
     );
     expect(window.muled.file.readBinary).toHaveBeenNthCalledWith(2, 'att/foo.png');
+  });
+
+  it('delegates legacy muled-wiki video urls to video preview', async () => {
+    clearWikiImagePreviewCache();
+    (window.muled.file.readBinary as jest.Mock).mockResolvedValue({
+      base64: btoa('abc'),
+      mime: 'video/mp4',
+    });
+
+    const result = await resolveWikiImagePreview(
+      'muled-wiki:att/demo.mp4',
+      'notes/readme.md',
+    );
+
+    expect(result.startsWith('blob:') || result.startsWith('data:video/mp4')).toBe(
+      true,
+    );
+    if (result.startsWith('blob:')) {
+      URL.revokeObjectURL(result);
+    }
+    expect(window.muled.file.readBinary).toHaveBeenCalledWith(
+      'notes/att/demo.mp4',
+    );
+  });
+
+  it('loads wiki videos relative to the open document first', async () => {
+    clearWikiImagePreviewCache();
+    (window.muled.file.readBinary as jest.Mock).mockResolvedValue({
+      base64: btoa('abc'),
+      mime: 'video/mp4',
+    });
+
+    const result = await resolveWikiVideoPreview(
+      'muled-wiki-video:att/demo.mp4',
+      'notes/readme.md',
+    );
+
+    expect(result.startsWith('blob:') || result.startsWith('data:video/mp4')).toBe(
+      true,
+    );
+    if (result.startsWith('blob:')) {
+      URL.revokeObjectURL(result);
+    }
+    expect(window.muled.file.readBinary).toHaveBeenCalledWith(
+      'notes/att/demo.mp4',
+    );
   });
 });

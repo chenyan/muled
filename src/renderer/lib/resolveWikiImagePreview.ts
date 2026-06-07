@@ -1,10 +1,36 @@
-import { isImagePath } from './mime';
+import { isImagePath, isVideoPath } from './mime';
 import {
   MULED_FILE_SRC_PREFIX,
+  MULED_FILE_VIDEO_SRC_PREFIX,
   WIKI_IMAGE_SRC_PREFIX,
+  WIKI_VIDEO_SRC_PREFIX,
+  isMuledWikiVideoSrc,
 } from './normalizeMarkdownWikiImages';
 
 const previewCache = new Map<string, string>();
+
+function base64ToBlobUrl(base64: string, mime: string): string {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  const blob = new Blob([bytes], { type: mime });
+  if (typeof URL.createObjectURL === 'function') {
+    try {
+      return URL.createObjectURL(blob);
+    } catch {
+      // fall through to data URL
+    }
+  }
+  return `data:${mime};base64,${base64}`;
+}
+
+function revokePreviewUrl(url: string): void {
+  if (url.startsWith('blob:')) {
+    URL.revokeObjectURL(url);
+  }
+}
 
 const BROKEN_IMAGE_URI =
   'data:image/svg+xml;charset=utf-8,' +
@@ -26,6 +52,12 @@ function isExternalSrc(src: string): boolean {
 }
 
 function stripMuledImagePrefix(src: string): string {
+  if (src.startsWith(WIKI_VIDEO_SRC_PREFIX)) {
+    return src.slice(WIKI_VIDEO_SRC_PREFIX.length);
+  }
+  if (src.startsWith(MULED_FILE_VIDEO_SRC_PREFIX)) {
+    return src.slice(MULED_FILE_VIDEO_SRC_PREFIX.length);
+  }
   if (src.startsWith(WIKI_IMAGE_SRC_PREFIX)) {
     return src.slice(WIKI_IMAGE_SRC_PREFIX.length);
   }
@@ -87,10 +119,23 @@ export function resolveWikiImagePathCandidates(
 
   if (documentRelativePath) {
     const docDir = dirname(documentRelativePath);
-    candidates.push(joinRelative(docDir, normalized));
-  }
+    const docRelative = joinRelative(docDir, normalized);
+    const vaultStylePath =
+      Boolean(docDir) &&
+      (normalized === docRelative || normalized.startsWith(`${docDir}/`));
 
-  if (!candidates.includes(normalized)) {
+    if (vaultStylePath) {
+      candidates.push(normalized);
+      if (docRelative !== normalized) {
+        candidates.push(docRelative);
+      }
+    } else {
+      candidates.push(docRelative);
+      if (!candidates.includes(normalized)) {
+        candidates.push(normalized);
+      }
+    }
+  } else {
     candidates.push(normalized);
   }
 
@@ -98,6 +143,9 @@ export function resolveWikiImagePathCandidates(
 }
 
 export function clearWikiImagePreviewCache(): void {
+  for (const url of previewCache.values()) {
+    revokePreviewUrl(url);
+  }
   previewCache.clear();
 }
 
@@ -106,6 +154,20 @@ export async function resolveWikiImagePreview(
   documentRelativePath?: string | null,
 ): Promise<string> {
   try {
+    if (isMuledWikiVideoSrc(src)) {
+      return resolveWikiVideoPreview(src, documentRelativePath);
+    }
+
+    const imagePathFromWiki = src.startsWith(WIKI_IMAGE_SRC_PREFIX)
+      ? src.slice(WIKI_IMAGE_SRC_PREFIX.length)
+      : null;
+    if (imagePathFromWiki && isVideoPath(imagePathFromWiki)) {
+      return resolveWikiVideoPreview(
+        `${WIKI_VIDEO_SRC_PREFIX}${imagePathFromWiki}`,
+        documentRelativePath,
+      );
+    }
+
     if (isExternalSrc(src)) {
       return src;
     }
@@ -145,5 +207,60 @@ export async function resolveWikiImagePreview(
     return BROKEN_IMAGE_URI;
   } catch {
     return BROKEN_IMAGE_URI;
+  }
+}
+
+const BROKEN_VIDEO_URI =
+  'data:image/svg+xml;charset=utf-8,' +
+  encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="240" height="135">
+      <rect x="0" y="0" width="240" height="135" fill="#111" stroke="#dc2626" stroke-width="2" stroke-dasharray="4" />
+      <text x="120" y="72" text-anchor="middle" font-size="12" fill="#dc2626">视频加载失败</text>
+    </svg>
+  `);
+
+export async function resolveWikiVideoPreview(
+  src: string,
+  documentRelativePath?: string | null,
+): Promise<string> {
+  try {
+    if (isExternalSrc(src)) {
+      return src;
+    }
+
+    const cached = previewCache.get(src);
+    if (cached) {
+      return cached;
+    }
+
+    const isWikiEmbed = src.startsWith(WIKI_VIDEO_SRC_PREFIX);
+    const isMuledFile = src.startsWith(MULED_FILE_VIDEO_SRC_PREFIX);
+    const videoPath = decodeURIComponent(stripMuledImagePrefix(src));
+    const candidates = resolveWikiImagePathCandidates(
+      videoPath,
+      documentRelativePath,
+      {
+        resolveRelativeToDocument: isWikiEmbed || !isMuledFile,
+      },
+    );
+
+    for (const candidate of candidates) {
+      if (!isVideoPath(candidate)) {
+        continue;
+      }
+      try {
+        const { base64, mime } = await window.muled.file.readBinary(candidate);
+        const blobUrl = base64ToBlobUrl(base64, mime);
+        previewCache.set(src, blobUrl);
+        return blobUrl;
+      } catch {
+        // try next candidate
+      }
+    }
+
+    previewCache.set(src, BROKEN_VIDEO_URI);
+    return BROKEN_VIDEO_URI;
+  } catch {
+    return BROKEN_VIDEO_URI;
   }
 }

@@ -39,6 +39,7 @@ import { pushStatusToast } from '../../lib/statusToast';
 import { useWysiwygTheme } from '../../hooks/useAppTheme';
 import mdxEditorInlineMathPlugin from './inlineMath/mdxEditorInlineMathPlugin';
 import mdxEditorWikiImagePlugin from './mdxEditorWikiImagePlugin';
+import mdxEditorWikiVideoPlugin from './wikiVideo/mdxEditorWikiVideoPlugin';
 import WikiLinkPickerMenu from './WikiLinkPickerMenu';
 import MULED_CODE_BLOCK_DESCRIPTORS from './codeBlocks/muledCodeBlockDescriptors';
 import MarkdownEditorErrorBoundary from './MarkdownEditorErrorBoundary';
@@ -178,6 +179,11 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
       [],
     );
 
+    const wikiVideoPlugin = useMemo(
+      () => mdxEditorWikiVideoPlugin(documentRelativePathRef),
+      [],
+    );
+
     const plugins = useMemo(
       () => [
         headingsPlugin(),
@@ -185,6 +191,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
         quotePlugin(),
         linkPlugin(),
         wikiImagePlugin,
+        wikiVideoPlugin,
         imagePlugin({ imagePreviewHandler }),
         tablePlugin(),
         thematicBreakPlugin(),
@@ -197,7 +204,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
         mdxEditorFaultTolerancePlugin(),
         mdxEditorInlineMathPlugin(),
       ],
-      [wikiImagePlugin, imagePreviewHandler],
+      [wikiImagePlugin, wikiVideoPlugin, imagePreviewHandler],
     );
 
     const prepareForEditor = useCallback(

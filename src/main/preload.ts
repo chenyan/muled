@@ -52,10 +52,22 @@ const muled = {
     get: () => invoke('workspace:get'),
     list: () => invoke('workspace:list'),
     listChildren: (path: string) => invoke('workspace:listChildren', { path }),
+    exists: (path: string) => invoke('workspace:exists', { path }),
+    createFile: (path: string) => invoke('workspace:createFile', { path }),
+    createDirectory: (path: string) =>
+      invoke('workspace:createDirectory', { path }),
+    rename: (args: { from: string; to: string }) =>
+      invoke('workspace:rename', args),
+    delete: (path: string) => invoke('workspace:delete', { path }),
     pdfOutline: (path: string) => invoke('workspace:pdfOutline', { path }),
     cd: (path: string) => invoke('workspace:cd', { path }),
     completeCd: (partial: string) =>
       invoke('workspace:completeCd', { partial }),
+    getHistory: () => invoke('workspace:getHistory'),
+    removeFromHistory: (args: { path: string }) =>
+      invoke('workspace:removeFromHistory', args),
+    setPinned: (args: { path: string; pinned: boolean }) =>
+      invoke('workspace:setPinned', args),
   },
   file: {
     read: (path: string) => invoke('file:read', { path }),
@@ -93,6 +105,13 @@ const muled = {
   },
   shell: {
     openExternal: (url: string) => invoke('shell:openExternal', { url }),
+  },
+  csv: {
+    register: (args: { sessionId: string; content: string }) =>
+      invoke('csv:register', args),
+    query: (args: { sessionId: string; sql: string }) =>
+      invoke('csv:query', args),
+    close: (sessionId: string) => invoke('csv:close', { sessionId }),
   },
   menu: {
     onOpenTranslationHistory: (listener: (path: string) => void) => {

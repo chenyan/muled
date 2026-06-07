@@ -4,7 +4,11 @@ import path from 'path';
 
 const nodeRequire = createRequire(__filename);
 import { IGNORED_DIR_NAMES, WORKSPACE_MAX_DEPTH } from '../../shared/constants';
-import { assertPathInsideRoot, resolvePath } from '../../shared/pathUtils';
+import {
+  assertPathInsideRoot,
+  ensureParentDir,
+  resolvePath,
+} from '../../shared/pathUtils';
 import type { PdfOutlineItem } from '../../shared/types/ipc';
 import type ConfigService from './configService';
 
@@ -36,6 +40,91 @@ export default class WorkspaceService {
     const results: string[] = [];
     this.walk(this.root, this.root, 0, results);
     return results.sort();
+  }
+
+  pathExists(relativePath: string): boolean {
+    try {
+      const absolutePath = this.resolveRelativeWorkspacePath(relativePath);
+      return fs.existsSync(absolutePath);
+    } catch {
+      return false;
+    }
+  }
+
+  createFile(relativePath: string): string {
+    const normalized = relativePath.replace(/\\/g, '/').replace(/^\/+/, '');
+    if (!normalized || normalized.endsWith('/')) {
+      throw new Error(`Invalid file path: ${relativePath}`);
+    }
+    const absolutePath = this.resolveRelativeWorkspacePath(normalized);
+    if (fs.existsSync(absolutePath)) {
+      throw new Error(`Already exists: ${normalized}`);
+    }
+    ensureParentDir(absolutePath);
+    fs.writeFileSync(absolutePath, '', 'utf8');
+    return normalized;
+  }
+
+  createDirectory(relativePath: string): string {
+    const normalized = relativePath.replace(/\\/g, '/').replace(/^\/+/, '');
+    if (!normalized) {
+      throw new Error('Invalid directory path');
+    }
+    const withoutSlash = normalized.endsWith('/')
+      ? normalized.slice(0, -1)
+      : normalized;
+    const absolutePath = this.resolveRelativeWorkspacePath(withoutSlash);
+    if (fs.existsSync(absolutePath)) {
+      throw new Error(`Already exists: ${withoutSlash}`);
+    }
+    ensureParentDir(absolutePath);
+    fs.mkdirSync(absolutePath);
+    return `${withoutSlash}/`;
+  }
+
+  renamePath(fromRelative: string, toRelative: string): string {
+    const fromNormalized = fromRelative.replace(/\\/g, '/').replace(/^\/+/, '');
+    const toNormalized = toRelative.replace(/\\/g, '/').replace(/^\/+/, '');
+    if (!toNormalized) {
+      throw new Error('Invalid rename path');
+    }
+
+    const fromAbsolute = this.resolveRelativeWorkspacePath(fromNormalized);
+    if (!fs.existsSync(fromAbsolute)) {
+      throw new Error(`Not found: ${fromRelative}`);
+    }
+
+    const fromIsDirectory = fs.statSync(fromAbsolute).isDirectory();
+    const toWithoutSlash = toNormalized.endsWith('/')
+      ? toNormalized.slice(0, -1)
+      : toNormalized;
+    const toAbsolute = this.resolveRelativeWorkspacePath(toWithoutSlash);
+    if (fs.existsSync(toAbsolute)) {
+      throw new Error(`Already exists: ${toRelative}`);
+    }
+    ensureParentDir(toAbsolute);
+    fs.renameSync(fromAbsolute, toAbsolute);
+    return fromIsDirectory ? `${toWithoutSlash}/` : toWithoutSlash;
+  }
+
+  deletePath(relativePath: string): void {
+    const normalized = relativePath.replace(/\\/g, '/').replace(/^\/+/, '');
+    if (!normalized) {
+      throw new Error('Invalid path');
+    }
+    const withoutSlash = normalized.endsWith('/')
+      ? normalized.slice(0, -1)
+      : normalized;
+    const absolutePath = this.resolveRelativeWorkspacePath(withoutSlash);
+    if (!fs.existsSync(absolutePath)) {
+      return;
+    }
+    const stat = fs.statSync(absolutePath);
+    if (stat.isDirectory()) {
+      fs.rmdirSync(absolutePath);
+      return;
+    }
+    fs.unlinkSync(absolutePath);
   }
 
   listChildren(relativeDir: string): string[] {
@@ -174,6 +263,26 @@ export default class WorkspaceService {
     } catch {
       return null;
     }
+  }
+
+  private resolveRelativeWorkspacePath(relativePath: string): string {
+    const normalized = relativePath.replace(/\\/g, '/').replace(/^\/+/, '');
+    const withoutTrailingSlash = normalized.endsWith('/')
+      ? normalized.slice(0, -1)
+      : normalized;
+    const absolutePath = path.resolve(this.root, withoutTrailingSlash);
+    const relative = path
+      .relative(this.root, absolutePath)
+      .split(path.sep)
+      .join('/');
+    if (
+      relative === '' ||
+      relative.startsWith('..') ||
+      path.isAbsolute(relative)
+    ) {
+      throw new Error(`Path escapes workspace: ${absolutePath}`);
+    }
+    return absolutePath;
   }
 
   private resolveWorkspacePath(relativePath: string): string {

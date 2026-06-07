@@ -19,6 +19,25 @@ declare module 'cm6-theme-basic-dark' {
   export const basicDarkHighlightStyle: unknown;
 }
 
+declare module 'plotly.js/dist/plotly' {
+  const Plotly: {
+    newPlot: (
+      root: HTMLElement,
+      data: Record<string, unknown>[],
+      layout: Record<string, unknown>,
+      config?: Record<string, unknown>,
+    ) => Promise<void>;
+    react: (
+      root: HTMLElement,
+      data: Record<string, unknown>[],
+      layout: Record<string, unknown>,
+      config?: Record<string, unknown>,
+    ) => Promise<void>;
+    purge: (root: HTMLElement) => void;
+  };
+  export default Plotly;
+}
+
 interface NotebookMathDelimiter {
   left: string;
   right: string;

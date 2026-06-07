@@ -1,0 +1,73 @@
+.XlsxSpreadsheetView {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  background: var(--muled-bg);
+}
+
+.XlsxSpreadsheetView--loading,
+.XlsxSpreadsheetView--error {
+  align-items: center;
+  justify-content: center;
+  color: var(--muled-fg-muted);
+}
+
+.XlsxSpreadsheetView--error {
+  color: var(--muled-danger, #c0392b);
+}
+
+.XlsxSpreadsheetView__sheetTabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 0;
+  overflow-x: auto;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--muled-border);
+}
+
+.XlsxSpreadsheetView__sheetTab {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muled-fg-muted);
+  padding: 2px 8px;
+  font-size: 11px;
+  line-height: 1.25;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.XlsxSpreadsheetView__sheetTab--active {
+  background: var(--muled-bg);
+  color: var(--muled-fg);
+  box-shadow:
+    inset 1px 0 0 var(--muled-border),
+    inset -1px 0 0 var(--muled-border),
+    inset 0 1px 0 var(--muled-border);
+  margin-bottom: -1px;
+  position: relative;
+  z-index: 1;
+}
+
+.XlsxSpreadsheetView--withSheets .XlsxSpreadsheetView__grid {
+  border-top: none;
+}
+
+.XlsxSpreadsheetView__grid {
+  flex: 1;
+  min-height: 0;
+  block-size: 100% !important;
+  inline-size: 100%;
+  font-family: var(--muled-font-mono, ui-monospace, monospace);
+  --rdg-color: var(--muled-fg);
+  --rdg-border-color: var(--muled-border);
+  --rdg-background-color: var(--muled-bg);
+  --rdg-header-background-color: var(--muled-surface-muted);
+  --rdg-header-draggable-background-color: var(--muled-surface-muted);
+  --rdg-row-hover-background-color: var(--muled-hover);
+  --rdg-row-selected-background-color: var(--muled-active-soft-bg);
+  --rdg-row-selected-hover-background-color: var(--muled-active-soft-bg);
+}

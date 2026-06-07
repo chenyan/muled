@@ -1,3 +1,8 @@
+.WorkspaceTreeBlankContextMenu {
+  position: fixed;
+  z-index: 1050;
+}
+
 .WorkspaceTreeContextMenu {
   min-width: 168px;
   padding: 4px;
@@ -78,4 +83,10 @@
 
 .WorkspaceTreeContextMenu__item:hover {
   background: var(--muled-surface-muted);
+}
+
+.WorkspaceTreeContextMenu__separator {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--muled-input-border);
 }

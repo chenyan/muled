@@ -1,0 +1,324 @@
+.CsvQueryPanel {
+  flex-shrink: 0;
+  border-top: none;
+  background: var(--muled-surface);
+}
+
+.CsvTabView:not(.CsvTabView--queryMaximized) .CsvTabView__panelShell:not(.CsvTabView__panelShell--sized) > .CsvQueryPanel {
+  border-top: 1px solid var(--muled-border);
+}
+
+.CsvQueryPanel--expanded {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.CsvQueryPanel__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding-right: 8px;
+}
+
+.CsvQueryPanel__toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: none;
+  background: transparent;
+  color: var(--muled-fg);
+  cursor: pointer;
+  text-align: left;
+}
+
+.CsvQueryPanel__toggle:hover {
+  background: var(--muled-hover);
+}
+
+.CsvQueryPanel__chevron {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--muled-fg-muted);
+  border-bottom: 1.5px solid var(--muled-fg-muted);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+.CsvQueryPanel__chevron--expanded {
+  transform: rotate(45deg);
+}
+
+.CsvQueryPanel__title {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.CsvQueryPanel__hint {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 9px;
+  color: var(--muled-fg-muted);
+}
+
+.CsvQueryPanel__headerActions {
+  display: inline-flex;
+  flex-shrink: 0;
+  border: 1px solid var(--muled-border);
+}
+
+.CsvQueryPanel__iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 20px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-left: 1px solid var(--muled-border);
+  background: var(--muled-bg);
+  color: var(--muled-fg-muted);
+  cursor: pointer;
+}
+
+.CsvQueryPanel__iconBtn:first-child {
+  border-left: none;
+}
+
+.CsvQueryPanel__iconBtn:hover:not(:disabled) {
+  background: var(--muled-hover);
+  color: var(--muled-fg);
+}
+
+.CsvQueryPanel__iconBtn--run {
+  color: var(--muled-accent);
+}
+
+.CsvQueryPanel__iconBtn--run:hover:not(:disabled) {
+  color: var(--muled-accent);
+}
+
+.CsvQueryPanel__iconBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.CsvQueryPanel__iconBtn[aria-pressed='true'] {
+  color: var(--muled-fg);
+  background: var(--muled-active-soft-bg);
+}
+
+.CsvQueryPanel__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 12px 12px;
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+}
+
+.CsvQueryPanel--expanded:not(.CsvQueryPanel--maximized) .CsvQueryPanel__body {
+  overflow: auto;
+}
+
+.CsvQueryPanel__sqlSection {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.CsvQueryPanel__sqlEditor {
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--muled-border);
+  border-radius: 0;
+  background: var(--muled-bg);
+}
+
+.CsvQueryPanel__sql {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  resize: none;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muled-fg);
+  font-family: var(--muled-font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.CsvQueryPanel__sql:focus {
+  outline: none;
+}
+
+.CsvQueryPanel__sqlEditor:focus-within {
+  outline: 2px solid var(--muled-accent-soft);
+  border-color: var(--muled-accent);
+}
+
+.CsvQueryPanel__sqlResize {
+  flex-shrink: 0;
+  height: 8px;
+  margin: -2px 0 0;
+  cursor: row-resize;
+  touch-action: none;
+}
+
+.CsvQueryPanel__sqlResize::after {
+  content: '';
+  display: block;
+  width: 36px;
+  height: 3px;
+  margin: 2px auto 0;
+  border-radius: 0;
+  background: var(--muled-border);
+}
+
+.CsvQueryPanel__sqlResize:hover::after,
+.CsvQueryPanel__sqlResize:focus-visible::after,
+.CsvQueryPanel__sqlResize--active::after {
+  background: var(--muled-accent);
+}
+
+.CsvQueryPanel__error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muled-danger, #c0392b);
+}
+
+.CsvQueryPanel__placeholder {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muled-fg-muted);
+}
+
+.CsvQueryPanel__placeholder code {
+  font-family: var(--muled-font-mono, ui-monospace, monospace);
+}
+
+.CsvQueryPanel__results {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.CsvQueryPanel__resultTabs {
+  display: flex;
+  gap: 4px;
+}
+
+.CsvQueryPanel__resultTab {
+  padding: 4px 10px;
+  border: 1px solid var(--muled-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--muled-fg-muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.CsvQueryPanel__resultTab--active {
+  background: var(--muled-active-soft-bg);
+  color: var(--muled-fg);
+  border-color: var(--muled-accent);
+}
+
+.CsvQueryPanel__chartPane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.CsvQueryPanel__chartControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: flex-start;
+}
+
+.CsvQueryPanel__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muled-fg-muted);
+}
+
+.CsvQueryPanel__field select {
+  min-width: 120px;
+  padding: 4px 8px;
+  border: 1px solid var(--muled-border);
+  border-radius: 0;
+  background: var(--muled-bg);
+  color: var(--muled-fg);
+  font-size: 12px;
+}
+
+.CsvQueryPanel__measures {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+}
+
+.CsvQueryPanel__measuresLabel {
+  font-size: 11px;
+  color: var(--muled-fg-muted);
+}
+
+.CsvQueryPanel__measureList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.CsvQueryPanel__measureItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muled-fg);
+}
+
+.CsvQueryPanel__measureEmpty {
+  font-size: 12px;
+  color: var(--muled-fg-muted);
+}
+
+.CsvQueryPanel--expanded .CsvQueryPanel__body {
+  overflow: auto;
+}
+
+.CsvQueryPanel--resizingSql .CsvQueryPanel__body {
+  overflow: auto;
+}
+
+.CsvQueryPanel__resultsPlaceholder {
+  flex: 1;
+  min-height: 0;
+}
+
+.CsvQueryPanel--maximized .CsvQueryPanel__body {
+  overflow: hidden;
+}
+
+.CsvQueryPanel--maximized .CsvQueryPanel__results {
+  min-height: 120px;
+}

@@ -173,7 +173,7 @@
 .SidebarTabs__outlineHint {
   padding: 8px 10px;
   border-bottom: 1px solid var(--muled-border);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muled-muted-fg);
 }
 
@@ -183,43 +183,102 @@
   color: var(--muled-placeholder);
 }
 
-.SidebarTabs__outlineList {
+.OutlineTree {
   list-style: none;
   margin: 0;
-  padding: 6px 0;
+  padding: 4px 0;
   overflow: auto;
 }
 
-.SidebarTabs__outlineItem {
-  width: 100%;
+.OutlineTree__node {
+  list-style: none;
+}
+
+.OutlineTree__children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.OutlineTree__row {
+  display: flex;
+  align-items: center;
+  min-height: 20px;
+}
+
+.OutlineTree__toggle {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  margin-left: 1px;
+  border: none;
+  background: transparent;
+  color: var(--muled-muted-fg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.OutlineTree__toggle svg {
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.12s ease;
+}
+
+.OutlineTree__toggle--expanded svg {
+  transform: rotate(90deg);
+}
+
+.OutlineTree__toggle:hover {
+  color: var(--muled-fg);
+}
+
+.OutlineTree__toggleSpacer {
+  flex-shrink: 0;
+  width: 14px;
+  margin-left: 1px;
+}
+
+.OutlineTree__item {
+  flex: 1;
+  min-width: 0;
   border: none;
   background: transparent;
   color: var(--muled-fg);
-  min-height: 26px;
+  min-height: 20px;
   font-size: 12px;
+  line-height: 1.2;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   cursor: pointer;
-  padding-right: 10px;
+  padding: 1px 8px 1px 0;
 }
 
-.SidebarTabs__outlineItem:hover {
+.OutlineTree__item:hover {
   background: var(--muled-hover);
 }
 
-.SidebarTabs__outlineTitle {
+.OutlineTree__title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: left;
 }
 
-.SidebarTabs__outlineMeta {
+.OutlineTree__meta {
   flex-shrink: 0;
   color: var(--muled-muted-fg);
-  font-size: 11px;
+  font-size: 12px;
+  line-height: 1.2;
 }
 
 .AppShell__sidebar--hidden {
@@ -255,9 +314,60 @@
 
 .WorkspaceTree__root {
   flex-shrink: 0;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 8px;
   border-bottom: 1px solid var(--muled-border);
+}
+
+.WorkspaceTree__rootLabel {
+  flex: 1;
+  min-width: 0;
+  display: block;
+}
+
+.WorkspaceTree__iconBtn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 4px;
+  border: 1px solid var(--muled-input-border);
+  background: var(--muled-surface);
+  color: var(--muled-text-secondary);
+  cursor: pointer;
+}
+
+.WorkspaceTree__toolbarIcon,
+.WorkspaceTree__refreshIcon {
+  display: block;
+}
+
+.WorkspaceTree__iconBtn:hover:not(:disabled) {
+  border-color: var(--muled-placeholder);
+  color: var(--muled-fg);
+}
+
+.WorkspaceTree__iconBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.WorkspaceTree__iconBtn--spinning .WorkspaceTree__refreshIcon {
+  animation: WorkspaceTree__refreshSpin 0.8s linear infinite;
+}
+
+@keyframes WorkspaceTree__refreshSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .WorkspaceTree__rootSelect {
@@ -352,6 +462,13 @@
   display: flex;
   flex-direction: column;
   overscroll-behavior: contain;
+}
+
+.WorkspaceTree__treeWrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .WorkspaceTree__treeHost--loading .WorkspaceTree__tree {
@@ -726,6 +843,24 @@
   pointer-events: auto;
 }
 
+.MuledMDXEditorHost .mdxeditor .MuledWikiVideo {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0;
+}
+
+.MuledMDXEditorHost .mdxeditor .MuledWikiVideo video {
+  max-width: 100%;
+  max-height: min(60vh, 480px);
+  background: #000;
+}
+
+.MuledMDXEditorHost .mdxeditor .MuledWikiVideo--loading {
+  color: var(--muled-placeholder);
+  padding: 24px;
+  text-align: center;
+}
+
 .MuledSourceEditor {
   height: 100%;
   display: flex;
@@ -954,6 +1089,55 @@
   height: 100%;
 }
 
+.VideoPreview {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--muled-bg);
+}
+
+.VideoPreview__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--muled-border);
+  background: var(--muled-surface);
+  flex-shrink: 0;
+}
+
+.VideoPreview__name {
+  font-size: 12px;
+  color: var(--muled-subtle-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.VideoPreview__viewport {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  min-height: 0;
+}
+
+.VideoPreview__viewport video {
+  max-width: 100%;
+  max-height: 100%;
+  background: #000;
+}
+
+.VideoPreview--empty {
+  color: var(--muled-placeholder);
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
 .DirectoryGrid {
   height: 100%;
   overflow: auto;
@@ -1064,22 +1248,12 @@
 .PdfPreview__toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 12px;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 4px 8px;
   border-bottom: 1px solid var(--muled-border);
   background: var(--muled-surface);
   flex-shrink: 0;
-}
-
-.PdfPreview__name {
-  font-size: 12px;
-  color: var(--muled-subtle-fg);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  min-width: 0;
 }
 
 .PdfPreview__embed {
@@ -1137,29 +1311,97 @@
   cursor: grabbing;
 }
 
-.PdfPreview__toolbarRight {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
 .PdfPreview__toolbarSep {
   width: 1px;
-  height: 20px;
+  height: 16px;
   background: var(--muled-border);
   flex-shrink: 0;
 }
 
+.PdfPreview__pageNav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.PdfPreview__pageNav button,
+.PdfPreview__zoom button,
+.PdfPreview__toolBtn {
+  box-sizing: border-box;
+  height: 24px;
+  min-height: 24px;
+  min-width: 24px;
+  padding: 0 4px;
+  border: 1px solid var(--muled-border);
+  border-radius: 0;
+  background: var(--muled-surface);
+  color: var(--muled-fg);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.PdfPreview__pageNav button:disabled,
+.PdfPreview__zoom button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.PdfPreview__pageNav button:hover:not(:disabled),
+.PdfPreview__zoom button:hover:not(:disabled) {
+  background: var(--muled-surface-muted);
+}
+
+.PdfPreview__pageJump {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.PdfPreview__pageInput {
+  box-sizing: border-box;
+  width: 32px;
+  height: 24px;
+  padding: 0 4px;
+  border: 1px solid var(--muled-border);
+  border-radius: 0;
+  background: var(--muled-surface);
+  color: var(--muled-fg);
+  font-size: 12px;
+  line-height: 1;
+  text-align: center;
+}
+
+.PdfPreview__pageInput:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.PdfPreview__pageInput:focus {
+  outline: none;
+  border-color: var(--muled-active-soft-border);
+}
+
+.PdfPreview__pageTotal {
+  font-size: 11px;
+  color: var(--muled-subtle-fg);
+  white-space: nowrap;
+}
+
 .PdfPreview__tools {
   display: flex;
-  gap: 2px;
+  gap: 0;
 }
 
 .PdfPreview__toolBtn {
   min-width: auto !important;
-  padding: 4px 10px !important;
+  padding: 0 6px !important;
   font-size: 12px !important;
+}
+
+.PdfPreview__toolBtn + .PdfPreview__toolBtn {
+  border-left-width: 0;
 }
 
 .PdfPreview__toolBtn--active {
@@ -1171,37 +1413,22 @@
 .PdfPreview__zoom {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 0;
   flex-shrink: 0;
 }
 
-.PdfPreview__zoom button {
-  min-width: 32px;
-  padding: 4px 8px;
-  border: 1px solid var(--muled-border);
-  border-radius: 4px;
-  background: var(--muled-surface);
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.PdfPreview__zoom button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.PdfPreview__zoom button:hover:not(:disabled) {
-  background: var(--muled-surface-muted);
+.PdfPreview__zoom button + button {
+  border-left-width: 0;
 }
 
 .PdfPreview__zoomLevel {
-  min-width: 52px !important;
+  min-width: 44px !important;
 }
 
 .PdfPreview__actualSize {
   min-width: auto !important;
-  padding: 4px 10px !important;
-  font-size: 12px !important;
+  padding: 0 6px !important;
+  font-size: 11px !important;
 }
 
 .PdfPreview__viewport {

@@ -46,6 +46,7 @@ import SidebarTabs from '../sidebar/SidebarTabs';
 import StatusBar from './StatusBar';
 import StatusToast from './StatusToast';
 import './AppShell.css';
+import '../../theme/acmeTheme.css';
 import { buildTabOutline } from '../../lib/outlineIndex';
 import type { PdfOutlineItem } from '../../../shared/types/ipc';
 import { getEditorOutlineHandlers } from '../../lib/editorOutlineBridge';
@@ -677,6 +678,9 @@ export default function AppShell() {
           onDocxDirty={(id) => {
             editor.markTabDirty(id);
           }}
+          onXlsxDirty={(id) => {
+            editor.markTabDirty(id);
+          }}
           onAiOpen={openAiDialog}
           onViewModeChange={(id, viewMode, content) => {
             editor.setViewMode(id, viewMode, content);
@@ -829,6 +833,7 @@ export default function AppShell() {
               /* toast in handleSwitchWorkspace */
             });
           }}
+          onWorkspaceHistoryChanged={workspace.updateRecent}
           onOpenFile={(path) => {
             editor.openPath(path).catch(() => undefined);
           }}

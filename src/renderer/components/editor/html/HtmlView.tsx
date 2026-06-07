@@ -1,3 +1,10 @@
+import {
+  MULED_FILE_VIDEO_SRC_PREFIX,
+  WIKI_VIDEO_SRC_PREFIX,
+} from '../../../lib/normalizeMarkdownWikiImages';
+import { parseWikiVideoEmbedHtml } from '../../../lib/wikiVideoEmbed';
+import WikiVideoView from '../wikiVideo/WikiVideoView';
+
 export default function HtmlView({
   html,
   block,
@@ -7,6 +14,15 @@ export default function HtmlView({
 }) {
   if (!html.trim()) {
     return null;
+  }
+
+  const videoEmbed = parseWikiVideoEmbedHtml(html);
+  if (videoEmbed) {
+    const src =
+      videoEmbed.kind === 'wiki'
+        ? `${WIKI_VIDEO_SRC_PREFIX}${videoEmbed.path}`
+        : `${MULED_FILE_VIDEO_SRC_PREFIX}${videoEmbed.path}`;
+    return <WikiVideoView src={src} altText="" />;
   }
 
   const className = block ? 'MuledHtmlBlock' : 'MuledInlineHtml';

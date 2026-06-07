@@ -3,7 +3,9 @@ const PDF_EXT = /\.pdf$/i;
 const DOCX_EXT = /\.docx$/i;
 const PPTX_EXT = /\.pptx$/i;
 const AUDIO_EXT = /\.(mp3|wav|ogg|m4a|aac|flac|weba)$/i;
+const VIDEO_EXT = /\.(mp4|webm|mov|m4v|ogv|mkv|avi)$/i;
 const CSV_EXT = /\.csv$/i;
+const XLSX_EXT = /\.xlsx$/i;
 const IPYNB_EXT = /\.ipynb$/i;
 
 export function isImagePath(relativePath: string): boolean {
@@ -31,9 +33,19 @@ export function isAudioPath(relativePath: string): boolean {
   return AUDIO_EXT.test(base);
 }
 
+export function isVideoPath(relativePath: string): boolean {
+  const base = relativePath.replace(/\/$/, '');
+  return VIDEO_EXT.test(base);
+}
+
 export function isCsvPath(relativePath: string): boolean {
   const base = relativePath.replace(/\/$/, '');
   return CSV_EXT.test(base);
+}
+
+export function isXlsxPath(relativePath: string): boolean {
+  const base = relativePath.replace(/\/$/, '');
+  return XLSX_EXT.test(base);
 }
 
 export function isIpynbPath(relativePath: string): boolean {

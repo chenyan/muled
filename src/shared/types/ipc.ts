@@ -3,6 +3,8 @@ import type { SettingsForm, SettingsGetResult } from './settings';
 import type { DetectToolsResult } from './tools';
 import type { ResolvedThemeConfig, ThemeConfig } from './theme';
 import type { SearchStartResult } from './search';
+import type { CsvQueryResponse, CsvRegisterResponse } from './csvQuery';
+import type { WorkspaceHistoryInfo } from './workspaceHistory';
 
 export interface FileReadResult {
   content: string;
@@ -53,8 +55,16 @@ export type IpcChannel =
   | 'workspace:get'
   | 'workspace:cd'
   | 'workspace:completeCd'
+  | 'workspace:getHistory'
+  | 'workspace:removeFromHistory'
+  | 'workspace:setPinned'
   | 'workspace:list'
   | 'workspace:listChildren'
+  | 'workspace:exists'
+  | 'workspace:createFile'
+  | 'workspace:createDirectory'
+  | 'workspace:rename'
+  | 'workspace:delete'
   | 'workspace:pdfOutline'
   | 'file:read'
   | 'file:readBinary'
@@ -64,7 +74,10 @@ export type IpcChannel =
   | 'ai:translate'
   | 'search:start'
   | 'search:cancel'
-  | 'shell:openExternal';
+  | 'shell:openExternal'
+  | 'csv:register'
+  | 'csv:query'
+  | 'csv:close';
 
 export interface WysiwygCssResult {
   css: string;
@@ -105,10 +118,39 @@ export interface IpcInvokeMap {
     args: { partial: string };
     result: { labels: string[] };
   };
+  'workspace:getHistory': { args: void; result: WorkspaceHistoryInfo };
+  'workspace:removeFromHistory': {
+    args: { path: string };
+    result: WorkspaceHistoryInfo;
+  };
+  'workspace:setPinned': {
+    args: { path: string; pinned: boolean };
+    result: WorkspaceHistoryInfo;
+  };
   'workspace:list': { args: void; result: { paths: string[] } };
   'workspace:listChildren': {
     args: { path: string };
     result: { paths: string[] };
+  };
+  'workspace:exists': {
+    args: { path: string };
+    result: { exists: boolean };
+  };
+  'workspace:createFile': {
+    args: { path: string };
+    result: { path: string };
+  };
+  'workspace:createDirectory': {
+    args: { path: string };
+    result: { path: string };
+  };
+  'workspace:rename': {
+    args: { from: string; to: string };
+    result: { path: string };
+  };
+  'workspace:delete': {
+    args: { path: string };
+    result: { ok: boolean };
   };
   'workspace:pdfOutline': {
     args: { path: string };
@@ -145,6 +187,21 @@ export interface IpcInvokeMap {
   };
   'shell:openExternal': {
     args: { url: string };
+    result: { ok: boolean };
+  };
+  'csv:register': {
+    args: {
+      sessionId: string;
+      content: string;
+    };
+    result: CsvRegisterResponse;
+  };
+  'csv:query': {
+    args: { sessionId: string; sql: string };
+    result: CsvQueryResponse;
+  };
+  'csv:close': {
+    args: { sessionId: string };
     result: { ok: boolean };
   };
 }

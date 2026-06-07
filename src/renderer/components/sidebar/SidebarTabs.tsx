@@ -3,6 +3,7 @@ import type { SplitPlacement } from '../../../shared/editorSplit';
 import type { SidebarOutlineItem } from '../../lib/outlineIndex';
 import type { EditorTab } from '../../types/tab';
 import WorkspaceTree, { type WorkspaceTreeRevealRequest } from '../tree/WorkspaceTree';
+import OutlineTree from './OutlineTree';
 
 type SidebarTabId = 'files' | 'outline';
 
@@ -20,6 +21,7 @@ interface SidebarTabsProps {
   selectionResetKey: number;
   revealRequest?: WorkspaceTreeRevealRequest | null;
   onSwitchWorkspace: (absolutePath: string) => void;
+  onWorkspaceHistoryChanged?: (pickerPaths: string[]) => void;
   onOpenFile: (relativePath: string) => void;
   onOpenFileInSplit?: (relativePath: string, placement: SplitPlacement) => void;
   onOpenDirectoryGrid: (relativePath: string) => void;
@@ -40,6 +42,7 @@ export default function SidebarTabs({
   selectionResetKey,
   revealRequest,
   onSwitchWorkspace,
+  onWorkspaceHistoryChanged,
   onOpenFile,
   onOpenFileInSplit,
   onOpenDirectoryGrid,
@@ -50,7 +53,7 @@ export default function SidebarTabs({
     if (!activeEditorTab) return '打开文件后显示大纲';
     if (activeEditorTab.kind === 'markdown') return '显示 H1-H3 标题';
     if (activeEditorTab.kind === 'html') return '显示标题与 H1-H6';
-    if (activeEditorTab.kind === 'text') return '显示顶层符号';
+    if (activeEditorTab.kind === 'text') return '显示层级符号';
     if (activeEditorTab.kind === 'pdf') return '显示 PDF 目录';
     return '当前类型暂无大纲';
   }, [activeEditorTab]);
@@ -113,6 +116,7 @@ export default function SidebarTabs({
             selectionResetKey={selectionResetKey}
             revealRequest={revealRequest}
             onSwitchWorkspace={onSwitchWorkspace}
+            onWorkspaceHistoryChanged={onWorkspaceHistoryChanged}
             onOpenFile={onOpenFile}
             onOpenFileInSplit={onOpenFileInSplit}
             onOpenDirectoryGrid={onOpenDirectoryGrid}
@@ -128,30 +132,10 @@ export default function SidebarTabs({
             {outlineItems.length === 0 ? (
               <div className="SidebarTabs__empty">暂无可用索引</div>
             ) : (
-              <ul className="SidebarTabs__outlineList">
-                {outlineItems.map((item) => (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      className="SidebarTabs__outlineItem"
-                      style={{ paddingLeft: `${8 + (item.depth - 1) * 14}px` }}
-                      onClick={() => {
-                        if (item.line) {
-                          onRevealInEditor(item);
-                        }
-                      }}
-                      title={item.page ? `第 ${item.page} 页` : undefined}
-                    >
-                      <span className="SidebarTabs__outlineTitle">{item.title}</span>
-                      {item.page ? (
-                        <span className="SidebarTabs__outlineMeta">P{item.page}</span>
-                      ) : item.line ? (
-                        <span className="SidebarTabs__outlineMeta">L{item.line}</span>
-                      ) : null}
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <OutlineTree
+                items={outlineItems}
+                onRevealInEditor={onRevealInEditor}
+              />
             )}
           </section>
         </div>

@@ -14,6 +14,7 @@ import type {
 import { isHtmlPath, isMarkdownPath } from '../lib/fileLanguage';
 import { arrayBufferToBase64, arrayBufferToDataUrl } from '../lib/dataUrl';
 import { getDocxEditorBuffer } from '../lib/editorDocxBridge';
+import { getXlsxEditorBuffer } from '../lib/editorXlsxBridge';
 import { exportWikiImagesFromMarkdown } from '../lib/normalizeMarkdownWikiImages';
 import {
   isAudioPath,
@@ -24,6 +25,8 @@ import {
   isIpynbPath,
   isPdfPath,
   isPptxPath,
+  isVideoPath,
+  isXlsxPath,
 } from '../lib/mime';
 import keybindingModePatch from '../lib/keybindingMode';
 import { pushStatusToast } from '../lib/statusToast';
@@ -87,8 +90,10 @@ async function loadFileIntoTab(
     | 'imageSrc'
     | 'pdfSrc'
     | 'audioSrc'
+    | 'videoSrc'
     | 'docxSrc'
     | 'pptxSrc'
+    | 'xlsxSrc'
   >,
 ): Promise<EditorTab> {
   if (isPptxPath(relativePath)) {
@@ -163,6 +168,37 @@ async function loadFileIntoTab(
       truncated: false,
       fileSize: 0,
       audioSrc: `data:${mime};base64,${base64}`,
+      dirty: false,
+    };
+  }
+
+  if (isVideoPath(relativePath)) {
+    const { base64, mime } = await window.muled.file.readBinary(relativePath);
+    return {
+      ...base,
+      id: newId(),
+      relativePath,
+      kind: 'video',
+      content: '',
+      truncated: false,
+      fileSize: 0,
+      videoSrc: `data:${mime};base64,${base64}`,
+      dirty: false,
+    };
+  }
+
+  if (isXlsxPath(relativePath)) {
+    const { base64, mime } = await window.muled.file.readBinary(relativePath);
+    return {
+      ...base,
+      id: newId(),
+      relativePath,
+      kind: 'xlsx',
+      viewMode: 'preview',
+      content: '',
+      truncated: false,
+      fileSize: 0,
+      xlsxSrc: `data:${mime};base64,${base64}`,
       dirty: false,
     };
   }
@@ -339,6 +375,7 @@ export function useEditorTabs(
       tab.kind === 'image' ||
       tab.kind === 'pdf' ||
       tab.kind === 'audio' ||
+      tab.kind === 'video' ||
       tab.kind === 'pptx'
     ) {
       return { ok: false, reason: 'image' };
@@ -362,6 +399,31 @@ export function useEditorTabs(
                 ...t,
                 dirty: false,
                 docxSrc: arrayBufferToDataUrl(buffer, mime),
+              }
+            : t,
+        ),
+      );
+      return { ok: true };
+    }
+
+    if (tab.kind === 'xlsx') {
+      const buffer = await getXlsxEditorBuffer(tabId);
+      if (!buffer) {
+        return { ok: false, reason: 'not_found' };
+      }
+      const mime =
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      await window.muled.file.writeBinary(
+        tab.relativePath,
+        arrayBufferToBase64(buffer),
+      );
+      setTabs((prev) =>
+        prev.map((t) =>
+          t.id === tabId
+            ? {
+                ...t,
+                dirty: false,
+                xlsxSrc: arrayBufferToDataUrl(buffer, mime),
               }
             : t,
         ),
@@ -951,8 +1013,10 @@ export function useEditorTabs(
             if (t.kind === 'pdf') return { ...t, pdfSrc: dataUrl };
             if (t.kind === 'image') return { ...t, imageSrc: dataUrl };
             if (t.kind === 'audio') return { ...t, audioSrc: dataUrl };
+            if (t.kind === 'video') return { ...t, videoSrc: dataUrl };
             if (t.kind === 'docx') return { ...t, docxSrc: dataUrl };
             if (t.kind === 'pptx') return { ...t, pptxSrc: dataUrl };
+            if (t.kind === 'xlsx') return { ...t, xlsxSrc: dataUrl };
             return t;
           }),
         );
@@ -973,8 +1037,10 @@ export function useEditorTabs(
     activeTab?.pdfSrc,
     activeTab?.imageSrc,
     activeTab?.audioSrc,
+    activeTab?.videoSrc,
     activeTab?.docxSrc,
     activeTab?.pptxSrc,
+    activeTab?.xlsxSrc,
   ]);
 
   const markTabDirty = useCallback((tabId: string) => {

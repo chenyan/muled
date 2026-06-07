@@ -4,7 +4,9 @@ import {
   matrixToGridRows,
   parseCsv,
   serializeCsv,
+  serializeCsvWithHeader,
 } from '../renderer/lib/csv';
+import { sniffCsvMatrix } from '../renderer/lib/csvSniffer';
 
 describe('csv', () => {
   it('parses simple rows', () => {
@@ -60,5 +62,17 @@ describe('csv', () => {
     expect(csvColumnHeader(0)).toBe('A');
     expect(csvColumnHeader(25)).toBe('Z');
     expect(csvColumnHeader(26)).toBe('AA');
+  });
+
+  it('serializes csv with sniffed header row', () => {
+    const source = 'Name,Height\nPedro,1.73\nMark,1.72';
+    const sniffed = sniffCsvMatrix(parseCsv(source));
+    expect(
+      serializeCsvWithHeader(
+        sniffed.dataMatrix,
+        sniffed.columnNames,
+        sniffed.hasHeader,
+      ),
+    ).toBe(source);
   });
 });

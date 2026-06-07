@@ -1,0 +1,26 @@
+.CsvQueryResultGrid {
+  flex: 1;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.CsvQueryResultGrid__meta {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--muled-fg-muted);
+}
+
+.CsvQueryResultGrid__grid {
+  flex: 1;
+  min-height: 0;
+  block-size: 100% !important;
+  inline-size: 100%;
+  font-family: var(--muled-font-mono, ui-monospace, monospace);
+  --rdg-color: var(--muled-fg);
+  --rdg-border-color: var(--muled-border);
+  --rdg-background-color: var(--muled-bg);
+  --rdg-header-background-color: var(--muled-surface-muted);
+  --rdg-row-hover-background-color: var(--muled-hover);
+}

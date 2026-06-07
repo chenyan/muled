@@ -64,5 +64,9 @@ export function useWorkspace() {
     });
   }, [refresh]);
 
-  return { ...state, refresh, cd };
+  const updateRecent = useCallback((recent: string[]) => {
+    setState((prev) => ({ ...prev, recent }));
+  }, []);
+
+  return { ...state, refresh, cd, updateRecent };
 }

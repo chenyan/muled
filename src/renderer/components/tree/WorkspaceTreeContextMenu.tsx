@@ -22,7 +22,10 @@ interface WorkspaceTreeContextMenuProps {
   workspaceRoot: string;
   onOpenDirectoryGrid: (relativePath: string) => void;
   onOpenFileInSplit?: (relativePath: string, placement: SplitPlacement) => void;
-  onClose: () => void;
+  onCreateFile: () => void;
+  onCreateDirectory: () => void;
+  onRenameItem: (item: WorkspaceTreeContextMenuItem) => void;
+  onClose: (options?: { restoreFocus?: boolean }) => void;
 }
 
 export default function WorkspaceTreeContextMenu({
@@ -30,6 +33,9 @@ export default function WorkspaceTreeContextMenu({
   workspaceRoot,
   onOpenDirectoryGrid,
   onOpenFileInSplit,
+  onCreateFile,
+  onCreateDirectory,
+  onRenameItem,
   onClose,
 }: WorkspaceTreeContextMenuProps) {
   const copyAbsolutePath = useCallback(async () => {
@@ -49,6 +55,45 @@ export default function WorkspaceTreeContextMenu({
     onClose();
   }, [item.path, onClose, onOpenDirectoryGrid]);
 
+  const fileOps = (
+    <>
+      <button
+        type="button"
+        role="menuitem"
+        className="WorkspaceTreeContextMenu__item"
+        onClick={() => {
+          onCreateFile();
+          onClose();
+        }}
+      >
+        新建
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        className="WorkspaceTreeContextMenu__item"
+        onClick={() => {
+          onCreateDirectory();
+          onClose();
+        }}
+      >
+        新建文件夹
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        className="WorkspaceTreeContextMenu__item"
+        onClick={() => {
+          onRenameItem(item);
+          onClose({ restoreFocus: false });
+        }}
+      >
+        重命名
+      </button>
+      <div className="WorkspaceTreeContextMenu__separator" role="separator" />
+    </>
+  );
+
   if (item.kind === 'directory') {
     return (
       <div
@@ -56,6 +101,7 @@ export default function WorkspaceTreeContextMenu({
         data-file-tree-context-menu-root="true"
         role="menu"
       >
+        {fileOps}
         <button
           type="button"
           role="menuitem"
@@ -74,6 +120,7 @@ export default function WorkspaceTreeContextMenu({
       data-file-tree-context-menu-root="true"
       role="menu"
     >
+      {fileOps}
       {onOpenFileInSplit ? (
         <div className="WorkspaceTreeContextMenu__submenu">
           <div

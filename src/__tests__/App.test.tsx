@@ -87,9 +87,17 @@ beforeEach(() => {
       get: async () => ({ root: '/tmp', recent: ['/tmp'] }),
       list: async () => ({ paths: ['README.md'] }),
       listChildren: async () => ({ paths: ['README.md'] }),
+      exists: async () => ({ exists: false }),
+      createFile: async (path: string) => ({ path }),
+      createDirectory: async (path: string) => ({ path }),
+      rename: async ({ to }: { from: string; to: string }) => ({ path: to }),
+      delete: async () => ({ ok: true }),
       pdfOutline: async () => ({ items: [] }),
       cd: async () => ({ root: '/tmp', paths: [], recent: ['/tmp'] }),
       completeCd: async () => ({ labels: [] }),
+      getHistory: async () => ({ entries: [], pickerPaths: [] }),
+      removeFromHistory: async () => ({ entries: [], pickerPaths: [] }),
+      setPinned: async () => ({ entries: [], pickerPaths: [] }),
     },
     file: {
       read: async () => ({
@@ -112,6 +120,17 @@ beforeEach(() => {
     },
     shell: {
       openExternal: async () => ({ ok: true }),
+    },
+    csv: {
+      register: async () => ({ ok: true as const, tableName: 'csv_data' }),
+      query: async () => ({
+        ok: true as const,
+        columns: [],
+        rows: [],
+        rowCount: 0,
+        truncated: false,
+      }),
+      close: async () => ({ ok: true }),
     },
     menu: {
       onOpenTranslationHistory: () => () => undefined,

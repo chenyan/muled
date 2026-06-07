@@ -15,7 +15,7 @@ import type { ConfigService } from './configService';
 import type { WorkspaceService } from './workspaceService';
 
 const BINARY_PREVIEW_EXT =
-  /\.(png|jpe?g|gif|webp|svg|bmp|ico|pdf|docx|pptx|mp3|wav|ogg|m4a|aac|flac|weba)$/i;
+  /\.(png|jpe?g|gif|webp|svg|bmp|ico|pdf|docx|pptx|xlsx|mp3|wav|ogg|m4a|aac|flac|weba|mp4|webm|mov|m4v|ogv|mkv|avi)$/i;
 
 const MIME_BY_EXT: Record<string, string> = {
   '.png': 'image/png',
@@ -31,6 +31,8 @@ const MIME_BY_EXT: Record<string, string> = {
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   '.pptx':
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  '.xlsx':
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   '.mp3': 'audio/mpeg',
   '.wav': 'audio/wav',
   '.ogg': 'audio/ogg',
@@ -38,6 +40,13 @@ const MIME_BY_EXT: Record<string, string> = {
   '.aac': 'audio/aac',
   '.flac': 'audio/flac',
   '.weba': 'audio/webm',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mov': 'video/quicktime',
+  '.m4v': 'video/x-m4v',
+  '.ogv': 'video/ogg',
+  '.mkv': 'video/x-matroska',
+  '.avi': 'video/x-msvideo',
 };
 
 function guessMime(filePath: string): string {
