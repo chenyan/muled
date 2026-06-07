@@ -9,6 +9,7 @@ export type TabKind =
   | 'csv'
   | 'xlsx'
   | 'ipynb'
+  | 'strudel'
   | 'image'
   | 'pdf'
   | 'audio'
@@ -58,7 +59,8 @@ export function isEditableTextTab(tab: EditorTab): boolean {
     tab.kind === 'html' ||
     tab.kind === 'text' ||
     tab.kind === 'csv' ||
-    tab.kind === 'ipynb'
+    tab.kind === 'ipynb' ||
+    tab.kind === 'strudel'
   );
 }
 

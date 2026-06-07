@@ -97,6 +97,44 @@ export function isFileTreeRowContextMenuTarget(event: Event): boolean {
   return false;
 }
 
+export interface DropTarget {
+  kind: 'directory' | 'root';
+  directoryPath: string | null;
+}
+
+/** 与 @pierre/trees buildDropOperations 一致：解析拖放后的目标路径 */
+export function resolveDropDestinationPath(
+  sourcePath: string,
+  target: DropTarget,
+): string {
+  const isDirectory = sourcePath.endsWith('/');
+  const basename = leafName(sourcePath);
+
+  if (target.kind === 'root' || target.directoryPath == null) {
+    return isDirectory ? normalizeDirectoryPath(basename) : basename;
+  }
+
+  const parentDir = normalizeDirectoryPath(target.directoryPath);
+  const parentWithoutSlash = parentDir.endsWith('/')
+    ? parentDir.slice(0, -1)
+    : parentDir;
+  return joinRelativePath(parentWithoutSlash, basename, isDirectory);
+}
+
+export function buildMovesForDrop(
+  draggedPaths: readonly string[],
+  target: DropTarget,
+): Array<{ from: string; to: string }> {
+  const moves: Array<{ from: string; to: string }> = [];
+  for (const from of draggedPaths) {
+    const to = resolveDropDestinationPath(from, target);
+    if (from !== to) {
+      moves.push({ from, to });
+    }
+  }
+  return moves;
+}
+
 export function parentDirectoryPath(relativePath: string): string {
   const normalized = relativePath.replace(/\\/g, '/');
   const parts = normalized.split('/').filter(Boolean);

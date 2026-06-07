@@ -3,6 +3,7 @@ import {
   getSourceLanguageLabel,
   isHtmlPath,
   isMarkdownPath,
+  isStrudelPath,
 } from '../renderer/lib/fileLanguage';
 
 describe('fileLanguage', () => {
@@ -20,10 +21,18 @@ describe('fileLanguage', () => {
     expect(isHtmlPath(null)).toBe(false);
   });
 
+  it('detects strudel paths', () => {
+    expect(isStrudelPath('music/beat.strudel')).toBe(true);
+    expect(isStrudelPath('BEAT.STRUDEL')).toBe(true);
+    expect(isStrudelPath('notes.md')).toBe(false);
+    expect(isStrudelPath(null)).toBe(false);
+  });
+
   it('maps extensions to source languages', () => {
     expect(getSourceLanguageId('app.ts')).toBe('typescript');
     expect(getSourceLanguageId('data.json')).toBe('json');
     expect(getSourceLanguageId('notebook.ipynb')).toBe('json');
+    expect(getSourceLanguageId('beat.strudel')).toBe('javascript');
     expect(getSourceLanguageId('readme.md')).toBe('markdown');
     expect(getSourceLanguageId('paper.tex')).toBe('latex');
     expect(getSourceLanguageId('notes.org')).toBe('org');

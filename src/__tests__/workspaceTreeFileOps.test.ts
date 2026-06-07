@@ -1,7 +1,9 @@
 import {
+  buildMovesForDrop,
   isFileTreeRowContextMenuTarget,
   joinRelativePath,
   remapTreePathsForMove,
+  resolveDropDestinationPath,
   resolveTargetDirectoryFromSelection,
   uniqueSiblingBasename,
 } from '../renderer/lib/workspaceTreeFileOps';
@@ -68,5 +70,57 @@ describe('remapTreePathsForMove', () => {
         'lib/',
       ),
     ).toEqual(['lib/index.ts', 'lib/', 'README.md']);
+  });
+});
+
+describe('resolveDropDestinationPath', () => {
+  it('moves a file into a directory', () => {
+    expect(
+      resolveDropDestinationPath('notes.md', {
+        kind: 'directory',
+        directoryPath: 'docs/',
+      }),
+    ).toBe('docs/notes.md');
+  });
+
+  it('moves a file to workspace root', () => {
+    expect(
+      resolveDropDestinationPath('src/index.ts', {
+        kind: 'root',
+        directoryPath: null,
+      }),
+    ).toBe('index.ts');
+  });
+
+  it('moves a folder into another folder', () => {
+    expect(
+      resolveDropDestinationPath('src/utils/', {
+        kind: 'directory',
+        directoryPath: 'lib/',
+      }),
+    ).toBe('lib/utils/');
+  });
+});
+
+describe('buildMovesForDrop', () => {
+  it('skips no-op moves within the same location', () => {
+    expect(
+      buildMovesForDrop(['README.md'], {
+        kind: 'root',
+        directoryPath: null,
+      }),
+    ).toEqual([]);
+  });
+
+  it('builds multiple moves for a multi-select drop', () => {
+    expect(
+      buildMovesForDrop(['a.md', 'b.md'], {
+        kind: 'directory',
+        directoryPath: 'docs/',
+      }),
+    ).toEqual([
+      { from: 'a.md', to: 'docs/a.md' },
+      { from: 'b.md', to: 'docs/b.md' },
+    ]);
   });
 });

@@ -22,7 +22,31 @@ function wikiTitleFromRaw(raw: string): string {
   return trimmed.slice(0, pipeIndex).trim();
 }
 
+function isInsideInlineCode(node: Node, boundary: HTMLElement): boolean {
+  let current: Node | null = node;
+  while (current && current !== boundary) {
+    if (current instanceof HTMLElement && current.tagName === 'CODE') {
+      return true;
+    }
+    current = current.parentNode;
+  }
+  return false;
+}
+
+/** 匹配 wiki 文本时忽略行内 code，避免 changelog 等文档中 `` `[[...]]` `` 字面量误触发链接导航并拦截光标 */
+function elementTextOutsideInlineCode(element: Element): string {
+  const clone = element.cloneNode(true) as Element;
+  clone.querySelectorAll('code').forEach((code) => {
+    code.remove();
+  });
+  return clone.textContent ?? '';
+}
+
 function wikiTitleFromPlainText(target: Node, boundary: HTMLElement): string | null {
+  if (isInsideInlineCode(target, boundary)) {
+    return null;
+  }
+
   let node: Node | null = target;
   while (node && node !== boundary) {
     if (node instanceof Text) {
@@ -31,9 +55,13 @@ function wikiTitleFromPlainText(target: Node, boundary: HTMLElement): string | n
         return wikiTitleFromRaw(match[1]);
       }
     }
-    if (node instanceof Element) {
-      const match = WIKI_TEXT_RE.exec(node.textContent ?? '');
-      if (match && node.closest('a') === null) {
+    if (node instanceof Element && node.closest('a') === null) {
+      if (node instanceof HTMLElement && node.tagName === 'CODE') {
+        node = node.parentNode;
+        continue;
+      }
+      const match = WIKI_TEXT_RE.exec(elementTextOutsideInlineCode(node));
+      if (match) {
         return wikiTitleFromRaw(match[1]);
       }
     }

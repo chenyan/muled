@@ -486,7 +486,8 @@ export default function AppShell() {
       tab.kind !== 'markdown' &&
       tab.kind !== 'html' &&
       tab.kind !== 'csv' &&
-      tab.kind !== 'ipynb'
+      tab.kind !== 'ipynb' &&
+      tab.kind !== 'strudel'
     ) {
       return;
     }

@@ -1,0 +1,103 @@
+.StrudelExportDialog__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 45%);
+}
+
+.StrudelExportDialog {
+  width: min(420px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--muled-border);
+  background: var(--muled-surface);
+  color: var(--muled-text);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 28%);
+}
+
+.StrudelExportDialog__header {
+  margin-bottom: 4px;
+}
+
+.StrudelExportDialog__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.StrudelExportDialog__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.StrudelExportDialog__label {
+  font-size: 12px;
+  color: var(--muled-text-muted);
+}
+
+.StrudelExportDialog__input {
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--muled-border);
+  border-radius: 0;
+  background: var(--muled-bg);
+  color: var(--muled-text);
+  font-size: 13px;
+}
+
+.StrudelExportDialog__row {
+  display: flex;
+  gap: 12px;
+}
+
+.StrudelExportDialog__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.StrudelExportDialog__error {
+  margin: 0;
+  font-size: 12px;
+  color: #e57373;
+}
+
+.StrudelExportDialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.StrudelExportDialog__btn {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--muled-border);
+  border-radius: 0;
+  background: var(--muled-bg);
+  color: var(--muled-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.StrudelExportDialog__btn:hover:not(:disabled) {
+  background: var(--muled-hover);
+}
+
+.StrudelExportDialog__btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.StrudelExportDialog__btn--primary {
+  background: var(--muled-surface-muted);
+}

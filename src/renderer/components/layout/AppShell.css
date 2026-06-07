@@ -1043,6 +1043,130 @@
   background: #fff;
 }
 
+.StrudelReplPreview {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #0d1117;
+  overflow: hidden;
+}
+
+.StrudelReplPreview__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--muled-border);
+  background: var(--muled-surface);
+}
+
+.StrudelReplPreview__actions {
+  display: inline-flex;
+  flex-shrink: 0;
+  border: 1px solid var(--muled-border);
+}
+
+.StrudelReplPreview__iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-left: 1px solid var(--muled-border);
+  background: var(--muled-bg);
+  color: var(--muled-fg-muted);
+  cursor: pointer;
+}
+
+.StrudelReplPreview__iconBtn:first-child {
+  border-left: none;
+}
+
+.StrudelReplPreview__iconBtn:hover:not(:disabled) {
+  background: var(--muled-hover);
+  color: var(--muled-fg);
+}
+
+.StrudelReplPreview__iconBtn--play {
+  color: var(--muled-accent);
+}
+
+.StrudelReplPreview__iconBtn--play:hover:not(:disabled) {
+  color: var(--muled-accent);
+}
+
+.StrudelReplPreview__iconBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.StrudelReplPreview__hint {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muled-text-muted);
+}
+
+.StrudelReplPreview__host {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* strudel-editor 本身为空壳，实际 UI 在其后插入的 sibling div 中 */
+.StrudelReplPreview__host strudel-editor {
+  display: none;
+}
+
+.StrudelReplPreview__host > div {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.StrudelReplPreview__host .cm-editor {
+  flex: 1;
+  min-height: 0;
+  height: 100% !important;
+}
+
+.StrudelReplPreview__host .cm-scroller,
+.StrudelReplPreview__host .cm-gutters {
+  font-family: var(
+    --muled-source-font-family,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    monospace
+  );
+  font-size: var(--muled-source-font-size, 13px);
+  font-variant-ligatures: none;
+  font-feature-settings: 'liga' 0, 'calt' 0;
+}
+
+.StrudelReplPreview__host .cm-scroller {
+  min-height: 0;
+}
+
+.StrudelReplPreview--error {
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  color: var(--muled-text-muted);
+  text-align: center;
+}
+
 .AudioPreview {
   height: 100%;
   display: flex;

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWheelScrollOnlyWhenGestureStartsIn } from '../../lib/wheelScrollOnlyWhenGestureStartsIn';
 import { FileTree, useFileTree } from '@pierre/trees/react';
-import type { FileTreeRenameEvent } from '@pierre/trees';
+import type { FileTreeDropResult, FileTreeRenameEvent } from '@pierre/trees';
 import { formatWorkspacePathLabel } from '../../lib/formatWorkspacePathLabel';
 import {
   ancestorDirectoryPaths,
@@ -11,6 +11,7 @@ import {
 } from '../../lib/workspaceTreeReveal';
 import {
   isFileTreeRowContextMenuTarget,
+  buildMovesForDrop,
   joinRelativePath,
   normalizeDirectoryPath,
   parentDirectoryPath,
@@ -297,11 +298,70 @@ function WorkspaceTreeFileList({
     }
   }, []);
 
+  const persistDragDrop = useCallback(
+    async (event: FileTreeDropResult) => {
+      const moves = buildMovesForDrop(event.draggedPaths, event.target);
+      if (moves.length === 0) return;
+
+      const treeModel = modelRef.current;
+      const persisted: Array<{ from: string; to: string }> = [];
+
+      for (const move of moves) {
+        try {
+          await window.muled.workspace.rename({
+            from: move.from,
+            to: move.to,
+          });
+          persisted.push(move);
+        } catch (error) {
+          for (const done of [...persisted].reverse()) {
+            try {
+              await window.muled.workspace.rename({
+                from: done.to,
+                to: done.from,
+              });
+            } catch {
+              /* 尽力回滚已成功的磁盘操作 */
+            }
+          }
+          if (treeModel) {
+            for (const pending of [...moves].reverse()) {
+              treeModel.move(pending.to, pending.from);
+            }
+          }
+          pushStatusToast(
+            error instanceof Error ? error.message : String(error),
+            'error',
+          );
+          return;
+        }
+      }
+
+      for (const move of moves) {
+        invalidateDirectoryCache(parentDirectoryPath(move.from));
+        invalidateDirectoryCache(parentDirectoryPath(move.to));
+      }
+    },
+    [invalidateDirectoryCache],
+  );
+
   const { model } = useFileTree({
     paths: treePaths,
     initialExpansion: initialExpansionDepth,
     search: false,
     density: 'compact',
+    dragAndDrop: {
+      canDrag: (paths) => {
+        if (renamingSessionPathRef.current) return false;
+        return !paths.some((path) => pendingRenameCreatesRef.current.has(path));
+      },
+      onDropComplete: (event) => {
+        void persistDragDrop(event);
+      },
+      onDropError: (message) => {
+        pushStatusToast(message, 'error');
+      },
+    },
     renaming: {
       onRename: (event) => {
         void persistRename(event);
@@ -352,6 +412,16 @@ function WorkspaceTreeFileList({
   useEffect(() => {
     return model.onMutation('move', (event) => {
       syncTreePathsAfterMove(event.from, event.to);
+    });
+  }, [model, syncTreePathsAfterMove]);
+
+  useEffect(() => {
+    return model.onMutation('batch', (event) => {
+      for (const child of event.events) {
+        if (child.operation === 'move') {
+          syncTreePathsAfterMove(child.from, child.to);
+        }
+      }
     });
   }, [model, syncTreePathsAfterMove]);
 

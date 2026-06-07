@@ -52,7 +52,8 @@ export default function StatusBar({
         tab.kind === 'html' ||
         tab.kind === 'docx' ||
         tab.kind === 'csv' ||
-        tab.kind === 'ipynb'
+        tab.kind === 'ipynb' ||
+        tab.kind === 'strudel'
       ) {
         viewMode = tab.viewMode;
       }

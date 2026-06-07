@@ -11,7 +11,7 @@ import type {
   EditorViewMode,
   PublicConfig,
 } from '../../shared/types/config';
-import { isHtmlPath, isMarkdownPath } from '../lib/fileLanguage';
+import { isHtmlPath, isMarkdownPath, isStrudelPath } from '../lib/fileLanguage';
 import { arrayBufferToBase64, arrayBufferToDataUrl } from '../lib/dataUrl';
 import { getDocxEditorBuffer } from '../lib/editorDocxBridge';
 import { getXlsxEditorBuffer } from '../lib/editorXlsxBridge';
@@ -208,6 +208,7 @@ async function loadFileIntoTab(
   const ipynb = isIpynbPath(relativePath);
   const markdown = isMarkdownPath(relativePath);
   const html = isHtmlPath(relativePath);
+  const strudel = isStrudelPath(relativePath);
   const content = markdown
     ? exportWikiImagesFromMarkdown(file.content)
     : file.content;
@@ -215,13 +216,15 @@ async function loadFileIntoTab(
     ? 'csv'
     : ipynb
       ? 'ipynb'
-      : markdown
-        ? 'markdown'
-        : html
-          ? 'html'
-          : 'text';
+      : strudel
+        ? 'strudel'
+        : markdown
+          ? 'markdown'
+          : html
+            ? 'html'
+            : 'text';
   const viewMode: EditorViewMode =
-    csv || ipynb || html
+    csv || ipynb || html || strudel
       ? 'preview'
       : markdown
         ? 'rich-text'
@@ -478,7 +481,8 @@ export function useEditorTabs(
           target.kind === 'html' ||
           target.kind === 'docx' ||
           target.kind === 'csv' ||
-          target.kind === 'ipynb'
+          target.kind === 'ipynb' ||
+          target.kind === 'strudel'
             ? target.viewMode
             : cfg.editor.default_view,
       } as const;
@@ -817,7 +821,8 @@ export function useEditorTabs(
                   reveal,
                   ...(t.kind === 'markdown' ||
                   t.kind === 'html' ||
-                  t.kind === 'ipynb'
+                  t.kind === 'ipynb' ||
+                  t.kind === 'strudel'
                     ? { viewMode: 'source' as const }
                     : {}),
                 }
@@ -847,7 +852,8 @@ export function useEditorTabs(
           reveal,
           ...(loaded.kind === 'markdown' ||
           loaded.kind === 'html' ||
-          loaded.kind === 'ipynb'
+          loaded.kind === 'ipynb' ||
+          loaded.kind === 'strudel'
             ? { viewMode: 'source' as const }
             : {}),
         };

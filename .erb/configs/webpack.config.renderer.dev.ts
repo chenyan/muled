@@ -9,8 +9,13 @@ import { execSync, spawn } from 'child_process';
 import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
 import baseConfig from './webpack.config.base';
 import mathjaxDefinePlugin from './mathjaxDefinePlugin';
+import CopyStrudelReplPlugin, {
+  ensureStrudelReplDist,
+} from './copyStrudelReplPlugin';
 import webpackPaths from './webpack.paths';
 import checkNodeEnv from '../scripts/check-node-env';
+
+ensureStrudelReplDist(webpackPaths.distRendererPath);
 
 // When an ESLint server is running, we can't set the NODE_ENV so we'll check if it's
 // at the dev webpack config is not accidentally run in a production environment
@@ -169,6 +174,8 @@ const configuration: webpack.Configuration = {
       isDevelopment: process.env.NODE_ENV !== 'production',
       nodeModules: webpackPaths.appNodeModulesPath,
     }),
+
+    new CopyStrudelReplPlugin(),
   ],
 
   node: {
@@ -205,6 +212,7 @@ const configuration: webpack.Configuration = {
     headers: { 'Access-Control-Allow-Origin': '*' },
     static: {
       publicPath: '/',
+      directory: path.join(webpackPaths.distRendererPath),
     },
     historyApiFallback: {
       verbose: true,

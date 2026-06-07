@@ -29,6 +29,10 @@ import IpynbPreview from '../editor/IpynbPreview';
 import IpynbViewSwitch from '../editor/IpynbViewSwitch';
 import HtmlPreview from '../editor/HtmlPreview';
 import HtmlViewSwitch from '../editor/HtmlViewSwitch';
+import StrudelReplPreview, {
+  type StrudelReplPreviewHandle,
+} from '../editor/StrudelReplPreview';
+import StrudelViewSwitch from '../editor/StrudelViewSwitch';
 import MarkdownTabNavigation from './MarkdownTabNavigation';
 import AudioPreview from '../editor/AudioPreview';
 import VideoPreview from '../editor/VideoPreview';
@@ -115,6 +119,7 @@ export default function TabContent({
   const isPane = layout === 'pane';
   const mdxRef = useRef<MarkdownEditorHandle>(null);
   const sourceRef = useRef<SourceCodeEditorHandle>(null);
+  const strudelReplRef = useRef<StrudelReplPreviewHandle>(null);
   const editorPaneRef = useRef<HTMLDivElement>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -150,6 +155,12 @@ export default function TabContent({
     }
     if (tab.kind === 'ipynb' && tab.viewMode === 'source') {
       return sourceRef.current?.getValue() ?? tab.content;
+    }
+    if (tab.kind === 'strudel' && tab.viewMode === 'source') {
+      return sourceRef.current?.getValue() ?? tab.content;
+    }
+    if (tab.kind === 'strudel' && tab.viewMode === 'preview') {
+      return strudelReplRef.current?.getCode() ?? tab.content;
     }
     return tab.content;
   }, [getWysiwygContent, tab]);
@@ -282,11 +293,18 @@ export default function TabContent({
         onViewModeChange(tab.id, next, getEditableContent());
         return;
       }
-      if (tab.kind === 'html' || tab.kind === 'csv' || tab.kind === 'ipynb') {
-        const content =
-          tab.viewMode === 'source'
-            ? (sourceRef.current?.getValue() ?? tab.content)
-            : tab.content;
+      if (
+        tab.kind === 'html' ||
+        tab.kind === 'csv' ||
+        tab.kind === 'ipynb' ||
+        tab.kind === 'strudel'
+      ) {
+        let content = tab.content;
+        if (tab.viewMode === 'source') {
+          content = sourceRef.current?.getValue() ?? tab.content;
+        } else if (tab.kind === 'strudel' && tab.viewMode === 'preview') {
+          content = strudelReplRef.current?.getCode() ?? tab.content;
+        }
         onViewModeChange(tab.id, next, content);
         return;
       }
@@ -394,6 +412,7 @@ export default function TabContent({
   const showMarkdownPreview =
     tab.kind === 'markdown' && tab.viewMode === 'preview';
   const showHtmlPreview = tab.kind === 'html' && tab.viewMode === 'preview';
+  const showStrudelRepl = tab.kind === 'strudel' && tab.viewMode === 'preview';
   const showCsvSpreadsheet = tab.kind === 'csv' && tab.viewMode === 'preview';
   const showIpynbPreview = tab.kind === 'ipynb' && tab.viewMode === 'preview';
   const showSource =
@@ -401,6 +420,7 @@ export default function TabContent({
     (tab.kind === 'html' && tab.viewMode === 'source') ||
     (tab.kind === 'csv' && tab.viewMode === 'source') ||
     (tab.kind === 'ipynb' && tab.viewMode === 'source') ||
+    (tab.kind === 'strudel' && tab.viewMode === 'source') ||
     (tab.kind === 'markdown' && tab.viewMode === 'source');
 
   const canSave =
@@ -484,6 +504,13 @@ export default function TabContent({
               onChange={handleViewModeChange}
             />
           )}
+          {tab.kind === 'strudel' && (
+            <StrudelViewSwitch
+              viewMode={tab.viewMode}
+              disabled={tab.truncated}
+              onChange={handleViewModeChange}
+            />
+          )}
           {tab.kind === 'docx' && (
             <DocxViewSwitch
               viewMode={tab.viewMode}
@@ -552,6 +579,12 @@ export default function TabContent({
           />
         ) : tab.kind === 'html' && showHtmlPreview ? (
           <HtmlPreview tab={tab} workspaceRoot={workspaceRoot} />
+        ) : showStrudelRepl ? (
+          <StrudelReplPreview
+            ref={strudelReplRef}
+            tab={tab}
+            sourceFont={sourceFont}
+          />
         ) : showCsvSpreadsheet ? (
           <CsvTabView tab={tab}>
             <CsvSpreadsheetView tab={tab} onChange={onContentChange} />

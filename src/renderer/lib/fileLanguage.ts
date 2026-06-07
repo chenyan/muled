@@ -76,6 +76,7 @@ const EXT_TO_LANGUAGE: Record<string, SourceLanguageId> = {
   sc: 'scala',
   csv: 'plain',
   ipynb: 'json',
+  strudel: 'javascript',
 };
 
 const LANGUAGE_LABELS: Record<SourceLanguageId, string> = {
@@ -116,6 +117,12 @@ export function isHtmlPath(relativePath: string | null): boolean {
   if (!relativePath) return false;
   const base = relativePath.replace(/\/$/, '');
   return /\.(html|htm)$/i.test(base);
+}
+
+export function isStrudelPath(relativePath: string | null): boolean {
+  if (!relativePath) return false;
+  const base = relativePath.replace(/\/$/, '');
+  return /\.strudel$/i.test(base);
 }
 
 export function getSourceLanguageId(
