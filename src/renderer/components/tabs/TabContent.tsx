@@ -33,6 +33,8 @@ import StrudelReplPreview, {
   type StrudelReplPreviewHandle,
 } from '../editor/StrudelReplPreview';
 import StrudelViewSwitch from '../editor/StrudelViewSwitch';
+import P5Preview from '../editor/P5Preview';
+import P5ViewSwitch from '../editor/P5ViewSwitch';
 import MarkdownTabNavigation from './MarkdownTabNavigation';
 import AudioPreview from '../editor/AudioPreview';
 import VideoPreview from '../editor/VideoPreview';
@@ -159,6 +161,9 @@ export default function TabContent({
     if (tab.kind === 'strudel' && tab.viewMode === 'source') {
       return sourceRef.current?.getValue() ?? tab.content;
     }
+    if (tab.kind === 'p5' && tab.viewMode === 'source') {
+      return sourceRef.current?.getValue() ?? tab.content;
+    }
     if (tab.kind === 'strudel' && tab.viewMode === 'preview') {
       return strudelReplRef.current?.getCode() ?? tab.content;
     }
@@ -215,10 +220,7 @@ export default function TabContent({
 
   const getEditorContent = useCallback((): string => {
     if (!tab || !isEditableTextTab(tab)) return '';
-    if (tab.kind === 'markdown') {
-      return getEditableContent();
-    }
-    return sourceRef.current?.getValue() ?? tab.content;
+    return getEditableContent();
   }, [getEditableContent, tab]);
 
   const appendToEditorEnd = useCallback(
@@ -297,7 +299,8 @@ export default function TabContent({
         tab.kind === 'html' ||
         tab.kind === 'csv' ||
         tab.kind === 'ipynb' ||
-        tab.kind === 'strudel'
+        tab.kind === 'strudel' ||
+        tab.kind === 'p5'
       ) {
         let content = tab.content;
         if (tab.viewMode === 'source') {
@@ -413,6 +416,7 @@ export default function TabContent({
     tab.kind === 'markdown' && tab.viewMode === 'preview';
   const showHtmlPreview = tab.kind === 'html' && tab.viewMode === 'preview';
   const showStrudelRepl = tab.kind === 'strudel' && tab.viewMode === 'preview';
+  const showP5Preview = tab.kind === 'p5' && tab.viewMode === 'preview';
   const showCsvSpreadsheet = tab.kind === 'csv' && tab.viewMode === 'preview';
   const showIpynbPreview = tab.kind === 'ipynb' && tab.viewMode === 'preview';
   const showSource =
@@ -421,6 +425,7 @@ export default function TabContent({
     (tab.kind === 'csv' && tab.viewMode === 'source') ||
     (tab.kind === 'ipynb' && tab.viewMode === 'source') ||
     (tab.kind === 'strudel' && tab.viewMode === 'source') ||
+    (tab.kind === 'p5' && tab.viewMode === 'source') ||
     (tab.kind === 'markdown' && tab.viewMode === 'source');
 
   const canSave =
@@ -511,6 +516,13 @@ export default function TabContent({
               onChange={handleViewModeChange}
             />
           )}
+          {tab.kind === 'p5' && (
+            <P5ViewSwitch
+              viewMode={tab.viewMode}
+              disabled={tab.truncated}
+              onChange={handleViewModeChange}
+            />
+          )}
           {tab.kind === 'docx' && (
             <DocxViewSwitch
               viewMode={tab.viewMode}
@@ -585,6 +597,8 @@ export default function TabContent({
             tab={tab}
             sourceFont={sourceFont}
           />
+        ) : showP5Preview ? (
+          <P5Preview tab={tab} />
         ) : showCsvSpreadsheet ? (
           <CsvTabView tab={tab}>
             <CsvSpreadsheetView tab={tab} onChange={onContentChange} />

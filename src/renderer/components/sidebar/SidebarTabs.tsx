@@ -25,6 +25,7 @@ interface SidebarTabsProps {
   onOpenFile: (relativePath: string) => void;
   onOpenFileInSplit?: (relativePath: string, placement: SplitPlacement) => void;
   onOpenDirectoryGrid: (relativePath: string) => void;
+  onDeletePath?: (relativePath: string) => Promise<boolean>;
   onRevealInEditor: (item: SidebarOutlineItem) => void;
 }
 
@@ -46,6 +47,7 @@ export default function SidebarTabs({
   onOpenFile,
   onOpenFileInSplit,
   onOpenDirectoryGrid,
+  onDeletePath,
   onRevealInEditor,
 }: SidebarTabsProps) {
   const [activeTab, setActiveTab] = useState<SidebarTabId>('files');
@@ -120,6 +122,7 @@ export default function SidebarTabs({
             onOpenFile={onOpenFile}
             onOpenFileInSplit={onOpenFileInSplit}
             onOpenDirectoryGrid={onOpenDirectoryGrid}
+            onDeletePath={onDeletePath}
           />
         </div>
         <div

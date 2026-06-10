@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import type { SplitPlacement } from '../../../shared/editorSplit';
 import { workspaceAbsolutePath } from '../../lib/workspaceAbsolutePath';
 import { pushStatusToast } from '../../lib/statusToast';
+import FloatingContextMenuPortal from './FloatingContextMenuPortal';
 import './WorkspaceTreeContextMenu.css';
 
 const SPLIT_OPEN_ITEMS: { placement: SplitPlacement; label: string }[] = [
@@ -20,22 +21,28 @@ interface WorkspaceTreeContextMenuItem {
 interface WorkspaceTreeContextMenuProps {
   item: WorkspaceTreeContextMenuItem;
   workspaceRoot: string;
+  anchorX: number;
+  anchorY: number;
   onOpenDirectoryGrid: (relativePath: string) => void;
   onOpenFileInSplit?: (relativePath: string, placement: SplitPlacement) => void;
   onCreateFile: () => void;
   onCreateDirectory: () => void;
   onRenameItem: (item: WorkspaceTreeContextMenuItem) => void;
+  onDeleteItem: (item: WorkspaceTreeContextMenuItem) => void;
   onClose: (options?: { restoreFocus?: boolean }) => void;
 }
 
 export default function WorkspaceTreeContextMenu({
   item,
   workspaceRoot,
+  anchorX,
+  anchorY,
   onOpenDirectoryGrid,
   onOpenFileInSplit,
   onCreateFile,
   onCreateDirectory,
   onRenameItem,
+  onDeleteItem,
   onClose,
 }: WorkspaceTreeContextMenuProps) {
   const copyAbsolutePath = useCallback(async () => {
@@ -90,18 +97,31 @@ export default function WorkspaceTreeContextMenu({
       >
         重命名
       </button>
+      <button
+        type="button"
+        role="menuitem"
+        className="WorkspaceTreeContextMenu__item WorkspaceTreeContextMenu__item--danger"
+        onClick={() => {
+          onDeleteItem(item);
+          onClose();
+        }}
+      >
+        删除
+      </button>
       <div className="WorkspaceTreeContextMenu__separator" role="separator" />
     </>
   );
 
-  if (item.kind === 'directory') {
-    return (
-      <div
-        className="WorkspaceTreeContextMenu"
-        data-file-tree-context-menu-root="true"
-        role="menu"
-      >
-        {fileOps}
+  return (
+    <FloatingContextMenuPortal
+      x={anchorX}
+      y={anchorY}
+      className="WorkspaceTreeContextMenu WorkspaceTreeContextMenu--floating"
+      data-file-tree-context-menu-root="true"
+      role="menu"
+    >
+      {fileOps}
+      {item.kind === 'directory' ? (
         <button
           type="button"
           role="menuitem"
@@ -110,65 +130,58 @@ export default function WorkspaceTreeContextMenu({
         >
           列表显示
         </button>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="WorkspaceTreeContextMenu"
-      data-file-tree-context-menu-root="true"
-      role="menu"
-    >
-      {fileOps}
-      {onOpenFileInSplit ? (
-        <div className="WorkspaceTreeContextMenu__submenu">
-          <div
-            className="WorkspaceTreeContextMenu__submenuTrigger"
-            role="menuitem"
-            aria-haspopup="menu"
-          >
-            分隔打开
-          </div>
-          <div className="WorkspaceTreeContextMenu__submenuPanel" role="menu">
-            {SPLIT_OPEN_ITEMS.map(({ placement, label }) => (
+      ) : (
+        <>
+          {onOpenFileInSplit ? (
+            <div className="WorkspaceTreeContextMenu__submenu">
+              <div
+                className="WorkspaceTreeContextMenu__submenuTrigger"
+                role="menuitem"
+                aria-haspopup="menu"
+              >
+                分隔打开
+              </div>
+              <div className="WorkspaceTreeContextMenu__submenuPanel" role="menu">
+                {SPLIT_OPEN_ITEMS.map(({ placement, label }) => (
+                  <button
+                    key={placement}
+                    type="button"
+                    role="menuitem"
+                    className="WorkspaceTreeContextMenu__item"
+                    onClick={() => {
+                      onOpenFileInSplit(item.path, placement);
+                      onClose();
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <div className="WorkspaceTreeContextMenu__submenu">
+            <div
+              className="WorkspaceTreeContextMenu__submenuTrigger"
+              role="menuitem"
+              aria-haspopup="menu"
+            >
+              复制路径
+            </div>
+            <div className="WorkspaceTreeContextMenu__submenuPanel" role="menu">
               <button
-                key={placement}
                 type="button"
                 role="menuitem"
                 className="WorkspaceTreeContextMenu__item"
                 onClick={() => {
-                  onOpenFileInSplit(item.path, placement);
-                  onClose();
+                  void copyAbsolutePath();
                 }}
               >
-                {label}
+                绝对路径
               </button>
-            ))}
+            </div>
           </div>
-        </div>
-      ) : null}
-      <div className="WorkspaceTreeContextMenu__submenu">
-        <div
-          className="WorkspaceTreeContextMenu__submenuTrigger"
-          role="menuitem"
-          aria-haspopup="menu"
-        >
-          复制路径
-        </div>
-        <div className="WorkspaceTreeContextMenu__submenuPanel" role="menu">
-          <button
-            type="button"
-            role="menuitem"
-            className="WorkspaceTreeContextMenu__item"
-            onClick={() => {
-              void copyAbsolutePath();
-            }}
-          >
-            绝对路径
-          </button>
-        </div>
-      </div>
-    </div>
+        </>
+      )}
+    </FloatingContextMenuPortal>
   );
 }

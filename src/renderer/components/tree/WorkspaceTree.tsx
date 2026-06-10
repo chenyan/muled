@@ -16,6 +16,8 @@ import {
   normalizeDirectoryPath,
   parentDirectoryPath,
   remapTreePathsForMove,
+  isPathUnderDeletedPath,
+  resolveParentDirFromTreeItem,
   resolveTargetDirectoryFromSelection,
   uniqueSiblingBasename,
 } from '../../lib/workspaceTreeFileOps';
@@ -47,6 +49,7 @@ interface WorkspaceTreeProps {
   onOpenFile: (relativePath: string) => void;
   onOpenFileInSplit?: (relativePath: string, placement: SplitPlacement) => void;
   onOpenDirectoryGrid: (relativePath: string) => void;
+  onDeletePath?: (relativePath: string) => Promise<boolean>;
   onSwitchWorkspace: (absolutePath: string) => void;
   onWorkspaceHistoryChanged?: (pickerPaths: string[]) => void;
 }
@@ -60,6 +63,7 @@ interface WorkspaceTreeFileListProps {
   onOpenFile: (relativePath: string) => void;
   onOpenFileInSplit?: (relativePath: string, placement: SplitPlacement) => void;
   onOpenDirectoryGrid: (relativePath: string) => void;
+  onDeletePath?: (relativePath: string) => Promise<boolean>;
 }
 
 /** 工作区切换时 remount，避免 pierre/trees 在 resetPaths 后选区回调失效 */
@@ -72,6 +76,7 @@ function WorkspaceTreeFileList({
   onOpenFile,
   onOpenFileInSplit,
   onOpenDirectoryGrid,
+  onDeletePath,
 }: WorkspaceTreeFileListProps) {
   const onOpenFileRef = useRef(onOpenFile);
   onOpenFileRef.current = onOpenFile;
@@ -298,6 +303,74 @@ function WorkspaceTreeFileList({
     }
   }, []);
 
+  const purgeTreeStateAfterDelete = useCallback((deletedPath: string) => {
+    for (const path of [...knownModelPathsRef.current]) {
+      if (isPathUnderDeletedPath(path, deletedPath)) {
+        knownModelPathsRef.current.delete(path);
+      }
+    }
+    setTreePaths((prev) =>
+      prev.filter((path) => !isPathUnderDeletedPath(path, deletedPath)),
+    );
+    for (const dirPath of [...loadedDirsRef.current]) {
+      if (isPathUnderDeletedPath(dirPath, deletedPath)) {
+        loadedDirsRef.current.delete(dirPath);
+      }
+    }
+    for (const dirPath of [...loadedChildrenRef.current.keys()]) {
+      if (isPathUnderDeletedPath(dirPath, deletedPath)) {
+        loadedChildrenRef.current.delete(dirPath);
+      }
+    }
+  }, []);
+
+  const deleteTreeItem = useCallback(
+    async (item: { kind: 'directory' | 'file'; path: string; name: string }) => {
+      const treeModel = modelRef.current;
+      if (!treeModel) return;
+
+      const isDirectory = item.kind === 'directory';
+      const relativePath = isDirectory
+        ? normalizeDirectoryPath(item.path)
+        : item.path;
+      const message = isDirectory
+        ? `确定删除文件夹「${item.name}」及其全部内容？`
+        : `确定删除「${item.name}」？`;
+      if (!window.confirm(message)) {
+        return;
+      }
+
+      if (onDeletePath) {
+        const canProceed = await onDeletePath(relativePath);
+        if (!canProceed) {
+          return;
+        }
+      }
+
+      try {
+        await window.muled.workspace.delete(relativePath);
+      } catch (error) {
+        pushStatusToast(
+          error instanceof Error ? error.message : String(error),
+          'error',
+        );
+        return;
+      }
+
+      treeModel.remove(
+        relativePath,
+        isDirectory ? { recursive: true } : undefined,
+      );
+      purgeTreeStateAfterDelete(relativePath);
+      invalidateDirectoryCache(parentDirectoryPath(relativePath));
+      if (isDirectory) {
+        invalidateDirectoryCache(relativePath);
+      }
+      pushStatusToast('已删除', 'success');
+    },
+    [invalidateDirectoryCache, onDeletePath, purgeTreeStateAfterDelete],
+  );
+
   const persistDragDrop = useCallback(
     async (event: FileTreeDropResult) => {
       const moves = buildMovesForDrop(event.draggedPaths, event.target);
@@ -441,10 +514,9 @@ function WorkspaceTreeFileList({
         });
         invalidateDirectoryCache(parentDirectoryPath(removedPath));
       }
-      knownModelPathsRef.current.delete(removedPath);
-      setTreePaths((prev) => prev.filter((path) => path !== removedPath));
+      purgeTreeStateAfterDelete(removedPath);
     });
-  }, [invalidateDirectoryCache, model]);
+  }, [invalidateDirectoryCache, model, purgeTreeStateAfterDelete]);
 
   useEffect(() => {
     loadedDirsRef.current = new Set<string>();
@@ -563,16 +635,27 @@ function WorkspaceTreeFileList({
             <WorkspaceTreeContextMenu
               item={item}
               workspaceRoot={workspaceRoot}
+              anchorX={context.anchorRect.left}
+              anchorY={context.anchorRect.top}
               onOpenDirectoryGrid={onOpenDirectoryGrid}
               onOpenFileInSplit={onOpenFileInSplit}
               onCreateFile={() => {
-                void createPlaceholder(false);
+                void createPlaceholder(
+                  false,
+                  resolveParentDirFromTreeItem(item),
+                );
               }}
               onCreateDirectory={() => {
-                void createPlaceholder(true);
+                void createPlaceholder(
+                  true,
+                  resolveParentDirFromTreeItem(item),
+                );
               }}
               onRenameItem={(menuItem) => {
                 renameTreeItem(menuItem.path);
+              }}
+              onDeleteItem={(menuItem) => {
+                void deleteTreeItem(menuItem);
               }}
               onClose={context.close}
             />
@@ -612,6 +695,7 @@ export default function WorkspaceTree({
   onOpenFile,
   onOpenFileInSplit,
   onOpenDirectoryGrid,
+  onDeletePath,
   onSwitchWorkspace,
   onWorkspaceHistoryChanged,
 }: WorkspaceTreeProps) {
@@ -744,6 +828,7 @@ export default function WorkspaceTree({
           onOpenFile={onOpenFile}
           onOpenFileInSplit={onOpenFileInSplit}
           onOpenDirectoryGrid={onOpenDirectoryGrid}
+          onDeletePath={onDeletePath}
         />
       </div>
     </div>

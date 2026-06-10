@@ -81,6 +81,19 @@ describe('WorkspaceService', () => {
     expect(fs.existsSync(path.join(tmpRoot, 'published/final.md'))).toBe(true);
   });
 
+  it('recursively deletes a non-empty directory', () => {
+    const config = new ConfigService();
+    config.load();
+    const workspace = new WorkspaceService(config);
+    workspace.setRoot(tmpRoot);
+
+    workspace.createDirectory('nested/');
+    workspace.createFile('nested/child.md');
+    workspace.deletePath('nested/');
+    expect(workspace.pathExists('nested/')).toBe(false);
+    expect(workspace.pathExists('nested/child.md')).toBe(false);
+  });
+
   it('deletes empty files and directories', () => {
     const config = new ConfigService();
     config.load();

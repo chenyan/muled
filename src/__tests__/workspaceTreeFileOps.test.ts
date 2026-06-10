@@ -4,6 +4,8 @@ import {
   joinRelativePath,
   remapTreePathsForMove,
   resolveDropDestinationPath,
+  isPathUnderDeletedPath,
+  resolveParentDirFromTreeItem,
   resolveTargetDirectoryFromSelection,
   uniqueSiblingBasename,
 } from '../renderer/lib/workspaceTreeFileOps';
@@ -26,6 +28,39 @@ describe('isFileTreeRowContextMenuTarget', () => {
       value: () => [host],
     });
     expect(isFileTreeRowContextMenuTarget(event)).toBe(false);
+  });
+});
+
+describe('isPathUnderDeletedPath', () => {
+  it('matches a deleted file exactly', () => {
+    expect(isPathUnderDeletedPath('notes.md', 'notes.md')).toBe(true);
+    expect(isPathUnderDeletedPath('notes.md.bak', 'notes.md')).toBe(false);
+  });
+
+  it('matches a deleted directory and descendants', () => {
+    expect(isPathUnderDeletedPath('src/', 'src/')).toBe(true);
+    expect(isPathUnderDeletedPath('src/index.ts', 'src/')).toBe(true);
+    expect(isPathUnderDeletedPath('src-extra/', 'src/')).toBe(false);
+  });
+});
+
+describe('resolveParentDirFromTreeItem', () => {
+  it('uses the directory path for folder items', () => {
+    expect(
+      resolveParentDirFromTreeItem({ kind: 'directory', path: 'src/' }),
+    ).toBe('src/');
+    expect(
+      resolveParentDirFromTreeItem({ kind: 'directory', path: 'src' }),
+    ).toBe('src/');
+  });
+
+  it('uses the parent directory for file items', () => {
+    expect(
+      resolveParentDirFromTreeItem({ kind: 'file', path: 'src/index.ts' }),
+    ).toBe('src/');
+    expect(
+      resolveParentDirFromTreeItem({ kind: 'file', path: 'README.md' }),
+    ).toBe('');
   });
 });
 

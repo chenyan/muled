@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import FloatingContextMenuPortal from './FloatingContextMenuPortal';
 import './WorkspaceTreeContextMenu.css';
 
 interface WorkspaceTreeBlankContextMenuProps {
@@ -38,12 +39,13 @@ export default function WorkspaceTreeBlankContextMenu({
   }, [onClose]);
 
   return (
-    <div
+    <FloatingContextMenuPortal
       ref={menuRef}
-      className="WorkspaceTreeContextMenu WorkspaceTreeBlankContextMenu"
+      x={x}
+      y={y}
+      className="WorkspaceTreeContextMenu WorkspaceTreeBlankContextMenu WorkspaceTreeContextMenu--floating"
       data-file-tree-context-menu-root="true"
       role="menu"
-      style={{ left: x, top: y }}
     >
       <button
         type="button"
@@ -67,6 +69,6 @@ export default function WorkspaceTreeBlankContextMenu({
       >
         新建文件夹
       </button>
-    </div>
+    </FloatingContextMenuPortal>
   );
 }

@@ -77,6 +77,7 @@ const EXT_TO_LANGUAGE: Record<string, SourceLanguageId> = {
   csv: 'plain',
   ipynb: 'json',
   strudel: 'javascript',
+  p5: 'javascript',
 };
 
 const LANGUAGE_LABELS: Record<SourceLanguageId, string> = {
@@ -123,6 +124,12 @@ export function isStrudelPath(relativePath: string | null): boolean {
   if (!relativePath) return false;
   const base = relativePath.replace(/\/$/, '');
   return /\.strudel$/i.test(base);
+}
+
+export function isP5Path(relativePath: string | null): boolean {
+  if (!relativePath) return false;
+  const base = relativePath.replace(/\/$/, '');
+  return /\.p5$/i.test(base);
 }
 
 export function getSourceLanguageId(

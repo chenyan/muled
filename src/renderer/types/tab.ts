@@ -10,6 +10,7 @@ export type TabKind =
   | 'xlsx'
   | 'ipynb'
   | 'strudel'
+  | 'p5'
   | 'image'
   | 'pdf'
   | 'audio'
@@ -60,7 +61,8 @@ export function isEditableTextTab(tab: EditorTab): boolean {
     tab.kind === 'text' ||
     tab.kind === 'csv' ||
     tab.kind === 'ipynb' ||
-    tab.kind === 'strudel'
+    tab.kind === 'strudel' ||
+    tab.kind === 'p5'
   );
 }
 

@@ -11,7 +11,7 @@ import type {
   EditorViewMode,
   PublicConfig,
 } from '../../shared/types/config';
-import { isHtmlPath, isMarkdownPath, isStrudelPath } from '../lib/fileLanguage';
+import { isHtmlPath, isMarkdownPath, isP5Path, isStrudelPath } from '../lib/fileLanguage';
 import { arrayBufferToBase64, arrayBufferToDataUrl } from '../lib/dataUrl';
 import { getDocxEditorBuffer } from '../lib/editorDocxBridge';
 import { getXlsxEditorBuffer } from '../lib/editorXlsxBridge';
@@ -29,6 +29,7 @@ import {
   isXlsxPath,
 } from '../lib/mime';
 import keybindingModePatch from '../lib/keybindingMode';
+import { getEditorViewContent } from '../lib/editorViewBridge';
 import { pushStatusToast } from '../lib/statusToast';
 import {
   needsBinaryHydration,
@@ -209,6 +210,7 @@ async function loadFileIntoTab(
   const markdown = isMarkdownPath(relativePath);
   const html = isHtmlPath(relativePath);
   const strudel = isStrudelPath(relativePath);
+  const p5 = isP5Path(relativePath);
   const content = markdown
     ? exportWikiImagesFromMarkdown(file.content)
     : file.content;
@@ -218,13 +220,15 @@ async function loadFileIntoTab(
       ? 'ipynb'
       : strudel
         ? 'strudel'
-        : markdown
-          ? 'markdown'
-          : html
-            ? 'html'
-            : 'text';
+        : p5
+          ? 'p5'
+          : markdown
+            ? 'markdown'
+            : html
+              ? 'html'
+              : 'text';
   const viewMode: EditorViewMode =
-    csv || ipynb || html || strudel
+    csv || ipynb || html || strudel || p5
       ? 'preview'
       : markdown
         ? 'rich-text'
@@ -434,9 +438,12 @@ export function useEditorTabs(
       return { ok: true };
     }
 
-    await window.muled.file.write(tab.relativePath, tab.content);
+    const contentToSave = getEditorViewContent(tabId) ?? tab.content;
+    await window.muled.file.write(tab.relativePath, contentToSave);
     setTabs((prev) =>
-      prev.map((t) => (t.id === tabId ? { ...t, dirty: false } : t)),
+      prev.map((t) =>
+        t.id === tabId ? { ...t, content: contentToSave, dirty: false } : t,
+      ),
     );
     return { ok: true };
   }, []);
@@ -482,7 +489,8 @@ export function useEditorTabs(
           target.kind === 'docx' ||
           target.kind === 'csv' ||
           target.kind === 'ipynb' ||
-          target.kind === 'strudel'
+          target.kind === 'strudel' ||
+          target.kind === 'p5'
             ? target.viewMode
             : cfg.editor.default_view,
       } as const;
@@ -822,7 +830,8 @@ export function useEditorTabs(
                   ...(t.kind === 'markdown' ||
                   t.kind === 'html' ||
                   t.kind === 'ipynb' ||
-                  t.kind === 'strudel'
+                  t.kind === 'strudel' ||
+                  t.kind === 'p5'
                     ? { viewMode: 'source' as const }
                     : {}),
                 }
@@ -853,7 +862,8 @@ export function useEditorTabs(
           ...(loaded.kind === 'markdown' ||
           loaded.kind === 'html' ||
           loaded.kind === 'ipynb' ||
-          loaded.kind === 'strudel'
+          loaded.kind === 'strudel' ||
+          loaded.kind === 'p5'
             ? { viewMode: 'source' as const }
             : {}),
         };
@@ -981,6 +991,35 @@ export function useEditorTabs(
       });
     },
     [clearTabNavigation, ensureCanProceed],
+  );
+
+  const closeTabsForDeletedPath = useCallback(
+    async (deletedPath: string): Promise<boolean> => {
+      const matchesDeletedPath = (tab: EditorTab): boolean => {
+        if (!tab.relativePath) {
+          return false;
+        }
+        if (deletedPath.endsWith('/')) {
+          return (
+            tab.relativePath === deletedPath ||
+            tab.relativePath.startsWith(deletedPath)
+          );
+        }
+        return tab.relativePath === deletedPath;
+      };
+
+      const affected = tabsRef.current.filter(matchesDeletedPath);
+      for (const tab of affected) {
+        if (!(await ensureCanProceed(tab))) {
+          return false;
+        }
+      }
+      for (const tab of affected) {
+        await closeTab(tab.id);
+      }
+      return true;
+    },
+    [closeTab, ensureCanProceed],
   );
 
   const setActiveTab = useCallback(
@@ -1128,6 +1167,7 @@ export function useEditorTabs(
     navigateTabForward,
     addTab,
     closeTab,
+    closeTabsForDeletedPath,
     setActiveTab,
     setActiveTabInSplit,
     ensureCanProceed,

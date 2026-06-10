@@ -121,7 +121,7 @@ export default class WorkspaceService {
     }
     const stat = fs.statSync(absolutePath);
     if (stat.isDirectory()) {
-      fs.rmdirSync(absolutePath);
+      fs.rmSync(absolutePath, { recursive: true, force: true });
       return;
     }
     fs.unlinkSync(absolutePath);

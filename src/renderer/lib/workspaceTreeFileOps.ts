@@ -23,6 +23,31 @@ export function joinRelativePath(
   return isDirectory ? `${joined}/` : joined;
 }
 
+/** 删除目录时是否应一并从树状态中移除该路径（含子孙路径） */
+export function isPathUnderDeletedPath(
+  treePath: string,
+  deletedPath: string,
+): boolean {
+  if (treePath === deletedPath) {
+    return true;
+  }
+  if (!deletedPath.endsWith('/')) {
+    return false;
+  }
+  return treePath.startsWith(deletedPath);
+}
+
+/** 右键菜单项所在目录：文件夹用自身路径，文件用父目录 */
+export function resolveParentDirFromTreeItem(item: {
+  kind: 'directory' | 'file';
+  path: string;
+}): string {
+  if (item.kind === 'directory') {
+    return normalizeDirectoryPath(item.path);
+  }
+  return parentDirectoryPath(item.path);
+}
+
 /** 取当前选中的文件夹；若无选中文件夹则返回根目录 */
 export function resolveTargetDirectoryFromSelection(
   selectedPaths: readonly string[],

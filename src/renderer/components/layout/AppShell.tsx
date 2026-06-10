@@ -487,7 +487,8 @@ export default function AppShell() {
       tab.kind !== 'html' &&
       tab.kind !== 'csv' &&
       tab.kind !== 'ipynb' &&
-      tab.kind !== 'strudel'
+      tab.kind !== 'strudel' &&
+      tab.kind !== 'p5'
     ) {
       return;
     }
@@ -844,6 +845,7 @@ export default function AppShell() {
               /* openDirectoryGrid is sync-safe */
             });
           }}
+          onDeletePath={(path) => editor.closeTabsForDeletedPath(path)}
           onRevealInEditor={(item) => {
             const activeTab = editor.activeTab;
             const relativePath = activeTab?.relativePath;

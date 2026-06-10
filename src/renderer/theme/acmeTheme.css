@@ -18,6 +18,7 @@
 /* ── 全局：禁阴影 ── */
 [data-muled-ui-theme='acme'] .TabBar,
 [data-muled-ui-theme='acme'] .TabBar__tab,
+[data-muled-ui-theme='acme'] .TabBar__close,
 [data-muled-ui-theme='acme'] .TabBar__sidebarToggle,
 [data-muled-ui-theme='acme'] .TabBar__add,
 [data-muled-ui-theme='acme'] .TabBar__settings,
@@ -139,10 +140,27 @@
   box-shadow: none;
 }
 
-[data-muled-ui-theme='acme'] .TabBar__tab:not(.TabBar__tab--active)::after {
+[data-muled-ui-theme='acme'] .TabBar__tab:not(.TabBar__tab--active) .TabBar__label::after {
   content: ' |';
   color: #000;
   font-weight: normal;
+}
+
+[data-muled-ui-theme='acme'] .TabBar__close {
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  margin-left: 2px;
+  font-family: var(--muled-chrome-font);
+  font-size: 12px;
+  color: #000;
+  opacity: 1;
+  background: transparent;
+}
+
+[data-muled-ui-theme='acme'] .TabBar__close:hover {
+  background: var(--muled-hover);
+  color: #000;
 }
 
 [data-muled-ui-theme='acme'] .TabBar__sidebarToggle,
@@ -201,6 +219,19 @@
   font-family: var(--muled-chrome-font);
   border: 1px solid #000;
   background: var(--muled-chrome-bg);
+  color: #000;
+}
+
+[data-muled-ui-theme='acme'] .TabContent__paneClose {
+  border: 1px solid #000;
+  background: var(--muled-chrome-bg);
+  color: #000;
+  font-family: var(--muled-chrome-font);
+  font-size: 11px;
+}
+
+[data-muled-ui-theme='acme'] .TabContent__paneClose:hover {
+  background: var(--muled-hover);
   color: #000;
 }
 

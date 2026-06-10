@@ -8,6 +8,7 @@ const MARKDOWN_VIEW_MODE_CYCLE: EditorViewMode[] = [
 ];
 const HTML_VIEW_MODE_CYCLE: EditorViewMode[] = ['preview', 'source'];
 const STRUDEL_VIEW_MODE_CYCLE: EditorViewMode[] = ['preview', 'source'];
+const P5_VIEW_MODE_CYCLE: EditorViewMode[] = ['preview', 'source'];
 const CSV_VIEW_MODE_CYCLE: EditorViewMode[] = ['preview', 'source'];
 const IPYNB_VIEW_MODE_CYCLE: EditorViewMode[] = ['preview', 'source'];
 const DOCX_VIEW_MODE_CYCLE: EditorViewMode[] = ['rich-text', 'preview'];
@@ -37,7 +38,8 @@ export function nextViewModeForTab(
     tabKind === 'html' ||
     tabKind === 'csv' ||
     tabKind === 'ipynb' ||
-    tabKind === 'strudel'
+    tabKind === 'strudel' ||
+    tabKind === 'p5'
   ) {
     const cycle =
       tabKind === 'csv'
@@ -46,7 +48,9 @@ export function nextViewModeForTab(
           ? IPYNB_VIEW_MODE_CYCLE
           : tabKind === 'strudel'
             ? STRUDEL_VIEW_MODE_CYCLE
-            : HTML_VIEW_MODE_CYCLE;
+            : tabKind === 'p5'
+              ? P5_VIEW_MODE_CYCLE
+              : HTML_VIEW_MODE_CYCLE;
     const index = cycle.indexOf(current);
     if (index < 0) return 'preview';
     return cycle[(index + 1) % cycle.length];

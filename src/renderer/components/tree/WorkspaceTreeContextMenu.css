@@ -1,4 +1,4 @@
-.WorkspaceTreeBlankContextMenu {
+.WorkspaceTreeContextMenu--floating {
   position: fixed;
   z-index: 1050;
 }
@@ -83,6 +83,14 @@
 
 .WorkspaceTreeContextMenu__item:hover {
   background: var(--muled-surface-muted);
+}
+
+.WorkspaceTreeContextMenu__item--danger {
+  color: #c62828;
+}
+
+.WorkspaceTreeContextMenu__item--danger:hover {
+  background: rgba(198, 40, 40, 0.08);
 }
 
 .WorkspaceTreeContextMenu__separator {
