@@ -11,7 +11,6 @@ export interface MnotePanelViewProps {
   activeEntryId?: string | null;
   scrollToEntryId?: string | null;
   onEntryClick: (entry: MnoteEntry) => void;
-  onActiveEntryChange?: (entryId: string) => void;
 }
 
 export default function MnotePanelView({
@@ -21,10 +20,8 @@ export default function MnotePanelView({
   activeEntryId,
   scrollToEntryId,
   onEntryClick,
-  onActiveEntryChange,
 }: MnotePanelViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
   const doc = useMemo(() => parseMnoteDocument(content), [content]);
   const entries = doc?.entries ?? [];
 
@@ -37,33 +34,6 @@ export default function MnotePanelView({
     );
     card?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [scrollToEntryId]);
-
-  useEffect(() => {
-    const root = scrollRef.current;
-    if (!root || !onActiveEntryChange || entries.length === 0) {
-      return undefined;
-    }
-
-    observerRef.current?.disconnect();
-    const observer = new IntersectionObserver(
-      (records) => {
-        const visible = records
-          .filter((r) => r.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        const first = visible[0]?.target as HTMLElement | undefined;
-        const entryId = first?.dataset.mnoteEntryId;
-        if (entryId) onActiveEntryChange(entryId);
-      },
-      { root, threshold: 0.35 },
-    );
-
-    root.querySelectorAll('[data-mnote-entry-id]').forEach((el) => {
-      observer.observe(el);
-    });
-    observerRef.current = observer;
-
-    return () => observer.disconnect();
-  }, [entries, onActiveEntryChange]);
 
   const staleById = useMemo(() => {
     if (!sourceContent || sourceMissing) return new Map<string, boolean>();

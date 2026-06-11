@@ -71,7 +71,11 @@ import { editorPaneFontVars } from '../../lib/editorFontStyle';
 import { appendTextAtDocumentEnd } from '../../lib/appendTextAtDocumentEnd';
 import { registerEditorViewHandlers } from '../../lib/editorViewBridge';
 import { registerEditorOutlineHandlers } from '../../lib/editorOutlineBridge';
-import type { EditorTab } from '../../types/tab';
+import type {
+  EditorRevealTarget,
+  EditorTab,
+  PdfRevealTarget,
+} from '../../types/tab';
 import { isEditableTextTab, isSavableTab, tabLabel } from '../../types/tab';
 
 interface TabContentProps {
@@ -112,13 +116,15 @@ interface TabContentProps {
   activeMnoteEntryId?: string | null;
   scrollToMnoteEntryId?: string | null;
   onMnoteEntryClick?: (entry: MnoteEntry) => void;
-  onMnoteActiveEntryChange?: (entryId: string) => void;
+  onClearMnoteReveal?: () => void;
   onSourceVisibleLineChange?: (line: number) => void;
   onPdfPageChange?: (page: number) => void;
   mnoteSyncPaused?: boolean;
   onToggleMnoteSyncPause?: () => void;
   mnoteSourceContent?: string;
   mnoteSourceMissing?: boolean;
+  mnoteQuotePdfHighlight?: PdfRevealTarget | null;
+  mnoteQuoteEditorHighlight?: EditorRevealTarget | null;
 }
 
 export default function TabContent({
@@ -150,13 +156,15 @@ export default function TabContent({
   activeMnoteEntryId = null,
   scrollToMnoteEntryId = null,
   onMnoteEntryClick,
-  onMnoteActiveEntryChange,
+  onClearMnoteReveal,
   onSourceVisibleLineChange,
   onPdfPageChange,
   mnoteSyncPaused = false,
   onToggleMnoteSyncPause,
   mnoteSourceContent,
   mnoteSourceMissing = false,
+  mnoteQuotePdfHighlight = null,
+  mnoteQuoteEditorHighlight = null,
 }: TabContentProps) {
   const isPane = layout === 'pane';
   const mdxRef = useRef<MarkdownEditorHandle>(null);
@@ -821,7 +829,6 @@ export default function TabContent({
             activeEntryId={activeMnoteEntryId}
             scrollToEntryId={scrollToMnoteEntryId}
             onEntryClick={onMnoteEntryClick}
-            onActiveEntryChange={onMnoteActiveEntryChange}
           />
         ) : tab.kind === 'mnote' && !mnotePanelMode ? (
           <div
@@ -863,6 +870,8 @@ export default function TabContent({
             onRecordNote={onAppendMnote ? handlePdfRecordNote : undefined}
             onCopySelectionToOtherPane={onCopyPdfSelectionToOtherPane}
             onPdfPageChange={onPdfPageChange}
+            onPdfRevealComplete={onClearMnoteReveal}
+            mnoteQuoteHighlight={mnoteQuotePdfHighlight}
           />
         ) : tab.kind === 'pptx' ? (
           <PptxViewerView tab={tab} />
@@ -965,6 +974,8 @@ export default function TabContent({
                 keybindingMode={tab.keybindingMode}
                 readOnly={tab.truncated}
                 reveal={tab.reveal ?? null}
+                mnoteQuoteHighlight={mnoteQuoteEditorHighlight}
+                onRevealComplete={onClearMnoteReveal}
                 onChange={onContentChange}
                 onVisibleLineChange={
                   tab.kind === 'markdown' ? onSourceVisibleLineChange : undefined

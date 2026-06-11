@@ -156,6 +156,31 @@ export interface ResolvedMnoteReveal {
   pdfReveal: PdfRevealTarget | null;
 }
 
+/** 有 quote 的 PDF 笔记：返回当前页应显示的 bbox 高亮 */
+export function resolveMnoteQuotePdfHighlight(
+  entry: MnoteEntry,
+): PdfRevealTarget | null {
+  if (!entry.quote?.trim()) return null;
+  const parsed = parseMnoteLoc(entry.loc);
+  if (parsed?.type !== 'pdf' || !parsed.bbox) return null;
+  return {
+    id: entry.id,
+    page: parsed.page,
+    bbox: parsed.bbox,
+  };
+}
+
+/** 有 quote 的 Markdown 笔记：返回应高亮的行范围 */
+export function resolveMnoteQuoteEditorHighlight(
+  entry: MnoteEntry,
+  sourceContent: string,
+): EditorRevealTarget | null {
+  if (!entry.quote?.trim()) return null;
+  const resolved = resolveMnoteReveal(entry, sourceContent);
+  if (!resolved?.editorReveal) return null;
+  return { ...resolved.editorReveal, id: entry.id };
+}
+
 export function resolveMnoteReveal(
   entry: MnoteEntry,
   sourceContent: string,

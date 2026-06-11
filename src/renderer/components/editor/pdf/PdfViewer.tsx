@@ -18,7 +18,7 @@ import {
   ZoomMode,
   ZoomPluginPackage,
 } from '@embedpdf/plugin-zoom/react';
-import type { EditorTab } from '../../../types/tab';
+import type { EditorTab, PdfRevealTarget } from '../../../types/tab';
 import { tabLabel } from '../../../types/tab';
 import { usePdfEngine } from './PdfEngineProvider';
 import type {
@@ -41,6 +41,8 @@ interface PdfViewerProps {
   onRecordNote?: (request: PdfRecordNoteRequest) => void;
   onCopySelectionToOtherPane?: (text: string) => void;
   onPdfPageChange?: (page: number) => void;
+  onPdfRevealComplete?: () => void;
+  mnoteQuoteHighlight?: PdfRevealTarget | null;
 }
 
 export default function PdfViewer({
@@ -50,6 +52,8 @@ export default function PdfViewer({
   onRecordNote,
   onCopySelectionToOtherPane,
   onPdfPageChange,
+  onPdfRevealComplete,
+  mnoteQuoteHighlight = null,
 }: PdfViewerProps) {
   const { engine, isLoading, error } = usePdfEngine();
   const pdfBuffer = tab.pdfBuffer;
@@ -133,6 +137,7 @@ export default function PdfViewer({
                           <PdfMnoteScrollEffect
                             documentId={activeDocumentId}
                             reveal={tab.pdfReveal}
+                            onRevealComplete={onPdfRevealComplete}
                           />
                           {!tab.pdfReveal && tab.pdfLastPage ? (
                             <PdfScrollRestoreEffect
@@ -159,6 +164,7 @@ export default function PdfViewer({
                                 <PdfMnotePageHighlight
                                   pageIndex={pageIndex}
                                   reveal={tab.pdfReveal}
+                                  quoteHighlight={mnoteQuoteHighlight}
                                 />
                               </PagePointerProvider>
                             )}

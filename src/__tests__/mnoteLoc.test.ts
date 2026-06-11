@@ -49,12 +49,20 @@ describe('mnoteLoc', () => {
     expect(reveal?.bbox).toEqual([0, 0, 1, 1]);
   });
 
-  it('finds entry for markdown line', () => {
+  it('finds entry for markdown line when cursor is within range', () => {
     const entries: MnoteEntry[] = [
       { id: 'a', loc: 'lines=1-5', body: '' },
       { id: 'b', loc: 'lines=20-25', body: '' },
     ];
     expect(findEntryForMarkdownLine(entries, 22)?.id).toBe('b');
+  });
+
+  it('returns null for markdown line outside all entry ranges', () => {
+    const entries: MnoteEntry[] = [
+      { id: 'a', loc: 'lines=1-5', body: '' },
+      { id: 'b', loc: 'lines=20-25', body: '' },
+    ];
+    expect(findEntryForMarkdownLine(entries, 10)).toBeNull();
   });
 
   it('finds entry for pdf page', () => {
@@ -63,5 +71,10 @@ describe('mnoteLoc', () => {
       { id: 'b', loc: 'page=4; bbox=0,0,1,1', body: '' },
     ];
     expect(findEntryForPdfPage(entries, 4)?.id).toBe('b');
+  });
+
+  it('returns null for pdf page with no matching entry', () => {
+    const entries: MnoteEntry[] = [{ id: 'a', loc: 'page=1', body: '' }];
+    expect(findEntryForPdfPage(entries, 5)).toBeNull();
   });
 });

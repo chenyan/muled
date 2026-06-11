@@ -52,6 +52,26 @@ export function applyEditorReveal(
     return false;
   }
 
+  const range = revealRange(request, doc);
+  if (!range) return false;
+
+  view.dispatch({
+    selection: { anchor: range.from, head: range.to },
+    effects: [setRevealHighlight.of(range)],
+    scrollIntoView: true,
+  });
+  view.focus();
+  return true;
+}
+
+function revealRange(
+  request: EditorRevealRequest,
+  doc: EditorView['state']['doc'],
+): { from: number; to: number } | null {
+  if (request.line < 1 || request.line > doc.lines) {
+    return null;
+  }
+
   let from: number;
   let to: number;
 
@@ -67,15 +87,23 @@ export function applyEditorReveal(
     to = Math.min(from + Math.max(request.length, 1), line.to);
   }
 
-  if (from >= to) {
-    return false;
-  }
+  if (from >= to) return null;
+  return { from, to };
+}
 
+/** 仅高亮范围，不滚动、不移动选区 */
+export function applyEditorHighlight(
+  view: EditorView,
+  request: EditorRevealRequest,
+): boolean {
+  const range = revealRange(request, view.state.doc);
+  if (!range) return false;
   view.dispatch({
-    selection: { anchor: from, head: to },
-    effects: [setRevealHighlight.of({ from, to })],
-    scrollIntoView: true,
+    effects: [setRevealHighlight.of(range)],
   });
-  view.focus();
   return true;
+}
+
+export function clearEditorHighlight(view: EditorView): void {
+  view.dispatch({ effects: [setRevealHighlight.of(null)] });
 }

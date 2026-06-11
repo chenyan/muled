@@ -10,8 +10,10 @@ import {
 import type { EditorMode } from '../../../shared/types/config';
 import buildSourceCodeMirrorExtensions from '../../lib/codemirrorExtensions';
 import {
+  applyEditorHighlight,
   applyEditorReveal,
   buildEditorRevealExtension,
+  clearEditorHighlight,
   type EditorRevealRequest,
 } from '../../lib/editorReveal';
 import languageExtensionForId from '../../lib/codemirrorLanguage';
@@ -32,6 +34,8 @@ export interface SourceCodeEditorProps {
   keybindingMode: EditorMode;
   readOnly: boolean;
   reveal?: EditorRevealRequest | null;
+  mnoteQuoteHighlight?: EditorRevealRequest | null;
+  onRevealComplete?: () => void;
   onChange: (value: string) => void;
   onVisibleLineChange?: (line: number) => void;
 }
@@ -58,6 +62,8 @@ const SourceCodeEditor = forwardRef<
     keybindingMode,
     readOnly,
     reveal,
+    mnoteQuoteHighlight,
+    onRevealComplete,
     onChange,
     onVisibleLineChange,
   },
@@ -67,6 +73,9 @@ const SourceCodeEditor = forwardRef<
   const viewRef = useRef<EditorView | null>(null);
   const revealRef = useRef(reveal);
   revealRef.current = reveal;
+  const appliedRevealIdRef = useRef<string | null>(null);
+  const onRevealCompleteRef = useRef(onRevealComplete);
+  onRevealCompleteRef.current = onRevealComplete;
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const onVisibleLineChangeRef = useRef(onVisibleLineChange);
@@ -193,7 +202,13 @@ const SourceCodeEditor = forwardRef<
   }, [tabKey, extensions]);
 
   useEffect(() => {
-    if (!reveal) return undefined;
+    if (!reveal) {
+      appliedRevealIdRef.current = null;
+      return undefined;
+    }
+    if (appliedRevealIdRef.current === reveal.id) return undefined;
+    appliedRevealIdRef.current = reveal.id;
+
     let cancelled = false;
     let attempts = 0;
     const tryApply = () => {
@@ -205,12 +220,36 @@ const SourceCodeEditor = forwardRef<
         return;
       }
       applyEditorReveal(view, reveal);
+      onRevealCompleteRef.current?.();
     };
     tryApply();
     return () => {
       cancelled = true;
     };
   }, [reveal]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let attempts = 0;
+    const tryApply = () => {
+      if (cancelled || attempts > 12) return;
+      attempts += 1;
+      const view = viewRef.current;
+      if (!view) {
+        window.requestAnimationFrame(tryApply);
+        return;
+      }
+      if (!mnoteQuoteHighlight) {
+        clearEditorHighlight(view);
+        return;
+      }
+      applyEditorHighlight(view, mnoteQuoteHighlight);
+    };
+    tryApply();
+    return () => {
+      cancelled = true;
+    };
+  }, [mnoteQuoteHighlight]);
 
   return (
     <div className="MuledSourceEditor">

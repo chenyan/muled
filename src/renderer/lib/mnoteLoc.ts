@@ -118,26 +118,15 @@ export function findEntryForMarkdownLine(
   entries: MnoteEntry[],
   line: number,
 ): MnoteEntry | null {
-  let contained: MnoteEntry | null = null;
-  let nearest: MnoteEntry | null = null;
-  let nearestDist = Infinity;
-
   for (const entry of entries) {
     const parsed = parseMnoteLoc(entry.loc);
     if (parsed?.type !== 'md' || !parsed.lines) continue;
     const [start, end] = parsed.lines;
     if (line >= start && line <= end) {
-      contained = entry;
-      break;
-    }
-    const dist = line < start ? start - line : line - end;
-    if (dist < nearestDist) {
-      nearestDist = dist;
-      nearest = entry;
+      return entry;
     }
   }
-
-  return contained ?? nearest;
+  return null;
 }
 
 export function findEntryForPdfPage(
@@ -149,5 +138,5 @@ export function findEntryForPdfPage(
     return parsed?.type === 'pdf' && parsed.page === page;
   });
   if (onPage.length > 0) return onPage[0]!;
-  return entries.find((entry) => parseMnoteLoc(entry.loc)?.type === 'pdf') ?? null;
+  return null;
 }

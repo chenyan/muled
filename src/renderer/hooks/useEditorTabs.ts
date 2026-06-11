@@ -1258,6 +1258,16 @@ export function useEditorTabs(
     );
   }, []);
 
+  const clearMnoteRevealOnTab = useCallback((tabId: string) => {
+    setTabs((prev) =>
+      prev.map((t) => {
+        if (t.id !== tabId) return t;
+        if (!t.reveal && !t.pdfReveal) return t;
+        return { ...t, reveal: undefined, pdfReveal: undefined };
+      }),
+    );
+  }, []);
+
   const updateTabContent = useCallback((tabId: string, content: string) => {
     setTabs((prev) =>
       prev.map((t) => {
@@ -1326,6 +1336,7 @@ export function useEditorTabs(
     updateActiveContent,
     updateTabContent,
     setPdfLastPage,
+    clearMnoteRevealOnTab,
     setViewMode,
     setKeybindingMode,
     saveTab,
