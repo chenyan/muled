@@ -20,6 +20,7 @@ import {
   registerConfigWatcher,
   registerIpc,
   registerThemeWatcher,
+  registerWorkspaceWatcher,
   type MuledServices,
 } from './ipc/registerIpc';
 import MenuBuilder from './menu';
@@ -141,6 +142,7 @@ app
     registerIpc(services, () => mainWindow);
     registerThemeWatcher(services, () => mainWindow);
     registerConfigWatcher(services, () => mainWindow);
+    registerWorkspaceWatcher(services, () => mainWindow);
     createWindow();
     app.on('activate', () => {
       // On macOS it's common to re-create a window in the app when the

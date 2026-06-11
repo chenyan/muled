@@ -15,6 +15,7 @@
     "link-modules": "node -r ts-node/register ../../.erb/scripts/link-modules.ts"
   },
   "dependencies": {
-    "@duckdb/node-api": "^1.5.3-r.3"
+    "@duckdb/node-api": "^1.5.3-r.3",
+    "better-sqlite3": "^12.10.0"
   }
 }

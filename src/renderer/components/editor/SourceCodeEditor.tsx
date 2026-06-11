@@ -15,6 +15,7 @@ import {
   type EditorRevealRequest,
 } from '../../lib/editorReveal';
 import languageExtensionForId from '../../lib/codemirrorLanguage';
+import schemeStructuredEditing from '../../lib/scheme/schemeVimCoexist';
 import { buildCommonSourceUiExtensions } from '../../lib/codemirrorSetup';
 import { useSourceEditorTheme } from '../../hooks/useAppTheme';
 import { setActiveEditorSelection } from '../../lib/editorSelectionBridge';
@@ -32,6 +33,7 @@ export interface SourceCodeEditorProps {
   readOnly: boolean;
   reveal?: EditorRevealRequest | null;
   onChange: (value: string) => void;
+  onVisibleLineChange?: (line: number) => void;
 }
 
 export interface SourceCodeEditorHandle {
@@ -40,19 +42,35 @@ export interface SourceCodeEditorHandle {
   focus: () => void;
   getSelectionText: () => string;
   getSelectionRange: () => { from: number; to: number } | null;
+  getSelectionLines: () => { start: number; end: number };
+  getCursorLine: () => number;
 }
 
 const SourceCodeEditor = forwardRef<
   SourceCodeEditorHandle,
   SourceCodeEditorProps
 >(function SourceCodeEditor(
-  { tabId, tabKey, value, relativePath, keybindingMode, readOnly, reveal, onChange },
+  {
+    tabId,
+    tabKey,
+    value,
+    relativePath,
+    keybindingMode,
+    readOnly,
+    reveal,
+    onChange,
+    onVisibleLineChange,
+  },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const revealRef = useRef(reveal);
+  revealRef.current = reveal;
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const onVisibleLineChangeRef = useRef(onVisibleLineChange);
+  onVisibleLineChangeRef.current = onVisibleLineChange;
 
   const languageId = getSourceLanguageId(relativePath);
   const languageLabel = getSourceLanguageLabel(languageId);
@@ -92,6 +110,20 @@ const SourceCodeEditor = forwardRef<
       if (from === to) return null;
       return { from, to };
     },
+    getSelectionLines: () => {
+      const view = viewRef.current;
+      if (!view) return { start: 1, end: 1 };
+      const { from, to } = view.state.selection.main;
+      const start = view.state.doc.lineAt(from).number;
+      const end = view.state.doc.lineAt(to).number;
+      return { start, end: Math.max(start, end) };
+    },
+    getCursorLine: () => {
+      const view = viewRef.current;
+      if (!view) return 1;
+      const { from } = view.state.selection.main;
+      return view.state.doc.lineAt(from).number;
+    },
   }));
 
   const extensions = useMemo(() => {
@@ -101,6 +133,15 @@ const SourceCodeEditor = forwardRef<
       ...buildEditorRevealExtension(),
       ...buildCommonSourceUiExtensions(sourceTheme),
       EditorView.lineWrapping,
+      EditorView.domEventHandlers({
+        scroll(event, view) {
+          const scrollTop = (event.target as HTMLElement).scrollTop;
+          const block = view.lineBlockAtHeight(scrollTop + 24);
+          const line = view.state.doc.lineAt(block.from).number;
+          onVisibleLineChangeRef.current?.(line);
+          return false;
+        },
+      }),
       EditorView.updateListener.of((update) => {
         const { state, docChanged } = update;
         if (docChanged) {
@@ -115,9 +156,12 @@ const SourceCodeEditor = forwardRef<
         }
       }),
       ...(lang ? [lang] : []),
+      ...(languageId === 'scheme'
+        ? schemeStructuredEditing(keybindingMode)
+        : []),
       ...(readOnly ? [EditorState.readOnly.of(true)] : []),
     ];
-  }, [languageId, keybindingMode, readOnly, tabId, sourceTheme]);
+  }, [languageId, keybindingMode, readOnly, sourceTheme, tabId]);
 
   useEffect(() => {
     const parent = containerRef.current;
@@ -129,6 +173,15 @@ const SourceCodeEditor = forwardRef<
       state: EditorState.create({ doc: value, extensions }),
     });
     viewRef.current = view;
+    const pendingReveal = revealRef.current;
+    if (pendingReveal) {
+      window.requestAnimationFrame(() => {
+        const activeView = viewRef.current;
+        if (activeView && revealRef.current?.id === pendingReveal.id) {
+          applyEditorReveal(activeView, pendingReveal);
+        }
+      });
+    }
 
     return () => {
       view.destroy();
@@ -141,12 +194,22 @@ const SourceCodeEditor = forwardRef<
 
   useEffect(() => {
     if (!reveal) return undefined;
-    const view = viewRef.current;
-    if (!view) return undefined;
-    const id = window.requestAnimationFrame(() => {
+    let cancelled = false;
+    let attempts = 0;
+    const tryApply = () => {
+      if (cancelled || attempts > 12) return;
+      attempts += 1;
+      const view = viewRef.current;
+      if (!view) {
+        window.requestAnimationFrame(tryApply);
+        return;
+      }
       applyEditorReveal(view, reveal);
-    });
-    return () => window.cancelAnimationFrame(id);
+    };
+    tryApply();
+    return () => {
+      cancelled = true;
+    };
   }, [reveal]);
 
   return (

@@ -1,5 +1,6 @@
 module.exports = {
   extends: 'erb',
+  ignorePatterns: ['src/renderer/lib/scheme/lezer-scheme/parser.js', 'src/renderer/lib/scheme/lezer-scheme/parser.terms.js'],
   plugins: ['@typescript-eslint'],
   rules: {
     // A temporary hack related to IDE not resolving correct package.json

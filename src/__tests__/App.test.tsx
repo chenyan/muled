@@ -98,6 +98,7 @@ beforeEach(() => {
       getHistory: async () => ({ entries: [], pickerPaths: [] }),
       removeFromHistory: async () => ({ entries: [], pickerPaths: [] }),
       setPinned: async () => ({ entries: [], pickerPaths: [] }),
+      onFilesystemChanged: () => () => undefined,
     },
     file: {
       read: async () => ({
@@ -106,6 +107,10 @@ beforeEach(() => {
         fileSize: 7,
       }),
       readBinary: async () => ({ base64: '', mime: 'image/png' }),
+      readBinaryBuffer: async () => ({
+        data: new Uint8Array(0),
+        mime: 'application/pdf',
+      }),
       write: async () => ({ ok: true }),
       writeBinary: async () => ({ ok: true }),
     },
@@ -130,6 +135,32 @@ beforeEach(() => {
         rowCount: 0,
         truncated: false,
       }),
+      close: async () => ({ ok: true }),
+    },
+    sqlite: {
+      open: async () => ({ ok: true as const, tables: [], fileSize: 0 }),
+      query: async () => ({
+        ok: true as const,
+        kind: 'select' as const,
+        columns: [],
+        rows: [],
+        rowCount: 0,
+        truncated: false,
+      }),
+      listTables: async () => ({ ok: true as const, tables: [] }),
+      close: async () => ({ ok: true }),
+    },
+    duckdbFile: {
+      open: async () => ({ ok: true as const, tables: [], fileSize: 0 }),
+      query: async () => ({
+        ok: true as const,
+        kind: 'select' as const,
+        columns: [],
+        rows: [],
+        rowCount: 0,
+        truncated: false,
+      }),
+      listTables: async () => ({ ok: true as const, tables: [] }),
       close: async () => ({ ok: true }),
     },
     menu: {

@@ -41,7 +41,12 @@ import mdxEditorInlineMathPlugin from './inlineMath/mdxEditorInlineMathPlugin';
 import mdxEditorWikiImagePlugin from './mdxEditorWikiImagePlugin';
 import mdxEditorWikiVideoPlugin from './wikiVideo/mdxEditorWikiVideoPlugin';
 import WikiLinkPickerMenu from './WikiLinkPickerMenu';
-import MULED_CODE_BLOCK_DESCRIPTORS from './codeBlocks/muledCodeBlockDescriptors';
+import MULED_CODE_BLOCK_DESCRIPTORS, {
+  MULED_MNOTE_CODE_BLOCK_DESCRIPTORS,
+} from './codeBlocks/muledCodeBlockDescriptors';
+import './codeBlocks/MnoteEntryCodeBlockEditor.css';
+import { exportMnoteFromWysiwyg } from '../../lib/exportMnoteFromWysiwyg';
+import { prepareMnoteForWysiwyg } from '../../lib/prepareMnoteForWysiwyg';
 import MarkdownEditorErrorBoundary from './MarkdownEditorErrorBoundary';
 import { getWysiwygContentRoot } from '../../lib/wysiwygContentRoot';
 import {
@@ -50,11 +55,14 @@ import {
   type WysiwygSentenceSelection,
 } from '../../lib/wysiwygSentenceSelection';
 
+export type MarkdownEditorVariant = 'markdown' | 'mnote';
+
 export interface MarkdownEditorProps {
   tabKey: string;
   markdown: string;
   relativePath?: string | null;
   readOnly: boolean;
+  variant?: MarkdownEditorVariant;
   onChange: (markdown: string) => void;
   onOpenFile?: (relativePath: string) => void;
 }
@@ -75,9 +83,18 @@ export type MarkdownEditorHandle = MDXEditorMethods & {
 /** 仅 WYSIWYG；Source 由 {@link SourceCodeEditor} 按后缀高亮 */
 const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
   function MarkdownEditor(
-    { tabKey, markdown, relativePath, readOnly, onChange, onOpenFile },
+    {
+      tabKey,
+      markdown,
+      relativePath,
+      readOnly,
+      variant = 'markdown',
+      onChange,
+      onOpenFile,
+    },
     ref,
   ) {
+    const isMnote = variant === 'mnote';
     const innerRef = useRef<MDXEditorMethods>(null);
     const scrollHostRef = useRef<HTMLDivElement>(null);
     const documentRelativePathRef = useRef(relativePath);
@@ -115,10 +132,10 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
           if (!userEditedRef.current) {
             return originalMarkdownRef.current;
           }
-          return exportMarkdownFromWysiwyg(
-            editor.getMarkdown?.() ?? originalMarkdownRef.current,
-            originalMarkdownRef.current,
-          );
+          const raw = editor.getMarkdown?.() ?? originalMarkdownRef.current;
+          return isMnote
+            ? exportMnoteFromWysiwyg(raw, originalMarkdownRef.current)
+            : exportMarkdownFromWysiwyg(raw, originalMarkdownRef.current);
         },
         markUserEdited() {
           userEditedRef.current = true;
@@ -184,6 +201,10 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
       [],
     );
 
+    const codeBlockDescriptors = isMnote
+      ? MULED_MNOTE_CODE_BLOCK_DESCRIPTORS
+      : MULED_CODE_BLOCK_DESCRIPTORS;
+
     const plugins = useMemo(
       () => [
         headingsPlugin(),
@@ -198,18 +219,19 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
         markdownShortcutPlugin(),
         codeBlockPlugin({
           defaultCodeBlockLanguage: 'txt',
-          codeBlockEditorDescriptors: MULED_CODE_BLOCK_DESCRIPTORS,
+          codeBlockEditorDescriptors: codeBlockDescriptors,
         }),
         mdxEditorHtmlPlugin(),
         mdxEditorFaultTolerancePlugin(),
         mdxEditorInlineMathPlugin(),
       ],
-      [wikiImagePlugin, wikiVideoPlugin, imagePreviewHandler],
+      [codeBlockDescriptors, wikiImagePlugin, wikiVideoPlugin, imagePreviewHandler],
     );
 
     const prepareForEditor = useCallback(
-      (raw: string): string => prepareMarkdownForWysiwyg(raw),
-      [],
+      (raw: string): string =>
+        isMnote ? prepareMnoteForWysiwyg(raw) : prepareMarkdownForWysiwyg(raw),
+      [isMnote],
     );
 
     const finishHydration = useCallback(() => {
@@ -239,10 +261,15 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
           return;
         }
         onChangeRef.current(
-          exportMarkdownFromWysiwyg(nextMarkdown, originalMarkdownRef.current),
+          isMnote
+            ? exportMnoteFromWysiwyg(nextMarkdown, originalMarkdownRef.current)
+            : exportMarkdownFromWysiwyg(
+                nextMarkdown,
+                originalMarkdownRef.current,
+              ),
         );
       },
-      [scheduleHydrationFinish],
+      [isMnote, scheduleHydrationFinish],
     );
 
     const loadMarkdown = useCallback(
@@ -421,7 +448,14 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
     const editorKey = `${tabKey}:${editorEpoch}`;
 
     return (
-      <div ref={scrollHostRef} className="MuledMDXEditorHost">
+      <div
+        ref={scrollHostRef}
+        className={
+          isMnote
+            ? 'MuledMDXEditorHost MuledMDXEditorHost--mnote'
+            : 'MuledMDXEditorHost'
+        }
+      >
         <MarkdownEditorErrorBoundary onReset={handleEditorReset}>
           <MDXEditor
             key={editorKey}

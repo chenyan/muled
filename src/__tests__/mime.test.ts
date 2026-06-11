@@ -3,10 +3,12 @@ import {
   isCsvPath,
   isDirectoryPath,
   isDocxPath,
+  isDuckdbPath,
   isImagePath,
   isIpynbPath,
   isPdfPath,
   isPptxPath,
+  isSqlitePath,
   isVideoPath,
   isXlsxPath,
 } from '../renderer/lib/mime';
@@ -71,5 +73,19 @@ describe('mime', () => {
     expect(isXlsxPath('sales.XLSX')).toBe(true);
     expect(isXlsxPath('legacy.xls')).toBe(false);
     expect(isXlsxPath('readme.md')).toBe(false);
+  });
+
+  it('detects sqlite3 extension', () => {
+    expect(isSqlitePath('data/app.sqlite3')).toBe(true);
+    expect(isSqlitePath('APP.SQLITE3')).toBe(true);
+    expect(isSqlitePath('legacy.db')).toBe(false);
+    expect(isSqlitePath('readme.md')).toBe(false);
+  });
+
+  it('detects duckdb extension', () => {
+    expect(isDuckdbPath('data/app.duckdb')).toBe(true);
+    expect(isDuckdbPath('APP.DUCKDB')).toBe(true);
+    expect(isDuckdbPath('legacy.db')).toBe(false);
+    expect(isDuckdbPath('readme.md')).toBe(false);
   });
 });

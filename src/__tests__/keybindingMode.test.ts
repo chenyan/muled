@@ -37,6 +37,11 @@ describe('editorViewMode', () => {
     expect(nextViewModeForTab('docx', 'rich-text')).toBe('preview');
     expect(nextViewModeForTab('docx', 'preview')).toBe('rich-text');
   });
+
+  it('cycles mnote rich-text ↔ source', () => {
+    expect(nextViewModeForTab('mnote', 'rich-text')).toBe('source');
+    expect(nextViewModeForTab('mnote', 'source')).toBe('rich-text');
+  });
 });
 
 describe('keybindingModePatch', () => {

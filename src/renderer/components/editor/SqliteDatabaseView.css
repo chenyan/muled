@@ -1,0 +1,147 @@
+.SqliteDatabaseView {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.SqliteDatabaseView__toolbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--muled-border);
+}
+
+.SqliteDatabaseView__field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muled-text-muted);
+}
+
+.SqliteDatabaseView__field select {
+  min-width: 180px;
+  padding: 4px 8px;
+  border: 1px solid var(--muled-border);
+  border-radius: 4px;
+  background: var(--muled-bg);
+  color: var(--muled-text);
+  font-size: 13px;
+}
+
+.SqliteDatabaseView__refresh {
+  padding: 4px 10px;
+  border: 1px solid var(--muled-border);
+  border-radius: 4px;
+  background: var(--muled-bg);
+  color: var(--muled-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.SqliteDatabaseView__refresh:hover:not(:disabled) {
+  border-color: var(--muled-accent);
+  color: var(--muled-accent);
+}
+
+.SqliteDatabaseView__refresh:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.SqliteDatabaseView__sqlBar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--muled-border);
+  background: var(--muled-surface-muted, var(--muled-bg));
+}
+
+.SqliteDatabaseView__sql {
+  flex: 1;
+  min-height: 72px;
+  max-height: 120px;
+  resize: vertical;
+  padding: 8px 10px;
+  border: 1px solid var(--muled-border);
+  border-radius: 4px;
+  background: var(--muled-bg);
+  color: var(--muled-text);
+  font-family: var(--muled-font-mono, ui-monospace, monospace);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.SqliteDatabaseView__sql:focus {
+  outline: none;
+  border-color: var(--muled-accent);
+}
+
+.SqliteDatabaseView__run {
+  flex-shrink: 0;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--muled-border);
+  border-radius: 4px;
+  background: var(--muled-bg);
+  color: var(--muled-accent);
+  cursor: pointer;
+}
+
+.SqliteDatabaseView__run:hover:not(:disabled) {
+  border-color: var(--muled-accent);
+  background: var(--muled-hover);
+}
+
+.SqliteDatabaseView__run:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.SqliteDatabaseView__error {
+  flex-shrink: 0;
+  margin: 8px 12px 0;
+  color: var(--muled-danger, #c0392b);
+  font-size: 13px;
+}
+
+.SqliteDatabaseView__status {
+  flex-shrink: 0;
+  margin: 8px 12px 0;
+  color: var(--muled-text-muted);
+  font-size: 13px;
+}
+
+.SqliteDatabaseView__results {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 8px 12px 12px;
+}
+
+.SqliteDatabaseView__results > .CsvQueryResultGrid {
+  flex: 1;
+  min-height: 0;
+}
+
+.SqliteDatabaseView__placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muled-text-muted);
+  font-size: 13px;
+}

@@ -68,10 +68,21 @@ const muled = {
       invoke('workspace:removeFromHistory', args),
     setPinned: (args: { path: string; pinned: boolean }) =>
       invoke('workspace:setPinned', args),
+    onFilesystemChanged: (listener: () => void) => {
+      const handler = () => {
+        listener();
+      };
+      ipcRenderer.on('workspace:filesystemChanged', handler);
+      return () => {
+        ipcRenderer.removeListener('workspace:filesystemChanged', handler);
+      };
+    },
   },
   file: {
     read: (path: string) => invoke('file:read', { path }),
     readBinary: (path: string) => invoke('file:readBinary', { path }),
+    readBinaryBuffer: (path: string) =>
+      invoke('file:readBinaryBuffer', { path }),
     write: (path: string, content: string) =>
       invoke('file:write', { path, content }),
     writeBinary: (path: string, base64: string) =>
@@ -112,6 +123,24 @@ const muled = {
     query: (args: { sessionId: string; sql: string }) =>
       invoke('csv:query', args),
     close: (sessionId: string) => invoke('csv:close', { sessionId }),
+  },
+  sqlite: {
+    open: (args: { sessionId: string; path: string }) =>
+      invoke('sqlite:open', args),
+    query: (args: { sessionId: string; sql: string }) =>
+      invoke('sqlite:query', args),
+    listTables: (sessionId: string) =>
+      invoke('sqlite:listTables', { sessionId }),
+    close: (sessionId: string) => invoke('sqlite:close', { sessionId }),
+  },
+  duckdbFile: {
+    open: (args: { sessionId: string; path: string }) =>
+      invoke('duckdbFile:open', args),
+    query: (args: { sessionId: string; sql: string }) =>
+      invoke('duckdbFile:query', args),
+    listTables: (sessionId: string) =>
+      invoke('duckdbFile:listTables', { sessionId }),
+    close: (sessionId: string) => invoke('duckdbFile:close', { sessionId }),
   },
   menu: {
     onOpenTranslationHistory: (listener: (path: string) => void) => {

@@ -1,0 +1,56 @@
+.MnoteEntryCodeBlockEditor {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--muled-border);
+  border-radius: 8px;
+  background: var(--muled-surface);
+  outline: none;
+}
+
+.MnoteEntryCodeBlockEditor:focus-visible {
+  border-color: var(--muled-accent, #2563eb);
+  box-shadow: 0 0 0 1px var(--muled-accent, #2563eb);
+}
+
+/* WYSIWYG 笔记编辑区：与分屏卡片列表保持相同间距与层次 */
+.MuledMDXEditorHost--mnote {
+  padding: 12px;
+}
+
+.MuledMDXEditorHost--mnote .mdxeditor-root-contenteditable {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.MuledMDXEditorHost--mnote .MnoteEntryCodeBlockEditor {
+  margin-bottom: 0;
+}
+
+.MuledMDXEditorHost--mnote .mdxeditor blockquote {
+  margin: 0;
+  padding: 6px 10px;
+  border: none;
+  border-left: 3px solid var(--muled-border);
+  border-radius: 0;
+  color: var(--muled-muted);
+  font-size: 12px;
+  background: transparent;
+}
+
+.MuledMDXEditorHost--mnote .mdxeditor-root-contenteditable > p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.MuledMDXEditorHost--mnote .mdxeditor hr {
+  border: none;
+  height: 0;
+  margin: 0;
+}
+
+.MuledMDXEditorHost--mnote
+  [data-lexical-decorator='true']:has(.MnoteEntryCodeBlockEditor) {
+  margin: 0;
+}

@@ -1,9 +1,10 @@
 import type { Extension } from '@codemirror/state';
 import { EditorSelection, EditorState, Prec } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
-import { Vim, getCM, vim } from '@replit/codemirror-vim';
+import { vim } from '@replit/codemirror-vim';
 import type { EditorMode } from '../../shared/types/config';
 import { requestOpenCommandPalette } from './commandPaletteBridge';
+import { isVimInsertMode } from './vimInsertMode';
 
 /** 文档变短后钳制选区，避免 Vim BlockCursor 在 coordsForChar 时 IndexSizeError */
 function clampSelectionExtension(): Extension {
@@ -64,14 +65,6 @@ const SOURCE_BASE_EXTENSIONS: Extension[] = [
   clampSelectionAfterDocChange(),
   suppressMeasureIndexSizeError(),
 ];
-
-function isVimInsertMode(view: EditorView): boolean {
-  const cm = getCM(view);
-  if (!cm) return false;
-  // eslint-disable-next-line no-underscore-dangle -- @replit/codemirror-vim 公开 API
-  const vimState = Vim.maybeInitVimState_(cm);
-  return Boolean(vimState?.insertMode);
-}
 
 /** Normal 模式下 `:` 打开应用命令面板（替代 Vim 内置 ex 行） */
 function vimCommandPaletteKeymap(): Extension {

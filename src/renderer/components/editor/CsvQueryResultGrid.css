@@ -8,8 +8,60 @@
 
 .CsvQueryResultGrid__meta {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   font-size: 11px;
   color: var(--muled-fg-muted);
+}
+
+.CsvQueryResultGrid__pagination {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.CsvQueryResultGrid__pagination > [role='navigation'] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.CsvQueryResultGrid__pageBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--muled-border);
+  border-radius: 4px;
+  background: var(--muled-bg);
+  color: var(--muled-text);
+  cursor: pointer;
+}
+
+.CsvQueryResultGrid__autoPaginate {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.CsvQueryResultGrid__autoPaginate input {
+  accent-color: var(--muled-accent);
+}
+
+.CsvQueryResultGrid__pageBtn:hover:not(:disabled) {
+  border-color: var(--muled-accent);
+  color: var(--muled-accent);
+}
+
+.CsvQueryResultGrid__pageBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .CsvQueryResultGrid__grid {

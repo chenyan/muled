@@ -1,0 +1,123 @@
+// Scheme grammar for Lezer — R5RS/R6RS/R7RS superset with Chez {}, Racket #lang/#(,
+// Guile #:keywords, and common reader macros.
+@top Program { item* }
+
+item { expression | SpliceComment | LangDirective | ShebangDirective }
+
+@skip { whitespace | LineComment | BlockCommentText }
+
+expression {
+  BooleanToken |
+  Number |
+  String |
+  Character |
+  Symbol |
+  Keyword |
+  List |
+  SquareList |
+  CurlyList |
+  Vector |
+  ByteVector |
+  Quote |
+  Quasiquote |
+  Unquote |
+  UnquoteSplicing |
+  Syntax |
+  Quasisyntax |
+  Unsyntax |
+  UnsyntaxSplicing
+}
+
+List { "(" expression* ")" }
+SquareList { "[" expression* "]" }
+CurlyList { "{" expression* "}" }
+Vector { "#(" expression* ")" }
+ByteVector { "#vu8(" expression* ")" }
+
+Quote { "'" expression }
+Quasiquote { "`" expression }
+Unquote { "," expression }
+UnquoteSplicing { ",@" expression }
+Syntax { "#'" expression }
+Quasisyntax { "#`" expression }
+Unsyntax { "#," expression }
+UnsyntaxSplicing { "#,@" expression }
+
+Keyword { "#:" ident }
+
+LangDirective { LangLine }
+ShebangDirective { ShebangLine }
+
+SpliceComment { "#;" item }
+
+@tokens {
+  "(" ")" "[" "]" "{" "}"
+  "#(" "#vu8("
+  "#;" "#'" "#`" "#," "#,@"
+  "#:"
+
+  LangLine { "#lang" ![\n]* }
+  ShebangLine { "#!" ![\n]* }
+
+  "," ",@"
+  "'" "`"
+
+  whitespace { std.whitespace+ }
+
+  LineComment { ";" ![\n]* }
+
+  BlockCommentText { "#|" ![|#]* "|#" }
+
+  @precedence { Character, BooleanToken, Number, Symbol }
+
+  identStart {
+    std.asciiLetter |
+    $[!$%&*/:<=>?@^_~+-] |
+    $[\u{a1}-\u{10ff}]
+  }
+  identChar { identStart | std.digit | "." | "+" | "-" }
+  ident { identStart identChar* }
+
+  PipeSymbol { "|" (!["|\\] | "\\" _)* "|" }
+  Symbol { ident | PipeSymbol }
+
+  Number {
+    ("+" | "-")? (
+      ("#" $[bBoOdDxX]) ("#" $[iIeE])? |
+      ("#" $[iIeE]) ("#" $[bBoOdDxX])? |
+      ("#" $[bBoOdDxX])? ("#" $[iIeE])?
+    )? (
+      std.digit+ ("." std.digit*)? (
+        ("e" | "E" | "s" | "S" | "f" | "F" | "d" | "D" | "l" | "L")
+        ("+" | "-")?
+        std.digit+
+      )? |
+      std.digit+ "/" std.digit+ |
+      "0x" $[0-9a-fA-F]+ |
+      "0b" $[01]+ |
+      "0o" $[0-7]+ |
+      "inf.0" | "nan.0" |
+      std.digit+ "@" std.digit+ |
+      std.digit+ $[+-] std.digit* "i"
+    )
+  }
+
+  String { '"' StringContent? '"' }
+  StringContent { (!["] | "\\" _)+ }
+
+  unicodeChar {
+    "u" $[0-9a-fA-F] $[0-9a-fA-F] $[0-9a-fA-F] $[0-9a-fA-F] |
+    "x" $[0-9a-fA-F]+ ";"?
+  }
+  namedChar {
+    "space" | "newline" | "tab" | "return" | "backspace" | "formfeed" |
+    "alarm" | "delete" | "escape" | "null" | "linefeed" | "vtab" |
+    "page" | "esc" | "nul" | "bel" | "ls" | "nel" | "rubout" | "vt"
+  }
+  singleChar { ![\n] }
+  Character { "#\\" (namedChar | unicodeChar | singleChar) }
+
+  BooleanToken { "#t" | "#f" | "#T" | "#F" }
+}
+
+@detectDelim

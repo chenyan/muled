@@ -1,0 +1,72 @@
+.NoteRecordingOverlay {
+  position: fixed;
+  z-index: 1200;
+  width: min(400px, calc(100vw - 16px));
+  padding: 12px 14px;
+  border: 1px solid var(--muled-border);
+  border-radius: 10px;
+  background: var(--muled-surface);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+}
+
+.NoteRecordingOverlay__header {
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.NoteRecordingOverlay__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.NoteRecordingOverlay__label {
+  font-size: 11px;
+  color: var(--muled-muted);
+}
+
+.NoteRecordingOverlay__textarea,
+.NoteRecordingOverlay__input {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  border: 1px solid var(--muled-border);
+  border-radius: 6px;
+  background: var(--muled-bg);
+  color: inherit;
+  resize: vertical;
+}
+
+.NoteRecordingOverlay__textarea--quote {
+  font-family: var(--muled-editor-font-family, inherit);
+}
+
+.NoteRecordingOverlay__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.NoteRecordingOverlay__button {
+  padding: 4px 12px;
+  font-size: 12px;
+  border: 1px solid var(--muled-border);
+  border-radius: 6px;
+  background: var(--muled-surface);
+  cursor: pointer;
+}
+
+.NoteRecordingOverlay__button--primary {
+  border-color: var(--muled-accent, #2563eb);
+  background: var(--muled-accent, #2563eb);
+  color: #fff;
+}
+
+.NoteRecordingOverlay__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

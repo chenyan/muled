@@ -30,6 +30,7 @@ const EXT_TO_LANGUAGE: Record<string, SourceLanguageId> = {
   md: 'markdown',
   mdx: 'markdown',
   markdown: 'markdown',
+  mnote: 'markdown',
   js: 'javascript',
   mjs: 'javascript',
   cjs: 'javascript',

@@ -1,5 +1,6 @@
 import type { PdfOutlineItem } from '../../shared/types/ipc';
 import { getSourceLanguageId, type SourceLanguageId } from './fileLanguage';
+import parseSchemeOutline from './scheme/schemeOutline';
 import type { EditorTab } from '../types/tab';
 
 export interface SidebarOutlineItem {
@@ -196,6 +197,9 @@ function parseCodeSymbols(
   relativePath: string | null,
 ): SidebarOutlineItem[] {
   const languageId = getSourceLanguageId(relativePath);
+  if (languageId === 'scheme') {
+    return parseSchemeOutline(content);
+  }
   if (languageId === 'python') {
     return parseIndentCodeSymbols(content);
   }

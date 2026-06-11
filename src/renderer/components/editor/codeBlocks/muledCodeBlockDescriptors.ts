@@ -1,6 +1,7 @@
 import type { CodeBlockEditorDescriptor } from '@mdxeditor/editor';
 import MathCodeBlockEditor from './MathCodeBlockEditor';
 import MermaidCodeBlockEditor from './MermaidCodeBlockEditor';
+import MnoteEntryCodeBlockEditor from './MnoteEntryCodeBlockEditor';
 import PlainCodeBlockEditor from './PlainCodeBlockEditor';
 
 const MERMAID_DESCRIPTOR: CodeBlockEditorDescriptor = {
@@ -24,10 +25,23 @@ const PLAIN_FALLBACK_DESCRIPTOR: CodeBlockEditorDescriptor = {
   Editor: PlainCodeBlockEditor,
 };
 
+const MNOTE_ENTRY_DESCRIPTOR: CodeBlockEditorDescriptor = {
+  priority: 110,
+  match: (language) => language === 'mnote-entry',
+  Editor: MnoteEntryCodeBlockEditor,
+};
+
 const MULED_CODE_BLOCK_DESCRIPTORS: CodeBlockEditorDescriptor[] = [
+  MNOTE_ENTRY_DESCRIPTOR,
   MERMAID_DESCRIPTOR,
   MATH_DESCRIPTOR,
   PLAIN_FALLBACK_DESCRIPTOR,
 ];
 
+const MULED_MNOTE_CODE_BLOCK_DESCRIPTORS: CodeBlockEditorDescriptor[] = [
+  MNOTE_ENTRY_DESCRIPTOR,
+  PLAIN_FALLBACK_DESCRIPTOR,
+];
+
+export { MULED_MNOTE_CODE_BLOCK_DESCRIPTORS };
 export default MULED_CODE_BLOCK_DESCRIPTORS;

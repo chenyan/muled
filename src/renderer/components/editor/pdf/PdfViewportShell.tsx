@@ -7,6 +7,7 @@ import {
 import { usePan } from '@embedpdf/plugin-pan/react';
 import { Viewport, useViewportElement } from '@embedpdf/plugin-viewport/react';
 import PdfContextMenuHost, {
+  type PdfRecordNoteRequest,
   type PdfTranslateRequest,
 } from './PdfContextMenuHost';
 import PdfViewportContextMenuListener from './PdfViewportContextMenuListener';
@@ -15,6 +16,7 @@ interface PdfViewportShellProps {
   documentId: string;
   hasApiKey: boolean;
   onTranslate: (request: PdfTranslateRequest) => void;
+  onRecordNote?: (request: PdfRecordNoteRequest) => void;
   onCopySelectionToOtherPane?: (text: string) => void;
   children: ReactNode;
 }
@@ -58,6 +60,7 @@ export default function PdfViewportShell({
   documentId,
   hasApiKey,
   onTranslate,
+  onRecordNote,
   onCopySelectionToOtherPane,
   children,
 }: PdfViewportShellProps) {
@@ -89,6 +92,7 @@ export default function PdfViewportShell({
             documentId={documentId}
             hasApiKey={hasApiKey}
             onTranslate={onTranslate}
+            onRecordNote={onRecordNote}
             onCopySelectionToOtherPane={onCopySelectionToOtherPane}
           >
             <PdfViewportContextMenuListener />
@@ -109,6 +113,7 @@ export default function PdfViewportShell({
         documentId={documentId}
         hasApiKey={hasApiKey}
         onTranslate={onTranslate}
+        onRecordNote={onRecordNote}
         onCopySelectionToOtherPane={onCopySelectionToOtherPane}
       >
         <PdfViewportContextMenuListener />

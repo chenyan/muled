@@ -2,11 +2,14 @@ import type { EditorMode, EditorViewMode } from '../../shared/types/config';
 
 export type TabKind =
   | 'markdown'
+  | 'mnote'
   | 'html'
   | 'docx'
   | 'pptx'
   | 'text'
   | 'csv'
+  | 'sqlite3'
+  | 'duckdb'
   | 'xlsx'
   | 'ipynb'
   | 'strudel'
@@ -22,6 +25,14 @@ export interface EditorRevealTarget {
   line: number;
   column: number;
   length: number;
+  /** 多行高亮终止行（含） */
+  endLine?: number;
+}
+
+export interface PdfRevealTarget {
+  id: string;
+  page: number;
+  bbox?: [number, number, number, number];
 }
 
 export interface EditorTab {
@@ -37,8 +48,8 @@ export interface EditorTab {
   fileSize: number;
   /** 图片 Tab：data URL */
   imageSrc?: string;
-  /** PDF Tab：data URL */
-  pdfSrc?: string;
+  /** PDF Tab：原始字节（经 IPC 传入，避免 base64 data URL） */
+  pdfBuffer?: ArrayBuffer;
   /** 音频 Tab：data URL */
   audioSrc?: string;
   /** 视频 Tab：data URL */
@@ -51,12 +62,17 @@ export interface EditorTab {
   xlsxSrc?: string;
   /** 打开后定位并高亮匹配 */
   reveal?: EditorRevealTarget;
+  /** PDF 笔记定位：页码 + 可选归一化 bbox */
+  pdfReveal?: PdfRevealTarget;
+  /** PDF 上次阅读页码（1-based），用于重挂载后恢复位置 */
+  pdfLastPage?: number;
 }
 
 /** 可在编辑器中修改并保存的文本类 Tab */
 export function isEditableTextTab(tab: EditorTab): boolean {
   return (
     tab.kind === 'markdown' ||
+    tab.kind === 'mnote' ||
     tab.kind === 'html' ||
     tab.kind === 'text' ||
     tab.kind === 'csv' ||

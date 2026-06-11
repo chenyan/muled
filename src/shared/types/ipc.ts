@@ -4,6 +4,11 @@ import type { DetectToolsResult } from './tools';
 import type { ResolvedThemeConfig, ThemeConfig } from './theme';
 import type { SearchStartResult } from './search';
 import type { CsvQueryResponse, CsvRegisterResponse } from './csvQuery';
+import type {
+  SqliteListTablesResponse,
+  SqliteOpenResponse,
+  SqliteQueryResponse,
+} from './sqliteQuery';
 import type { WorkspaceHistoryInfo } from './workspaceHistory';
 
 export interface FileReadResult {
@@ -14,6 +19,12 @@ export interface FileReadResult {
 
 export interface FileReadBinaryResult {
   base64: string;
+  mime: string;
+}
+
+/** PDF 等大二进制：经 IPC 结构化克隆传输，避免 base64 膨胀与解码 */
+export interface FileReadBinaryBufferResult {
+  data: Uint8Array;
   mime: string;
 }
 
@@ -68,6 +79,7 @@ export type IpcChannel =
   | 'workspace:pdfOutline'
   | 'file:read'
   | 'file:readBinary'
+  | 'file:readBinaryBuffer'
   | 'file:write'
   | 'file:writeBinary'
   | 'ai:complete'
@@ -77,7 +89,15 @@ export type IpcChannel =
   | 'shell:openExternal'
   | 'csv:register'
   | 'csv:query'
-  | 'csv:close';
+  | 'csv:close'
+  | 'sqlite:open'
+  | 'sqlite:query'
+  | 'sqlite:listTables'
+  | 'sqlite:close'
+  | 'duckdbFile:open'
+  | 'duckdbFile:query'
+  | 'duckdbFile:listTables'
+  | 'duckdbFile:close';
 
 export interface WysiwygCssResult {
   css: string;
@@ -161,6 +181,10 @@ export interface IpcInvokeMap {
     args: { path: string };
     result: FileReadBinaryResult;
   };
+  'file:readBinaryBuffer': {
+    args: { path: string };
+    result: FileReadBinaryBufferResult;
+  };
   'file:write': {
     args: { path: string; content: string };
     result: { ok: boolean };
@@ -201,6 +225,38 @@ export interface IpcInvokeMap {
     result: CsvQueryResponse;
   };
   'csv:close': {
+    args: { sessionId: string };
+    result: { ok: boolean };
+  };
+  'sqlite:open': {
+    args: { sessionId: string; path: string };
+    result: SqliteOpenResponse;
+  };
+  'sqlite:query': {
+    args: { sessionId: string; sql: string };
+    result: SqliteQueryResponse;
+  };
+  'sqlite:listTables': {
+    args: { sessionId: string };
+    result: SqliteListTablesResponse;
+  };
+  'sqlite:close': {
+    args: { sessionId: string };
+    result: { ok: boolean };
+  };
+  'duckdbFile:open': {
+    args: { sessionId: string; path: string };
+    result: SqliteOpenResponse;
+  };
+  'duckdbFile:query': {
+    args: { sessionId: string; sql: string };
+    result: SqliteQueryResponse;
+  };
+  'duckdbFile:listTables': {
+    args: { sessionId: string };
+    result: SqliteListTablesResponse;
+  };
+  'duckdbFile:close': {
     args: { sessionId: string };
     result: { ok: boolean };
   };

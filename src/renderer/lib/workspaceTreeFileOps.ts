@@ -61,6 +61,18 @@ export function resolveTargetDirectoryFromSelection(
   return '';
 }
 
+export function diffDirectoryChildren(
+  previousChildren: readonly string[],
+  nextChildren: readonly string[],
+): { added: string[]; removed: string[] } {
+  const previousSet = new Set(previousChildren);
+  const nextSet = new Set(nextChildren);
+  return {
+    added: nextChildren.filter((path) => !previousSet.has(path)),
+    removed: previousChildren.filter((path) => !nextSet.has(path)),
+  };
+}
+
 export function uniqueSiblingBasename(
   siblingPaths: readonly string[],
   baseName: string,

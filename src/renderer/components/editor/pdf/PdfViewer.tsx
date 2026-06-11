@@ -21,9 +21,16 @@ import {
 import type { EditorTab } from '../../../types/tab';
 import { tabLabel } from '../../../types/tab';
 import { usePdfEngine } from './PdfEngineProvider';
-import type { PdfTranslateRequest } from './PdfContextMenuHost';
+import type {
+  PdfRecordNoteRequest,
+  PdfTranslateRequest,
+} from './PdfContextMenuHost';
 import PdfPageToolbar from './PdfPageToolbar';
 import PdfToolModeToolbar from './PdfToolModeToolbar';
+import PdfMnotePageHighlight from './PdfMnotePageHighlight';
+import PdfMnoteScrollEffect from './PdfMnoteScrollEffect';
+import PdfPageSyncListener from './PdfPageSyncListener';
+import PdfScrollRestoreEffect from './PdfScrollRestoreEffect';
 import PdfViewportShell from './PdfViewportShell';
 import PdfZoomToolbar from './PdfZoomToolbar';
 
@@ -31,28 +38,35 @@ interface PdfViewerProps {
   tab: EditorTab;
   hasApiKey: boolean;
   onTranslate: (request: PdfTranslateRequest) => void;
+  onRecordNote?: (request: PdfRecordNoteRequest) => void;
   onCopySelectionToOtherPane?: (text: string) => void;
+  onPdfPageChange?: (page: number) => void;
 }
 
 export default function PdfViewer({
   tab,
   hasApiKey,
   onTranslate,
+  onRecordNote,
   onCopySelectionToOtherPane,
+  onPdfPageChange,
 }: PdfViewerProps) {
   const { engine, isLoading, error } = usePdfEngine();
-  const pdfSrc = tab.pdfSrc;
+  const pdfBuffer = tab.pdfBuffer;
   const name = tab.relativePath ? tabLabel(tab) : 'document.pdf';
 
   const plugins = useMemo(() => {
-    if (!pdfSrc) return [];
+    if (!pdfBuffer) return [];
     return [
       createPluginRegistration(DocumentManagerPluginPackage, {
-        initialDocuments: [{ url: pdfSrc, name }],
+        initialDocuments: [{ buffer: pdfBuffer, name }],
       }),
       createPluginRegistration(InteractionManagerPluginPackage),
       createPluginRegistration(ViewportPluginPackage),
-      createPluginRegistration(ScrollPluginPackage),
+      createPluginRegistration(ScrollPluginPackage, {
+        // 首屏仅渲染可见页 + 1 页缓冲，加快首页出现
+        defaultBufferSize: 1,
+      }),
       createPluginRegistration(RenderPluginPackage),
       createPluginRegistration(SelectionPluginPackage, {
         marquee: { enabled: false },
@@ -63,9 +77,9 @@ export default function PdfViewer({
         defaultZoomLevel: ZoomMode.FitWidth,
       }),
     ];
-  }, [pdfSrc, name]);
+  }, [pdfBuffer, name]);
 
-  if (!pdfSrc) {
+  if (!pdfBuffer) {
     return (
       <div className="PdfPreview PdfPreview--loading">
         {tab.relativePath ? '正在加载 PDF…' : '无法加载 PDF'}
@@ -90,7 +104,7 @@ export default function PdfViewer({
   return (
     <div className="PdfPreview">
       <div className="PdfPreview__viewport">
-        <EmbedPDF key={pdfSrc} engine={engine} plugins={plugins}>
+        <EmbedPDF key={tab.id} engine={engine} plugins={plugins}>
           {({ activeDocumentId }) =>
             activeDocumentId ? (
               <div className="PdfPreview__embed">
@@ -109,8 +123,23 @@ export default function PdfViewer({
                           documentId={activeDocumentId}
                           hasApiKey={hasApiKey}
                           onTranslate={onTranslate}
+                          onRecordNote={onRecordNote}
                           onCopySelectionToOtherPane={onCopySelectionToOtherPane}
                         >
+                          <PdfPageSyncListener
+                            documentId={activeDocumentId}
+                            onPageChange={onPdfPageChange}
+                          />
+                          <PdfMnoteScrollEffect
+                            documentId={activeDocumentId}
+                            reveal={tab.pdfReveal}
+                          />
+                          {!tab.pdfReveal && tab.pdfLastPage ? (
+                            <PdfScrollRestoreEffect
+                              documentId={activeDocumentId}
+                              page={tab.pdfLastPage}
+                            />
+                          ) : null}
                           <Scroller
                             documentId={activeDocumentId}
                             renderPage={({ pageIndex }) => (
@@ -121,10 +150,15 @@ export default function PdfViewer({
                                 <RenderLayer
                                   documentId={activeDocumentId}
                                   pageIndex={pageIndex}
+                                  dpr={1}
                                 />
                                 <SelectionLayer
                                   documentId={activeDocumentId}
                                   pageIndex={pageIndex}
+                                />
+                                <PdfMnotePageHighlight
+                                  pageIndex={pageIndex}
+                                  reveal={tab.pdfReveal}
                                 />
                               </PagePointerProvider>
                             )}

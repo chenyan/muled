@@ -17,10 +17,10 @@ import { xml } from '@codemirror/lang-xml';
 import { yaml } from '@codemirror/lang-yaml';
 import { StreamLanguage } from '@codemirror/language';
 import { scala } from '@codemirror/legacy-modes/mode/clike';
-import { scheme } from '@codemirror/legacy-modes/mode/scheme';
 import { stex } from '@codemirror/legacy-modes/mode/stex';
 import type { Extension } from '@codemirror/state';
 import orgMode from './codemirrorOrgMode';
+import schemeLanguage from './scheme/schemeLanguage';
 import type { SourceLanguageId } from './fileLanguage';
 
 export default function languageExtensionForId(
@@ -72,7 +72,7 @@ export default function languageExtensionForId(
     case 'org':
       return orgMode();
     case 'scheme':
-      return StreamLanguage.define(scheme);
+      return schemeLanguage();
     case 'scala':
       return StreamLanguage.define(scala);
     case 'plain':

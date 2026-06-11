@@ -1,0 +1,70 @@
+.MnotePanelView {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.MnotePanelView--empty {
+  align-items: center;
+  justify-content: center;
+  color: var(--muled-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.MnotePanelView__hint {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.MnotePanelView__card {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  border: 1px solid var(--muled-border);
+  border-radius: 8px;
+  background: var(--muled-surface);
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.MnotePanelView__card:hover {
+  border-color: var(--muled-accent, #2563eb);
+}
+
+.MnotePanelView__card--active {
+  border-color: var(--muled-accent, #2563eb);
+  box-shadow: 0 0 0 1px var(--muled-accent, #2563eb);
+}
+
+.MnoteEntryMeta__loc {
+  margin-bottom: 6px;
+}
+
+.MnotePanelView__orphanBanner {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--muled-warning-fg, #92400e);
+  background: var(--muled-warning-bg, #fef3c7);
+  border: 1px solid var(--muled-warning-border, #fcd34d);
+  border-radius: 8px;
+}
+
+.MnotePanelView__staleBadge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--muled-warning-fg, #92400e);
+  background: var(--muled-warning-bg, #fef3c7);
+}
+
+.MnotePanelView__card--stale {
+  border-style: dashed;
+}

@@ -37,6 +37,16 @@ import { getActiveEditorSelection } from '../../lib/editorSelectionBridge';
 import { runPaletteCommand } from '../../lib/runPaletteCommand';
 import { getCdPaletteCompletion } from '../../../shared/paletteAutoCompletion';
 import { pushStatusToast } from '../../lib/statusToast';
+import { appendMnoteEntry } from '../../lib/mnoteService';
+import { companionMnotePath } from '../../lib/mnotePath';
+import {
+  findEntryForMarkdownLine,
+  findEntryForPdfPage,
+} from '../../lib/mnoteLoc';
+import { parseMnoteDocument, type MnoteEntry } from '../../lib/mnoteFormat';
+import { resolveMnoteSplitPair } from '../../lib/mnoteSplitPair';
+import { handleWorkspacePathRenamed as syncMnoteOnWorkspacePathRenamed } from '../../lib/mnoteCompanionSync';
+import { inferSourcePathFromMnotePath } from '../../lib/mnoteCompanionSync';
 import { isEditableTextTab, type EditorTab } from '../../types/tab';
 import TabBar from '../tabs/TabBar';
 import PdfEngineProvider from '../editor/pdf/PdfEngineProvider';
@@ -52,6 +62,7 @@ import type { PdfOutlineItem } from '../../../shared/types/ipc';
 import { getEditorOutlineHandlers } from '../../lib/editorOutlineBridge';
 import {
   splitPaneTabId,
+  splitSurvivorPane,
   tabBarActiveTabId,
   tabsForTabBar,
   type SplitPaneId,
@@ -115,10 +126,11 @@ export default function AppShell() {
     setTreeRevealRequest({ treePath, nonce: Date.now() });
   }, []);
 
-  const hasPdfTab = useMemo(
-    () => editor.tabs.some((t) => t.kind === 'pdf'),
-    [editor.tabs],
-  );
+  const [splitCollapsePreserve, setSplitCollapsePreserve] = useState<{
+    pane: SplitPaneId;
+    tabId: string;
+    direction: 'horizontal' | 'vertical';
+  } | null>(null);
 
   const handleSwitchWorkspace = useCallback(
     async (targetPath: string) => {
@@ -129,6 +141,7 @@ export default function AppShell() {
         await workspace.cd(targetPath);
         editor.initFromConfig(config);
         clearSplit();
+        setSplitCollapsePreserve(null);
         resetTreeSelection();
         pushStatusToast(`工作区: ${targetPath}`, 'success');
       } catch (err) {
@@ -423,6 +436,7 @@ export default function AppShell() {
           }
         }
         clearSplit();
+        setSplitCollapsePreserve(null);
       }
       editor.setActiveTab(tabId);
     },
@@ -435,9 +449,19 @@ export default function AppShell() {
       const closedTabId = splitPaneTabId(split, pane);
       const closedTab = editor.tabs.find((t) => t.id === closedTabId);
       const survivorId = getSurvivorTabIdAfterClosePane(split, pane);
+      const survivorPane = splitSurvivorPane(pane);
       const closePaneOnlyTab = (split.paneOnlyTabIds ?? []).includes(closedTabId);
       void (async () => {
         if (!(await editor.ensureCanProceed(closedTab))) return;
+        if (survivorPane !== 'primary') {
+          setSplitCollapsePreserve({
+            pane: survivorPane,
+            tabId: survivorId,
+            direction: split.direction,
+          });
+        } else {
+          setSplitCollapsePreserve(null);
+        }
         clearSplit();
         editor.setActiveTabInSplit(survivorId);
         if (closePaneOnlyTab) {
@@ -447,6 +471,19 @@ export default function AppShell() {
     },
     [clearSplit, editor, getSurvivorTabIdAfterClosePane, split],
   );
+
+  useEffect(() => {
+    if (split) {
+      setSplitCollapsePreserve(null);
+    }
+  }, [split]);
+
+  useEffect(() => {
+    if (!splitCollapsePreserve) return;
+    if (editor.activeTabId !== splitCollapsePreserve.tabId) {
+      setSplitCollapsePreserve(null);
+    }
+  }, [editor.activeTabId, splitCollapsePreserve]);
 
   const notifySaveFailure = useCallback((reason: string) => {
     if (reason === 'truncated') {
@@ -616,6 +653,207 @@ export default function AppShell() {
     ['--app-sidebar-width' as string]: `${sidebarWidth}px`,
   } as CSSProperties;
 
+  const handleAppendMnote = useCallback(
+    async (
+      sourcePath: string,
+      input: Parameters<typeof appendMnoteEntry>[1],
+    ) => {
+      try {
+        const { mnotePath, content } = await appendMnoteEntry(sourcePath, input);
+        const openTab = editor.tabs.find((t) => t.relativePath === mnotePath);
+        if (openTab) {
+          editor.updateTabContent(openTab.id, content);
+        }
+        pushStatusToast('笔记已保存', 'success');
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        pushStatusToast(`保存笔记失败: ${message}`, 'error');
+        throw err;
+      }
+    },
+    [editor],
+  );
+
+  const handleOpenMnoteSplit = useCallback(
+    (sourcePath: string) => {
+      const mnotePath = companionMnotePath(sourcePath);
+      editor
+        .openPathInSplit(mnotePath, 'right', split, assignSplit)
+        .catch(() => undefined);
+    },
+    [assignSplit, editor, split],
+  );
+
+  const [mnoteSyncState, setMnoteSyncState] = useState<{
+    activeEntryId: string | null;
+    scrollToEntryId: string | null;
+  }>({ activeEntryId: null, scrollToEntryId: null });
+  const mnoteSyncLockRef = useRef(false);
+  const [mnoteSyncPaused, setMnoteSyncPaused] = useState(false);
+  const [mnoteSourceExists, setMnoteSourceExists] = useState(true);
+
+  const primarySplitTab = split
+    ? (editor.tabs.find((t) => t.id === split.primaryTabId) ?? null)
+    : null;
+  const secondarySplitTab = split
+    ? (editor.tabs.find((t) => t.id === split.secondaryTabId) ?? null)
+    : null;
+  const mnoteSplitPair = resolveMnoteSplitPair(primarySplitTab, secondarySplitTab);
+
+  const mnoteEntries: MnoteEntry[] = mnoteSplitPair
+    ? (parseMnoteDocument(mnoteSplitPair.mnote.content)?.entries ?? [])
+    : [];
+
+  useEffect(() => {
+    if (!mnoteSplitPair?.mnote.relativePath) {
+      setMnoteSourceExists(true);
+      return undefined;
+    }
+    const doc = parseMnoteDocument(mnoteSplitPair.mnote.content);
+    const sourcePath =
+      doc?.source ??
+      inferSourcePathFromMnotePath(mnoteSplitPair.mnote.relativePath);
+    let cancelled = false;
+    window.muled.workspace
+      .exists(sourcePath)
+      .then((result) => {
+        if (!cancelled) setMnoteSourceExists(result.exists);
+      })
+      .catch(() => {
+        if (!cancelled) setMnoteSourceExists(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    mnoteSplitPair?.mnote.content,
+    mnoteSplitPair?.mnote.relativePath,
+  ]);
+
+  const handleMnoteEntryClick = useCallback(
+    (entry: MnoteEntry) => {
+      if (!mnoteSplitPair) return;
+      focusSplitPane(mnoteSplitPair.sourcePane);
+      editor.setActiveTabInSplit(mnoteSplitPair.source.id);
+      mnoteSyncLockRef.current = true;
+      setMnoteSyncState({
+        activeEntryId: entry.id,
+        scrollToEntryId: null,
+      });
+      const sourceContent =
+        getEditorViewContent(mnoteSplitPair.source.id) ??
+        mnoteSplitPair.source.content;
+      editor.revealMnoteEntryOnTab(
+        mnoteSplitPair.source.id,
+        entry,
+        sourceContent,
+      );
+      window.setTimeout(() => {
+        mnoteSyncLockRef.current = false;
+      }, 400);
+    },
+    [editor, focusSplitPane, mnoteSplitPair],
+  );
+
+  const handleMnoteActiveEntryChange = useCallback(
+    (entryId: string) => {
+      if (
+        !mnoteSplitPair ||
+        mnoteSyncLockRef.current ||
+        mnoteSyncPaused
+      ) {
+        return;
+      }
+      const entry = mnoteEntries.find((e) => e.id === entryId);
+      if (!entry) return;
+      mnoteSyncLockRef.current = true;
+      setMnoteSyncState((prev) => ({
+        ...prev,
+        activeEntryId: entryId,
+      }));
+      const sourceContent =
+        getEditorViewContent(mnoteSplitPair.source.id) ??
+        mnoteSplitPair.source.content;
+      editor.revealMnoteEntryOnTab(
+        mnoteSplitPair.source.id,
+        entry,
+        sourceContent,
+      );
+      window.setTimeout(() => {
+        mnoteSyncLockRef.current = false;
+      }, 400);
+    },
+    [editor, mnoteEntries, mnoteSplitPair],
+  );
+
+  const handleSourceVisibleLineChange = useCallback(
+    (line: number) => {
+      if (!mnoteSplitPair || mnoteSyncLockRef.current || mnoteSyncPaused) return;
+      const entry = findEntryForMarkdownLine(mnoteEntries, line);
+      if (!entry || entry.id === mnoteSyncState.activeEntryId) return;
+      setMnoteSyncState({
+        activeEntryId: entry.id,
+        scrollToEntryId: entry.id,
+      });
+    },
+    [mnoteEntries, mnoteSplitPair, mnoteSyncState.activeEntryId],
+  );
+
+  const handlePdfTabPageChange = useCallback(
+    (tabId: string, page: number) => {
+      editor.setPdfLastPage(tabId, page);
+    },
+    [editor],
+  );
+
+  const handlePdfPageChange = useCallback(
+    (page: number) => {
+      if (!mnoteSplitPair || mnoteSyncLockRef.current || mnoteSyncPaused) return;
+      const entry = findEntryForPdfPage(mnoteEntries, page);
+      if (!entry || entry.id === mnoteSyncState.activeEntryId) return;
+      setMnoteSyncState({
+        activeEntryId: entry.id,
+        scrollToEntryId: entry.id,
+      });
+    },
+    [mnoteEntries, mnoteSplitPair, mnoteSyncState.activeEntryId, mnoteSyncPaused],
+  );
+
+  useEffect(() => {
+    if (!mnoteSplitPair) {
+      setMnoteSyncState({ activeEntryId: null, scrollToEntryId: null });
+    }
+  }, [mnoteSplitPair?.mnote.id, mnoteSplitPair?.source.id]);
+
+  useEffect(() => {
+    if (!mnoteSyncState.scrollToEntryId) return undefined;
+    const id = window.setTimeout(() => {
+      setMnoteSyncState((prev) => ({ ...prev, scrollToEntryId: null }));
+    }, 600);
+    return () => window.clearTimeout(id);
+  }, [mnoteSyncState.scrollToEntryId]);
+
+  const handleWorkspacePathRenamed = useCallback(
+    (from: string, to: string) => {
+      const fromMnote = from.endsWith('/') ? null : companionMnotePath(from);
+      const openMnoteTab = fromMnote
+        ? editor.tabs.find((t) => t.relativePath === fromMnote)
+        : undefined;
+
+      editor.remapTabsForPathRename(from, to);
+      syncMnoteOnWorkspacePathRenamed(from, to)
+        .then(() => {
+          if (!openMnoteTab || from.endsWith('/')) return undefined;
+          const toMnote = companionMnotePath(to);
+          return window.muled.file.read(toMnote).then((file) => {
+            editor.updateTabContent(openMnoteTab.id, file.content);
+          });
+        })
+        .catch(() => undefined);
+    },
+    [editor],
+  );
+
   const makeCopyPdfToOtherPane = useCallback(
     (tab: EditorTab | null | undefined, pane?: SplitPaneId) => {
       if (!split || !pane || !tab || tab.kind !== 'pdf') {
@@ -662,13 +900,61 @@ export default function AppShell() {
     ) => {
       const tabId = tab?.id;
       const nav = tabId ? editor.getTabNavigation(tabId) : editor.tabNavigation;
+      const isPane = options?.layout === 'pane';
+      const isMnoteSplit =
+        Boolean(split && mnoteSplitPair && tabId);
+      const isMnotePane =
+        Boolean(isMnoteSplit && tabId === mnoteSplitPair!.mnote.id);
+      const isSourcePane =
+        Boolean(isMnoteSplit && tabId === mnoteSplitPair!.source.id);
+
       return (
         <TabContent
+          key={tabId ?? 'empty'}
           tab={tab}
           workspaceRoot={workspace.root}
           layout={options?.layout ?? 'full'}
           focused={options?.focused ?? true}
+          mnotePanelMode={isMnotePane}
+          activeMnoteEntryId={isMnotePane ? mnoteSyncState.activeEntryId : null}
+          scrollToMnoteEntryId={
+            isMnotePane ? mnoteSyncState.scrollToEntryId : null
+          }
+          onMnoteEntryClick={isMnotePane ? handleMnoteEntryClick : undefined}
+          onMnoteActiveEntryChange={
+            isMnotePane ? handleMnoteActiveEntryChange : undefined
+          }
+          onSourceVisibleLineChange={
+            isSourcePane && mnoteSplitPair?.source.kind === 'markdown'
+              ? handleSourceVisibleLineChange
+              : undefined
+          }
+          onPdfPageChange={
+            tab?.kind === 'pdf'
+              ? (page) => {
+                  if (tabId) handlePdfTabPageChange(tabId, page);
+                  if (
+                    isSourcePane &&
+                    mnoteSplitPair?.source.kind === 'pdf'
+                  ) {
+                    handlePdfPageChange(page);
+                  }
+                }
+              : undefined
+          }
+          mnoteSyncPaused={Boolean(mnoteSplitPair && isPane)}
+          onToggleMnoteSyncPause={
+            mnoteSplitPair && isPane
+              ? () => setMnoteSyncPaused((prev) => !prev)
+              : undefined
+          }
+          mnoteSourceContent={
+            isMnotePane ? mnoteSplitPair?.source.content : undefined
+          }
+          mnoteSourceMissing={isMnotePane ? !mnoteSourceExists : false}
           onCopyPdfSelectionToOtherPane={makeCopyPdfToOtherPane(tab, options?.pane)}
+          onAppendMnote={handleAppendMnote}
+          onOpenMnoteSplit={handleOpenMnoteSplit}
           sourceFont={uiConfig.editor.source}
           wysiwygFont={uiConfig.editor.wysiwyg}
           hasApiKey={uiConfig.openai.has_api_key}
@@ -740,7 +1026,19 @@ export default function AppShell() {
       focusSplitPane,
       handleCloseSplitPane,
       handleSave,
+      handleAppendMnote,
+      handleMnoteActiveEntryChange,
+      handleMnoteEntryClick,
+      handleOpenMnoteSplit,
+      handlePdfPageChange,
+      handlePdfTabPageChange,
+      handleSourceVisibleLineChange,
       makeCopyPdfToOtherPane,
+      mnoteSplitPair,
+      mnoteSyncState.activeEntryId,
+      mnoteSyncState.scrollToEntryId,
+      mnoteSourceExists,
+      mnoteSyncPaused,
       split,
       openAiDialog,
       uiConfig.editor.source,
@@ -750,11 +1048,8 @@ export default function AppShell() {
     ],
   );
 
-  const primarySplitTab = split
-    ? (editor.tabs.find((t) => t.id === split.primaryTabId) ?? null)
-    : null;
-  const secondarySplitTab = split
-    ? (editor.tabs.find((t) => t.id === split.secondaryTabId) ?? null)
+  const collapsedSplitTab = splitCollapsePreserve
+    ? (editor.tabs.find((t) => t.id === splitCollapsePreserve.tabId) ?? null)
     : null;
 
   const tabContent = split ? (
@@ -772,8 +1067,46 @@ export default function AppShell() {
         focused: split.focusedPane === 'secondary',
       })}
     />
+  ) : splitCollapsePreserve && collapsedSplitTab ? (
+    <EditorSplitView
+      layout={{
+        direction: splitCollapsePreserve.direction,
+        ratio: splitCollapsePreserve.pane === 'primary' ? 1 : 0,
+        primaryTabId: splitCollapsePreserve.tabId,
+        secondaryTabId: splitCollapsePreserve.tabId,
+        focusedPane: splitCollapsePreserve.pane,
+      }}
+      hiddenPane={
+        splitCollapsePreserve.pane === 'primary' ? 'secondary' : 'primary'
+      }
+      onRatioChange={() => {}}
+      primary={
+        splitCollapsePreserve.pane === 'primary'
+          ? renderTabContent(collapsedSplitTab)
+          : null
+      }
+      secondary={
+        splitCollapsePreserve.pane === 'secondary'
+          ? renderTabContent(collapsedSplitTab)
+          : null
+      }
+    />
+  ) : editor.activeTab ? (
+    <EditorSplitView
+      layout={{
+        direction: 'horizontal',
+        ratio: 1,
+        primaryTabId: editor.activeTab.id,
+        secondaryTabId: editor.activeTab.id,
+        focusedPane: 'primary',
+      }}
+      hiddenPane="secondary"
+      onRatioChange={() => {}}
+      primary={renderTabContent(editor.activeTab)}
+      secondary={null}
+    />
   ) : (
-    renderTabContent(editor.activeTab)
+    renderTabContent(null)
   );
 
   return (
@@ -846,6 +1179,7 @@ export default function AppShell() {
             });
           }}
           onDeletePath={(path) => editor.closeTabsForDeletedPath(path)}
+          onPathRenamed={handleWorkspacePathRenamed}
           onRevealInEditor={(item) => {
             const activeTab = editor.activeTab;
             const relativePath = activeTab?.relativePath;
@@ -900,11 +1234,7 @@ export default function AppShell() {
             }}
             onOpenSettings={() => setSettingsOpen(true)}
           />
-          {hasPdfTab ? (
-            <PdfEngineProvider>{tabContent}</PdfEngineProvider>
-          ) : (
-            tabContent
-          )}
+          <PdfEngineProvider>{tabContent}</PdfEngineProvider>
         </div>
         <StatusBar
           workspaceRoot={workspace.root}

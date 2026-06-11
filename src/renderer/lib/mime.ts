@@ -7,6 +7,8 @@ const VIDEO_EXT = /\.(mp4|webm|mov|m4v|ogv|mkv|avi)$/i;
 const CSV_EXT = /\.csv$/i;
 const XLSX_EXT = /\.xlsx$/i;
 const IPYNB_EXT = /\.ipynb$/i;
+const SQLITE_EXT = /\.sqlite3$/i;
+const DUCKDB_EXT = /\.duckdb$/i;
 
 export function isImagePath(relativePath: string): boolean {
   const base = relativePath.replace(/\/$/, '');
@@ -51,6 +53,16 @@ export function isXlsxPath(relativePath: string): boolean {
 export function isIpynbPath(relativePath: string): boolean {
   const base = relativePath.replace(/\/$/, '');
   return IPYNB_EXT.test(base);
+}
+
+export function isSqlitePath(relativePath: string): boolean {
+  const base = relativePath.replace(/\/$/, '');
+  return SQLITE_EXT.test(base);
+}
+
+export function isDuckdbPath(relativePath: string): boolean {
+  const base = relativePath.replace(/\/$/, '');
+  return DUCKDB_EXT.test(base);
 }
 
 export function isDirectoryPath(path: string): boolean {

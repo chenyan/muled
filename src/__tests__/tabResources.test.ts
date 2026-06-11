@@ -15,15 +15,15 @@ function pdfTab(overrides: Partial<EditorTab> = {}): EditorTab {
     content: '',
     truncated: false,
     fileSize: 0,
-    pdfSrc: 'data:application/pdf;base64,abc',
+    pdfBuffer: new ArrayBuffer(8),
     ...overrides,
   };
 }
 
 describe('releaseTabBinaryPayload', () => {
-  it('strips pdfSrc from pdf tabs', () => {
+  it('strips pdfBuffer from pdf tabs', () => {
     const released = releaseTabBinaryPayload(pdfTab());
-    expect(released.pdfSrc).toBeUndefined();
+    expect(released.pdfBuffer).toBeUndefined();
     expect(released.relativePath).toBe('doc.pdf');
   });
 
@@ -31,7 +31,7 @@ describe('releaseTabBinaryPayload', () => {
     const released = releaseTabBinaryPayload({
       ...pdfTab(),
       kind: 'image',
-      pdfSrc: undefined,
+      pdfBuffer: undefined,
       imageSrc: 'data:image/png;base64,xyz',
     });
     expect(released.imageSrc).toBeUndefined();
@@ -41,7 +41,7 @@ describe('releaseTabBinaryPayload', () => {
     const released = releaseTabBinaryPayload({
       ...pdfTab(),
       kind: 'audio',
-      pdfSrc: undefined,
+      pdfBuffer: undefined,
       audioSrc: 'data:audio/mpeg;base64,abc',
     });
     expect(released.audioSrc).toBeUndefined();
@@ -51,7 +51,7 @@ describe('releaseTabBinaryPayload', () => {
     const released = releaseTabBinaryPayload({
       ...pdfTab(),
       kind: 'video',
-      pdfSrc: undefined,
+      pdfBuffer: undefined,
       videoSrc: 'data:video/mp4;base64,abc',
     });
     expect(released.videoSrc).toBeUndefined();
@@ -61,7 +61,7 @@ describe('releaseTabBinaryPayload', () => {
     const released = releaseTabBinaryPayload({
       ...pdfTab(),
       kind: 'docx',
-      pdfSrc: undefined,
+      pdfBuffer: undefined,
       docxSrc: 'data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,abc',
     });
     expect(released.docxSrc).toBeUndefined();
@@ -71,7 +71,7 @@ describe('releaseTabBinaryPayload', () => {
     const released = releaseTabBinaryPayload({
       ...pdfTab(),
       kind: 'pptx',
-      pdfSrc: undefined,
+      pdfBuffer: undefined,
       pptxSrc:
         'data:application/vnd.openxmlformats-officedocument.presentationml.presentation;base64,abc',
     });
@@ -80,11 +80,11 @@ describe('releaseTabBinaryPayload', () => {
 });
 
 describe('needsBinaryHydration', () => {
-  it('is true when pdf tab has no pdfSrc', () => {
-    expect(needsBinaryHydration(pdfTab({ pdfSrc: undefined }))).toBe(true);
+  it('is true when pdf tab has no pdfBuffer', () => {
+    expect(needsBinaryHydration(pdfTab({ pdfBuffer: undefined }))).toBe(true);
   });
 
-  it('is false when pdf tab already has pdfSrc', () => {
+  it('is false when pdf tab already has pdfBuffer', () => {
     expect(needsBinaryHydration(pdfTab())).toBe(false);
   });
 
@@ -93,7 +93,7 @@ describe('needsBinaryHydration', () => {
       needsBinaryHydration({
         ...pdfTab(),
         kind: 'audio',
-        pdfSrc: undefined,
+        pdfBuffer: undefined,
         audioSrc: undefined,
       }),
     ).toBe(true);
@@ -104,7 +104,7 @@ describe('needsBinaryHydration', () => {
       needsBinaryHydration({
         ...pdfTab(),
         kind: 'video',
-        pdfSrc: undefined,
+        pdfBuffer: undefined,
         videoSrc: undefined,
       }),
     ).toBe(true);
@@ -115,7 +115,7 @@ describe('needsBinaryHydration', () => {
       needsBinaryHydration({
         ...pdfTab(),
         kind: 'docx',
-        pdfSrc: undefined,
+        pdfBuffer: undefined,
         docxSrc: undefined,
       }),
     ).toBe(true);
@@ -126,7 +126,7 @@ describe('needsBinaryHydration', () => {
       needsBinaryHydration({
         ...pdfTab(),
         kind: 'pptx',
-        pdfSrc: undefined,
+        pdfBuffer: undefined,
         pptxSrc: undefined,
       }),
     ).toBe(true);

@@ -1,7 +1,11 @@
 import { useEffect, useRef } from 'react';
 import './EditorContextMenu.css';
 
-export type EditorContextMenuAction = 'append' | 'replace' | 'translate';
+export type EditorContextMenuAction =
+  | 'append'
+  | 'replace'
+  | 'translate'
+  | 'recordNote';
 
 export interface EditorContextMenuProps {
   open: boolean;
@@ -11,6 +15,7 @@ export interface EditorContextMenuProps {
   hasApiKey: boolean;
   showTranslate?: boolean;
   showAiEdit?: boolean;
+  showRecordNote?: boolean;
   onSelect: (action: EditorContextMenuAction) => void;
   onClose: () => void;
 }
@@ -23,6 +28,7 @@ export default function EditorContextMenu({
   hasApiKey,
   showTranslate = false,
   showAiEdit = true,
+  showRecordNote = false,
   onSelect,
   onClose,
 }: EditorContextMenuProps) {
@@ -104,6 +110,19 @@ export default function EditorContextMenu({
             Chat Replace
           </button>
         </>
+      )}
+      {showRecordNote && (showTranslate || showAiEdit) && (
+        <div className="EditorContextMenu__separator" role="separator" />
+      )}
+      {showRecordNote && (
+        <button
+          type="button"
+          role="menuitem"
+          className="EditorContextMenu__item"
+          onClick={() => onSelect('recordNote')}
+        >
+          记录笔记
+        </button>
       )}
     </div>
   );

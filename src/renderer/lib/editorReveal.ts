@@ -6,6 +6,7 @@ export interface EditorRevealRequest {
   line: number;
   column: number;
   length: number;
+  endLine?: number;
 }
 
 const setRevealHighlight = StateEffect.define<{
@@ -51,9 +52,21 @@ export function applyEditorReveal(
     return false;
   }
 
-  const line = doc.line(request.line);
-  const from = Math.min(line.from + request.column, line.to);
-  const to = Math.min(from + request.length, line.to);
+  let from: number;
+  let to: number;
+
+  if (request.endLine && request.endLine > request.line) {
+    const startLine = doc.line(request.line);
+    const endLineNum = Math.min(request.endLine, doc.lines);
+    const endLine = doc.line(endLineNum);
+    from = startLine.from + request.column;
+    to = endLine.to;
+  } else {
+    const line = doc.line(request.line);
+    from = Math.min(line.from + request.column, line.to);
+    to = Math.min(from + Math.max(request.length, 1), line.to);
+  }
+
   if (from >= to) {
     return false;
   }

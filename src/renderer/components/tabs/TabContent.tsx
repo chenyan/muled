@@ -17,7 +17,16 @@ import EditorContextMenu, {
   type EditorContextMenuAction,
 } from '../ai/EditorContextMenu';
 import TranslationPopup from '../ai/TranslationPopup';
+import NoteRecordingOverlay from '../mnote/NoteRecordingOverlay';
+import MnotePanelView from '../mnote/MnotePanelView';
+import type { MnoteEntry } from '../../lib/mnoteFormat';
 import { useTabTranslation } from '../../hooks/useTabTranslation';
+import { buildMarkdownMnoteLoc } from '../../lib/buildMarkdownMnoteLoc';
+import type { AppendMnoteEntryInput } from '../../lib/mnoteService';
+import {
+  companionMnotePath,
+  isMnoteSourcePath,
+} from '../../lib/mnotePath';
 import EditorViewSwitch from '../editor/EditorViewSwitch';
 import DocxEditorView from '../editor/DocxEditorView';
 import DocxViewSwitch from '../editor/DocxViewSwitch';
@@ -25,6 +34,7 @@ import CsvSpreadsheetView from '../editor/CsvSpreadsheetView';
 import XlsxSpreadsheetView from '../editor/XlsxSpreadsheetView';
 import CsvTabView from '../editor/CsvTabView';
 import CsvViewSwitch from '../editor/CsvViewSwitch';
+import DatabaseView from '../editor/DatabaseView';
 import IpynbPreview from '../editor/IpynbPreview';
 import IpynbViewSwitch from '../editor/IpynbViewSwitch';
 import HtmlPreview from '../editor/HtmlPreview';
@@ -52,6 +62,7 @@ import { DEFAULT_BUFFER_BYTES } from '../../../shared/constants';
 import { formatBytes } from '../../../shared/formatBytes';
 import { applyAiInEditor } from '../../lib/applyAiInEditor';
 import { prepareMarkdownForWysiwyg } from '../../lib/prepareMarkdownForWysiwyg';
+import { prepareMnoteForWysiwyg } from '../../lib/prepareMnoteForWysiwyg';
 import {
   registerEditorAiHandlers,
   type EditorAiSnapshot,
@@ -92,6 +103,22 @@ interface TabContentProps {
   onTabNavigateForward?: () => void;
   /** 分屏时：将 PDF 选区复制到另一侧编辑器末尾 */
   onCopyPdfSelectionToOtherPane?: (text: string) => void;
+  onAppendMnote?: (
+    sourcePath: string,
+    input: AppendMnoteEntryInput,
+  ) => Promise<void>;
+  onOpenMnoteSplit?: (sourcePath: string) => void;
+  mnotePanelMode?: boolean;
+  activeMnoteEntryId?: string | null;
+  scrollToMnoteEntryId?: string | null;
+  onMnoteEntryClick?: (entry: MnoteEntry) => void;
+  onMnoteActiveEntryChange?: (entryId: string) => void;
+  onSourceVisibleLineChange?: (line: number) => void;
+  onPdfPageChange?: (page: number) => void;
+  mnoteSyncPaused?: boolean;
+  onToggleMnoteSyncPause?: () => void;
+  mnoteSourceContent?: string;
+  mnoteSourceMissing?: boolean;
 }
 
 export default function TabContent({
@@ -117,6 +144,19 @@ export default function TabContent({
   onTabNavigateBack,
   onTabNavigateForward,
   onCopyPdfSelectionToOtherPane,
+  onAppendMnote,
+  onOpenMnoteSplit,
+  mnotePanelMode = false,
+  activeMnoteEntryId = null,
+  scrollToMnoteEntryId = null,
+  onMnoteEntryClick,
+  onMnoteActiveEntryChange,
+  onSourceVisibleLineChange,
+  onPdfPageChange,
+  mnoteSyncPaused = false,
+  onToggleMnoteSyncPause,
+  mnoteSourceContent,
+  mnoteSourceMissing = false,
 }: TabContentProps) {
   const isPane = layout === 'pane';
   const mdxRef = useRef<MarkdownEditorHandle>(null);
@@ -130,17 +170,68 @@ export default function TabContent({
     anchorRect: DOMRect | null;
     showTranslate: boolean;
     showAiEdit: boolean;
+    showRecordNote: boolean;
+    pendingLoc?: string;
   } | null>(null);
+  const [noteOverlay, setNoteOverlay] = useState<{
+    quote: string;
+    loc: string;
+    anchorRect: DOMRect | null;
+    anchorX: number;
+    anchorY: number;
+  } | null>(null);
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [mnoteExists, setMnoteExists] = useState(false);
   const { translationPopup, setTranslationPopup, runTranslate } =
     useTabTranslation();
+
+  const sourcePath = tab?.relativePath ?? null;
+  const mnotePath =
+    sourcePath && isMnoteSourcePath(sourcePath)
+      ? companionMnotePath(sourcePath)
+      : null;
+
+  useEffect(() => {
+    if (!mnotePath || !window.muled?.workspace?.exists) {
+      setMnoteExists(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    const check = () => {
+      window.muled.workspace
+        .exists(mnotePath)
+        .then((result) => {
+          if (!cancelled) setMnoteExists(result.exists);
+        })
+        .catch(() => {
+          if (!cancelled) setMnoteExists(false);
+        });
+    };
+
+    check();
+    const unsubscribe = window.muled.workspace.onFilesystemChanged?.(() => {
+      check();
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, [mnotePath]);
 
   const getWysiwygContent = useCallback((): string => {
     return mdxRef.current?.getPersistedMarkdown() ?? tab?.content ?? '';
   }, [tab?.content]);
 
+  const usesWysiwygEditor = useCallback(
+    (kind: EditorTab['kind'], viewMode: EditorViewMode): boolean =>
+      (kind === 'markdown' || kind === 'mnote') && viewMode === 'rich-text',
+    [],
+  );
+
   const getEditableContent = useCallback((): string => {
     if (!tab || !isEditableTextTab(tab)) return '';
-    if (tab.kind === 'markdown') {
+    if (tab.kind === 'markdown' || tab.kind === 'mnote') {
       if (tab.viewMode === 'rich-text') {
         return getWysiwygContent();
       }
@@ -173,7 +264,7 @@ export default function TabContent({
   const captureSnapshot = useCallback((): EditorAiSnapshot | null => {
     if (!tab || !isEditableTextTab(tab)) return null;
 
-    const showWysiwyg = tab.kind === 'markdown' && tab.viewMode === 'rich-text';
+    const showWysiwyg = usesWysiwygEditor(tab.kind, tab.viewMode);
     if (showWysiwyg) {
       const selection = mdxRef.current?.getSelectionMarkdown() ?? '';
       if (!selection.trim()) return null;
@@ -198,17 +289,20 @@ export default function TabContent({
     ): string | null => {
       if (!tab || !isEditableTextTab(tab)) return null;
 
-      const current =
-        tab.viewMode === 'rich-text' && tab.kind === 'markdown'
-          ? getWysiwygContent()
-          : (sourceRef.current?.getValue() ?? tab.content);
+      const current = usesWysiwygEditor(tab.kind, tab.viewMode)
+        ? getWysiwygContent()
+        : (sourceRef.current?.getValue() ?? tab.content);
 
       const next = applyAiInEditor(current, snapshot, mode, aiText);
       if (next === null) return null;
 
-      if (tab.viewMode === 'rich-text' && tab.kind === 'markdown') {
+      if (usesWysiwygEditor(tab.kind, tab.viewMode)) {
         mdxRef.current?.markUserEdited();
-        mdxRef.current?.setMarkdown(prepareMarkdownForWysiwyg(next));
+        mdxRef.current?.setMarkdown(
+          tab.kind === 'mnote'
+            ? prepareMnoteForWysiwyg(next)
+            : prepareMarkdownForWysiwyg(next),
+        );
       } else {
         sourceRef.current?.setDocument(next);
       }
@@ -233,12 +327,16 @@ export default function TabContent({
       const current = getEditorContent();
       const next = appendTextAtDocumentEnd(current, trimmed);
 
-      if (
-        tab.kind === 'markdown' &&
-        (tab.viewMode === 'rich-text' || tab.viewMode === 'preview')
-      ) {
+      if (tab.kind === 'markdown' && tab.viewMode === 'preview') {
         mdxRef.current?.markUserEdited();
         mdxRef.current?.setMarkdown(prepareMarkdownForWysiwyg(next));
+      } else if (usesWysiwygEditor(tab.kind, tab.viewMode)) {
+        mdxRef.current?.markUserEdited();
+        mdxRef.current?.setMarkdown(
+          tab.kind === 'mnote'
+            ? prepareMnoteForWysiwyg(next)
+            : prepareMarkdownForWysiwyg(next),
+        );
       } else {
         sourceRef.current?.setDocument(next);
       }
@@ -291,7 +389,7 @@ export default function TabContent({
   const handleViewModeChange = useCallback(
     (next: EditorViewMode) => {
       if (!tab || next === tab.viewMode) return;
-      if (tab.kind === 'markdown') {
+      if (tab.kind === 'markdown' || tab.kind === 'mnote') {
         onViewModeChange(tab.id, next, getEditableContent());
         return;
       }
@@ -318,41 +416,86 @@ export default function TabContent({
     [getEditableContent, tab, onViewModeChange],
   );
 
+  const openNoteOverlay = useCallback(
+    (input: {
+      quote: string;
+      loc: string;
+      anchorRect: DOMRect | null;
+      anchorX: number;
+      anchorY: number;
+    }) => {
+      setNoteOverlay(input);
+    },
+    [],
+  );
+
   const handleEditorContextMenu = useCallback(
     (e: MouseEvent) => {
-      if (!tab || !isEditableTextTab(tab) || tab.truncated) return;
+      if (!tab || tab.truncated) return;
 
-      const showRenderedMarkdown =
-        tab.kind === 'markdown' &&
-        (tab.viewMode === 'rich-text' || tab.viewMode === 'preview');
-
-      if (showRenderedMarkdown) {
-        const picked = mdxRef.current?.selectSentenceAtPoint(
-          e.clientX,
-          e.clientY,
-        );
-        if (!picked?.text.trim()) return;
-
+      if (tab.kind === 'markdown') {
         e.preventDefault();
 
-        const current =
-          tab.viewMode === 'preview' ? tab.content : getWysiwygContent();
-        const snapshot: EditorAiSnapshot = {
-          selection: picked.text,
-          sourceRange: findSelectionSpan(current, picked.text),
-        };
+        const showRenderedMarkdown =
+          tab.viewMode === 'rich-text' || tab.viewMode === 'preview';
+        let snapshot: EditorAiSnapshot = { selection: '', sourceRange: null };
+        let anchorRect: DOMRect | null = null;
+        let showTranslate = false;
+        let showAiEdit = false;
+
+        if (showRenderedMarkdown) {
+          const picked = mdxRef.current?.selectSentenceAtPoint(
+            e.clientX,
+            e.clientY,
+          );
+          if (picked?.text.trim()) {
+            const current =
+              tab.viewMode === 'preview' ? tab.content : getWysiwygContent();
+            snapshot = {
+              selection: picked.text,
+              sourceRange: findSelectionSpan(current, picked.text),
+            };
+            anchorRect = picked.rect;
+            showTranslate =
+              tab.viewMode === 'rich-text' || tab.viewMode === 'preview';
+            showAiEdit = tab.viewMode === 'rich-text';
+          }
+        } else if (tab.viewMode === 'source') {
+          const captured = captureSnapshot();
+          if (captured) {
+            snapshot = captured;
+            showAiEdit = Boolean(captured.selection.trim());
+          }
+        }
+
+        const content =
+          tab.viewMode === 'source'
+            ? (sourceRef.current?.getValue() ?? tab.content)
+            : tab.viewMode === 'preview'
+              ? tab.content
+              : getWysiwygContent();
+        const pendingLoc = buildMarkdownMnoteLoc({
+          tab,
+          sourceRef: sourceRef.current,
+          selectionText: snapshot.selection,
+          sourceRange: snapshot.sourceRange,
+          content,
+        });
 
         setContextMenu({
           x: e.clientX,
           y: e.clientY,
           snapshot,
-          anchorRect: picked.rect,
-          showTranslate:
-            tab.viewMode === 'rich-text' || tab.viewMode === 'preview',
-          showAiEdit: tab.viewMode === 'rich-text',
+          anchorRect,
+          showTranslate,
+          showAiEdit,
+          showRecordNote: true,
+          pendingLoc,
         });
         return;
       }
+
+      if (!isEditableTextTab(tab)) return;
 
       const snapshot = captureSnapshot();
       if (!snapshot?.selection) return;
@@ -365,6 +508,7 @@ export default function TabContent({
         anchorRect: null,
         showTranslate: false,
         showAiEdit: true,
+        showRecordNote: false,
       });
     },
     [captureSnapshot, getWysiwygContent, tab],
@@ -386,7 +530,20 @@ export default function TabContent({
     async (action: EditorContextMenuAction) => {
       const menu = contextMenu;
       setContextMenu(null);
-      if (!menu?.snapshot?.selection) return;
+      if (!menu) return;
+
+      if (action === 'recordNote') {
+        openNoteOverlay({
+          quote: menu.snapshot.selection,
+          loc: menu.pendingLoc ?? 'lines=1',
+          anchorRect: menu.anchorRect,
+          anchorX: menu.x,
+          anchorY: menu.y,
+        });
+        return;
+      }
+
+      if (!menu.snapshot.selection) return;
 
       if (action === 'translate') {
         const rect = menu.anchorRect;
@@ -397,7 +554,46 @@ export default function TabContent({
 
       onAiOpen(action, menu.snapshot);
     },
-    [contextMenu, onAiOpen, runTranslate],
+    [contextMenu, onAiOpen, openNoteOverlay, runTranslate],
+  );
+
+  const handleSaveNote = useCallback(
+    async (input: { quote: string; body: string; label: string }) => {
+      if (!tab?.relativePath || !noteOverlay || !onAppendMnote) return;
+      setNoteSaving(true);
+      try {
+        await onAppendMnote(tab.relativePath, {
+          loc: noteOverlay.loc,
+          quote: input.quote.trim() || undefined,
+          body: input.body.trim() || undefined,
+          label: input.label.trim() || undefined,
+        });
+        setNoteOverlay(null);
+        if (mnotePath) setMnoteExists(true);
+      } finally {
+        setNoteSaving(false);
+      }
+    },
+    [mnotePath, noteOverlay, onAppendMnote, tab?.relativePath],
+  );
+
+  const handlePdfRecordNote = useCallback(
+    (request: {
+      quote: string;
+      loc: string;
+      anchorRect: DOMRect;
+      menuX: number;
+      menuY: number;
+    }) => {
+      openNoteOverlay({
+        quote: request.quote,
+        loc: request.loc,
+        anchorRect: request.anchorRect,
+        anchorX: request.menuX,
+        anchorY: request.menuY,
+      });
+    },
+    [openNoteOverlay],
   );
 
   const handlePdfTranslate = useCallback(
@@ -411,7 +607,12 @@ export default function TabContent({
     return <div className="TabContent TabContent--empty">无打开的标签页</div>;
   }
 
-  const showWysiwyg = tab.kind === 'markdown' && tab.viewMode === 'rich-text';
+  const showWysiwyg =
+    tab.kind === 'markdown' && tab.viewMode === 'rich-text';
+  const showMnoteWysiwyg =
+    tab.kind === 'mnote' && !mnotePanelMode && tab.viewMode === 'rich-text';
+  const showMnoteSource =
+    tab.kind === 'mnote' && !mnotePanelMode && tab.viewMode === 'source';
   const showMarkdownPreview =
     tab.kind === 'markdown' && tab.viewMode === 'preview';
   const showHtmlPreview = tab.kind === 'html' && tab.viewMode === 'preview';
@@ -454,12 +655,25 @@ export default function TabContent({
         hasApiKey={hasApiKey}
         showTranslate={contextMenu?.showTranslate ?? false}
         showAiEdit={contextMenu?.showAiEdit ?? true}
+        showRecordNote={contextMenu?.showRecordNote ?? false}
         onClose={() => setContextMenu(null)}
         onSelect={handleContextMenuSelect}
       />
       <TranslationPopup
         popup={translationPopup}
         onClose={() => setTranslationPopup(null)}
+      />
+      <NoteRecordingOverlay
+        open={noteOverlay !== null}
+        quote={noteOverlay?.quote ?? ''}
+        anchorRect={noteOverlay?.anchorRect ?? null}
+        anchorX={noteOverlay?.anchorX ?? 0}
+        anchorY={noteOverlay?.anchorY ?? 0}
+        saving={noteSaving}
+        onClose={() => setNoteOverlay(null)}
+        onSave={(input) => {
+          void handleSaveNote(input);
+        }}
       />
       <header className="TabContent__header">
         <div className="TabContent__headerLeft">
@@ -481,10 +695,39 @@ export default function TabContent({
           )}
         </div>
         <div className="TabContent__headerRight">
+          {isPane && onToggleMnoteSyncPause ? (
+            <button
+              type="button"
+              className="TabContent__mnoteSyncButton"
+              title={mnoteSyncPaused ? '恢复笔记同步滚动' : '暂停笔记同步滚动'}
+              onClick={onToggleMnoteSyncPause}
+            >
+              {mnoteSyncPaused ? '恢复同步' : '暂停同步'}
+            </button>
+          ) : null}
+          {!isPane && mnotePath && mnoteExists && onOpenMnoteSplit && (
+            <button
+              type="button"
+              className="TabContent__mnoteButton"
+              title="打开笔记（分屏）"
+              aria-label="打开笔记"
+              onClick={() => onOpenMnoteSplit(tab.relativePath!)}
+            >
+              笔记
+            </button>
+          )}
           {tab.kind === 'markdown' && (
             <EditorViewSwitch
               viewMode={tab.viewMode}
               disabled={tab.truncated}
+              onChange={handleViewModeChange}
+            />
+          )}
+          {tab.kind === 'mnote' && !mnotePanelMode && (
+            <EditorViewSwitch
+              viewMode={tab.viewMode}
+              disabled={tab.truncated}
+              showPreview={false}
               onChange={handleViewModeChange}
             />
           )}
@@ -570,12 +813,56 @@ export default function TabContent({
         )}
         {tab.kind === 'image' ? (
           <ImagePreview tab={tab} />
+        ) : tab.kind === 'mnote' && mnotePanelMode && onMnoteEntryClick ? (
+          <MnotePanelView
+            content={tab.content}
+            sourceContent={mnoteSourceContent}
+            sourceMissing={mnoteSourceMissing}
+            activeEntryId={activeMnoteEntryId}
+            scrollToEntryId={scrollToMnoteEntryId}
+            onEntryClick={onMnoteEntryClick}
+            onActiveEntryChange={onMnoteActiveEntryChange}
+          />
+        ) : tab.kind === 'mnote' && !mnotePanelMode ? (
+          <div
+            ref={editorPaneRef}
+            className="TabContent__editorPane"
+            style={editorPaneFontVars(sourceFont, wysiwygFont)}
+          >
+            {showMnoteWysiwyg && (
+              <MarkdownEditor
+                ref={mdxRef}
+                variant="mnote"
+                tabKey={`${tab.id}:${tab.relativePath ?? 'untitled'}:wysiwyg`}
+                markdown={tab.content}
+                relativePath={tab.relativePath}
+                readOnly={tab.truncated}
+                onChange={onContentChange}
+                onOpenFile={onOpenFileFromEditor}
+              />
+            )}
+            {showMnoteSource && (
+              <SourceCodeEditor
+                ref={sourceRef}
+                tabId={tab.id}
+                tabKey={`${tab.id}:${tab.relativePath ?? 'untitled'}:source`}
+                value={tab.content}
+                relativePath={tab.relativePath}
+                keybindingMode={tab.keybindingMode}
+                readOnly={tab.truncated}
+                reveal={tab.reveal ?? null}
+                onChange={onContentChange}
+              />
+            )}
+          </div>
         ) : tab.kind === 'pdf' ? (
           <PdfViewer
             tab={tab}
             hasApiKey={hasApiKey}
             onTranslate={handlePdfTranslate}
+            onRecordNote={onAppendMnote ? handlePdfRecordNote : undefined}
             onCopySelectionToOtherPane={onCopyPdfSelectionToOtherPane}
+            onPdfPageChange={onPdfPageChange}
           />
         ) : tab.kind === 'pptx' ? (
           <PptxViewerView tab={tab} />
@@ -625,6 +912,10 @@ export default function TabContent({
           </CsvTabView>
         ) : showIpynbPreview ? (
           <IpynbPreview tab={tab} sourceFont={sourceFont} />
+        ) : tab.kind === 'sqlite3' ? (
+          <DatabaseView tab={tab} engine="sqlite" />
+        ) : tab.kind === 'duckdb' ? (
+          <DatabaseView tab={tab} engine="duckdb" />
         ) : tab.kind === 'xlsx' ? (
           <XlsxSpreadsheetView
             tab={tab}
@@ -675,6 +966,9 @@ export default function TabContent({
                 readOnly={tab.truncated}
                 reveal={tab.reveal ?? null}
                 onChange={onContentChange}
+                onVisibleLineChange={
+                  tab.kind === 'markdown' ? onSourceVisibleLineChange : undefined
+                }
               />
             )}
           </div>

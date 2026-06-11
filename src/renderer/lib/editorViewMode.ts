@@ -12,6 +12,7 @@ const P5_VIEW_MODE_CYCLE: EditorViewMode[] = ['preview', 'source'];
 const CSV_VIEW_MODE_CYCLE: EditorViewMode[] = ['preview', 'source'];
 const IPYNB_VIEW_MODE_CYCLE: EditorViewMode[] = ['preview', 'source'];
 const DOCX_VIEW_MODE_CYCLE: EditorViewMode[] = ['rich-text', 'preview'];
+const MNOTE_VIEW_MODE_CYCLE: EditorViewMode[] = ['rich-text', 'source'];
 
 export function editorViewModeLabel(mode: EditorViewMode): string {
   switch (mode) {
@@ -62,6 +63,11 @@ export function nextViewModeForTab(
   }
   if (tabKind === 'markdown') {
     return nextEditorViewMode(current);
+  }
+  if (tabKind === 'mnote') {
+    const index = MNOTE_VIEW_MODE_CYCLE.indexOf(current);
+    if (index < 0) return 'rich-text';
+    return MNOTE_VIEW_MODE_CYCLE[(index + 1) % MNOTE_VIEW_MODE_CYCLE.length];
   }
   return current;
 }

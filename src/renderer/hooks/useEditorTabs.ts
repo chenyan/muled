@@ -12,6 +12,7 @@ import type {
   PublicConfig,
 } from '../../shared/types/config';
 import { isHtmlPath, isMarkdownPath, isP5Path, isStrudelPath } from '../lib/fileLanguage';
+import { isMnotePath } from '../lib/mnotePath';
 import { arrayBufferToBase64, arrayBufferToDataUrl } from '../lib/dataUrl';
 import { getDocxEditorBuffer } from '../lib/editorDocxBridge';
 import { getXlsxEditorBuffer } from '../lib/editorXlsxBridge';
@@ -21,16 +22,20 @@ import {
   isCsvPath,
   isDirectoryPath,
   isDocxPath,
+  isDuckdbPath,
   isImagePath,
   isIpynbPath,
   isPdfPath,
   isPptxPath,
+  isSqlitePath,
   isVideoPath,
   isXlsxPath,
 } from '../lib/mime';
 import keybindingModePatch from '../lib/keybindingMode';
+import { getEditorOutlineHandlers } from '../lib/editorOutlineBridge';
 import { getEditorViewContent } from '../lib/editorViewBridge';
 import { pushStatusToast } from '../lib/statusToast';
+import { pdfBufferFromBytes } from '../lib/pdfBuffer';
 import {
   needsBinaryHydration,
   releaseTabBinaryPayload,
@@ -51,6 +56,10 @@ import {
   tabNavigationGoForward,
   type TabNavigationStacks,
 } from '../lib/tabNavigationHistory';
+import type { MnoteEntry } from '../lib/mnoteFormat';
+import { companionMnotePath } from '../lib/mnotePath';
+import { resolveMnoteReveal } from '../lib/mnoteRelocate';
+import { normalizeDirectoryPath } from '../lib/workspaceTreeFileOps';
 import type { EditorTab, EditorRevealTarget, TabKind } from '../types/tab';
 import {
   splitPaneTabId,
@@ -89,7 +98,7 @@ async function loadFileIntoTab(
     | 'truncated'
     | 'fileSize'
     | 'imageSrc'
-    | 'pdfSrc'
+    | 'pdfBuffer'
     | 'audioSrc'
     | 'videoSrc'
     | 'docxSrc'
@@ -129,7 +138,7 @@ async function loadFileIntoTab(
   }
 
   if (isPdfPath(relativePath)) {
-    const { base64, mime } = await window.muled.file.readBinary(relativePath);
+    const { data } = await window.muled.file.readBinaryBuffer(relativePath);
     return {
       ...base,
       id: newId(),
@@ -138,7 +147,7 @@ async function loadFileIntoTab(
       content: '',
       truncated: false,
       fileSize: 0,
-      pdfSrc: `data:${mime};base64,${base64}`,
+      pdfBuffer: pdfBufferFromBytes(data),
       dirty: false,
     };
   }
@@ -204,9 +213,38 @@ async function loadFileIntoTab(
     };
   }
 
+  if (isSqlitePath(relativePath)) {
+    return {
+      ...base,
+      id: newId(),
+      relativePath,
+      kind: 'sqlite3',
+      viewMode: 'preview',
+      content: '',
+      truncated: false,
+      fileSize: 0,
+      dirty: false,
+    };
+  }
+
+  if (isDuckdbPath(relativePath)) {
+    return {
+      ...base,
+      id: newId(),
+      relativePath,
+      kind: 'duckdb',
+      viewMode: 'preview',
+      content: '',
+      truncated: false,
+      fileSize: 0,
+      dirty: false,
+    };
+  }
+
   const file = await window.muled.file.read(relativePath);
   const csv = isCsvPath(relativePath);
   const ipynb = isIpynbPath(relativePath);
+  const mnote = isMnotePath(relativePath);
   const markdown = isMarkdownPath(relativePath);
   const html = isHtmlPath(relativePath);
   const strudel = isStrudelPath(relativePath);
@@ -214,25 +252,29 @@ async function loadFileIntoTab(
   const content = markdown
     ? exportWikiImagesFromMarkdown(file.content)
     : file.content;
-  const kind: TabKind = csv
-    ? 'csv'
-    : ipynb
-      ? 'ipynb'
-      : strudel
-        ? 'strudel'
-        : p5
-          ? 'p5'
-          : markdown
-            ? 'markdown'
-            : html
-              ? 'html'
-              : 'text';
+  const kind: TabKind = mnote
+    ? 'mnote'
+    : csv
+      ? 'csv'
+      : ipynb
+        ? 'ipynb'
+        : strudel
+          ? 'strudel'
+          : p5
+            ? 'p5'
+            : markdown
+              ? 'markdown'
+              : html
+                ? 'html'
+                : 'text';
   const viewMode: EditorViewMode =
-    csv || ipynb || html || strudel || p5
-      ? 'preview'
-      : markdown
-        ? 'rich-text'
-        : 'source';
+    mnote
+      ? 'rich-text'
+      : csv || ipynb || html || strudel || p5
+        ? 'preview'
+        : markdown
+          ? 'rich-text'
+          : 'source';
   return {
     ...base,
     id: newId(),
@@ -284,7 +326,7 @@ export function useEditorTabs(
   config: PublicConfig | null,
   options?: {
     confirmUnsaved?: ConfirmUnsavedChanges;
-    /** 分屏等仍渲染在界面上的标签，切换焦点时不释放 pdfSrc/imageSrc */
+    /** 分屏等仍渲染在界面上的标签，切换焦点时不释放 pdfBuffer/imageSrc */
     retainBinaryTabIdsRef?: MutableRefObject<readonly string[]>;
   },
 ) {
@@ -893,6 +935,81 @@ export function useEditorTabs(
     [activateTabId, ensureCanProceed],
   );
 
+  const revealMnoteEntryOnTab = useCallback(
+    (tabId: string, entry: MnoteEntry, sourceContent: string) => {
+      const resolved = resolveMnoteReveal(entry, sourceContent);
+      if (!resolved) return;
+
+      const tab = tabsRef.current.find((t) => t.id === tabId);
+      if (!tab) return;
+
+      if (
+        tab.kind === 'markdown' &&
+        tab.viewMode === 'rich-text' &&
+        resolved.editorReveal
+      ) {
+        const title =
+          entry.quote?.split('\n')[0]?.trim() ??
+          (resolved.parsed.type === 'md' ? (resolved.parsed.heading ?? '') : '');
+        const revealed = getEditorOutlineHandlers(tabId)?.revealOutlineTarget({
+          line: resolved.editorReveal.line,
+          title,
+        });
+        if (revealed) return;
+      }
+
+      setTabs((prev) =>
+        prev.map((t) => {
+          if (t.id !== tabId) return t;
+
+          if (t.kind === 'pdf' && resolved.pdfReveal) {
+            return { ...t, pdfReveal: resolved.pdfReveal };
+          }
+
+          if (t.kind === 'markdown' && resolved.editorReveal) {
+            return {
+              ...t,
+              reveal: resolved.editorReveal,
+              viewMode: 'source' as const,
+            };
+          }
+
+          return t;
+        }),
+      );
+    },
+    [],
+  );
+
+  const remapTabsForPathRename = useCallback((from: string, to: string) => {
+    const fromDir = from.endsWith('/') ? normalizeDirectoryPath(from) : null;
+    const toDir = to.endsWith('/') ? normalizeDirectoryPath(to) : null;
+
+    setTabs((prev) =>
+      prev.map((tab) => {
+        if (!tab.relativePath) return tab;
+
+        let nextPath = tab.relativePath;
+
+        if (fromDir && toDir) {
+          if (tab.relativePath.startsWith(fromDir)) {
+            nextPath = `${toDir}${tab.relativePath.slice(fromDir.length)}`;
+          }
+        } else if (!from.endsWith('/') && !to.endsWith('/')) {
+          if (tab.relativePath === from) {
+            nextPath = to;
+          } else if (tab.relativePath === companionMnotePath(from)) {
+            nextPath = companionMnotePath(to);
+          }
+        }
+
+        return nextPath === tab.relativePath
+          ? tab
+          : { ...tab, relativePath: nextPath };
+      }),
+    );
+  }, []);
+
   const openDirectoryGrid = useCallback(
     async (relativePath: string) => {
       const cfg = configRef.current;
@@ -1037,56 +1154,79 @@ export function useEditorTabs(
     [activateTabId],
   );
 
-  useEffect(() => {
-    if (!activeTab || !needsBinaryHydration(activeTab)) return undefined;
+  const binaryHydrationSig = useMemo(() => {
+    const retainIds = new Set(retainBinaryTabIdsRef?.current ?? []);
+    return tabs
+      .filter(
+        (t) =>
+          needsBinaryHydration(t) &&
+          t.relativePath &&
+          (t.id === activeTabId || retainIds.has(t.id)),
+      )
+      .map((t) => `${t.id}\0${t.kind}\0${t.relativePath}`)
+      .join('\n');
+  }, [activeTabId, tabs]);
 
-    const tabId = activeTab.id;
-    const relativePath = activeTab.relativePath;
-    if (!relativePath) return undefined;
+  useEffect(() => {
+    if (!binaryHydrationSig) return undefined;
+
+    const retainIds = new Set(retainBinaryTabIdsRef?.current ?? []);
+    const hydrateTargets = tabs.filter(
+      (t) =>
+        needsBinaryHydration(t) &&
+        t.relativePath &&
+        (t.id === activeTabId || retainIds.has(t.id)),
+    );
+    if (hydrateTargets.length === 0) return undefined;
 
     let cancelled = false;
 
-    (async () => {
-      try {
-        const { base64, mime } =
-          await window.muled.file.readBinary(relativePath);
-        if (cancelled) return;
-        const dataUrl = `data:${mime};base64,${base64}`;
-        setTabs((prev) =>
-          prev.map((t) => {
-            if (t.id !== tabId) return t;
-            if (t.kind === 'pdf') return { ...t, pdfSrc: dataUrl };
-            if (t.kind === 'image') return { ...t, imageSrc: dataUrl };
-            if (t.kind === 'audio') return { ...t, audioSrc: dataUrl };
-            if (t.kind === 'video') return { ...t, videoSrc: dataUrl };
-            if (t.kind === 'docx') return { ...t, docxSrc: dataUrl };
-            if (t.kind === 'pptx') return { ...t, pptxSrc: dataUrl };
-            if (t.kind === 'xlsx') return { ...t, xlsxSrc: dataUrl };
-            return t;
-          }),
-        );
-      } catch (e) {
-        if (cancelled) return;
-        const message = e instanceof Error ? e.message : String(e);
-        pushStatusToast(`无法加载预览: ${message}`, 'error');
-      }
-    })();
+    for (const target of hydrateTargets) {
+      const tabId = target.id;
+      const relativePath = target.relativePath!;
+      void (async () => {
+        try {
+          if (target.kind === 'pdf') {
+            const { data } =
+              await window.muled.file.readBinaryBuffer(relativePath);
+            if (cancelled) return;
+            const pdfBuffer = pdfBufferFromBytes(data);
+            setTabs((prev) =>
+              prev.map((t) =>
+                t.id === tabId ? { ...t, pdfBuffer } : t,
+              ),
+            );
+            return;
+          }
+
+          const { base64, mime } =
+            await window.muled.file.readBinary(relativePath);
+          if (cancelled) return;
+          const dataUrl = `data:${mime};base64,${base64}`;
+          setTabs((prev) =>
+            prev.map((t) => {
+              if (t.id !== tabId) return t;
+              if (t.kind === 'image') return { ...t, imageSrc: dataUrl };
+              if (t.kind === 'audio') return { ...t, audioSrc: dataUrl };
+              if (t.kind === 'video') return { ...t, videoSrc: dataUrl };
+              if (t.kind === 'docx') return { ...t, docxSrc: dataUrl };
+              if (t.kind === 'pptx') return { ...t, pptxSrc: dataUrl };
+              if (t.kind === 'xlsx') return { ...t, xlsxSrc: dataUrl };
+              return t;
+            }),
+          );
+        } catch (e) {
+          if (cancelled) return;
+          const message = e instanceof Error ? e.message : String(e);
+          pushStatusToast(`无法加载预览: ${message}`, 'error');
+        }
+      })();
+    }
 
     return () => {
       cancelled = true;
     };
-  }, [
-    activeTab?.id,
-    activeTab?.kind,
-    activeTab?.relativePath,
-    activeTab?.pdfSrc,
-    activeTab?.imageSrc,
-    activeTab?.audioSrc,
-    activeTab?.videoSrc,
-    activeTab?.docxSrc,
-    activeTab?.pptxSrc,
-    activeTab?.xlsxSrc,
-  ]);
+  }, [activeTabId, binaryHydrationSig, tabs]);
 
   const markTabDirty = useCallback((tabId: string) => {
     setTabs((prev) =>
@@ -1107,6 +1247,16 @@ export function useEditorTabs(
     },
     [activeTabId],
   );
+
+  const setPdfLastPage = useCallback((tabId: string, page: number) => {
+    if (!Number.isFinite(page) || page < 1) return;
+    setTabs((prev) =>
+      prev.map((t) => {
+        if (t.id !== tabId || t.pdfLastPage === page) return t;
+        return { ...t, pdfLastPage: page };
+      }),
+    );
+  }, []);
 
   const updateTabContent = useCallback((tabId: string, content: string) => {
     setTabs((prev) =>
@@ -1161,6 +1311,8 @@ export function useEditorTabs(
     openPathFromEditorLink,
     getTabNavigation,
     openPathWithReveal,
+    revealMnoteEntryOnTab,
+    remapTabsForPathRename,
     openDirectoryGrid,
     tabNavigation,
     navigateTabBack,
@@ -1173,6 +1325,7 @@ export function useEditorTabs(
     ensureCanProceed,
     updateActiveContent,
     updateTabContent,
+    setPdfLastPage,
     setViewMode,
     setKeybindingMode,
     saveTab,

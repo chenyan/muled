@@ -34,8 +34,11 @@ import {
   type RunningSearch,
 } from '../services/shellSearchService';
 import WorkspaceService from '../services/workspaceService';
+import WorkspaceWatcherService from '../services/workspaceWatcherService';
 import { detectToolPaths } from '../services/toolPathService';
 import DuckdbService from '../services/duckdbService';
+import DuckdbFileService from '../services/duckdbFileService';
+import SqliteService from '../services/sqliteService';
 
 export interface MuledServices {
   config: ConfigService;
@@ -43,6 +46,8 @@ export interface MuledServices {
   file: FileService;
   openai: OpenAIService;
   duckdb: DuckdbService;
+  duckdbFile: DuckdbFileService;
+  sqlite: SqliteService;
 }
 
 export function createServices(): MuledServices {
@@ -55,7 +60,9 @@ export function createServices(): MuledServices {
   const file = new FileService(config, workspace);
   const openai = new OpenAIService(config);
   const duckdb = new DuckdbService();
-  return { config, workspace, file, openai, duckdb };
+  const duckdbFile = new DuckdbFileService();
+  const sqlite = new SqliteService();
+  return { config, workspace, file, openai, duckdb, duckdbFile, sqlite };
 }
 
 function buildThemePayload(config: ConfigService): ThemeChangedPayload {
@@ -112,6 +119,12 @@ function sendSearchEvent(
   sender.send('search:stream', event);
 }
 
+let workspaceWatcher: WorkspaceWatcherService | null = null;
+
+function syncWorkspaceWatcherRoot(services: MuledServices): void {
+  workspaceWatcher?.watch(services.workspace.getRoot());
+}
+
 export function registerIpc(
   services: MuledServices,
   getWindow?: () => BrowserWindow | null,
@@ -141,6 +154,7 @@ export function registerIpc(
         const nextRoot = services.config.get().workspace.path;
         try {
           services.workspace.setRoot(nextRoot);
+          syncWorkspaceWatcherRoot(services);
         } catch {
           /* 工作区路径无效时保留当前根目录，仅更新配置文件 */
         }
@@ -200,6 +214,7 @@ export function registerIpc(
     'workspace:cd': (arg) => {
       const { path: nextPath } = arg as { path: string };
       const root = services.workspace.setRoot(nextPath);
+      syncWorkspaceWatcherRoot(services);
       const recent = recordRecentWorkspace(root);
       return {
         root,
@@ -238,6 +253,11 @@ export function registerIpc(
     'file:readBinary': (arg) => {
       const { path: filePath } = arg as { path: string };
       return services.file.readBinary(filePath);
+    },
+
+    'file:readBinaryBuffer': (arg) => {
+      const { path: filePath } = arg as { path: string };
+      return services.file.readBinaryBuffer(filePath);
     },
 
     'file:write': (arg) => {
@@ -337,6 +357,56 @@ export function registerIpc(
       await services.duckdb.closeSession(sessionId);
       return { ok: true };
     },
+
+    'sqlite:open': (arg) => {
+      const { sessionId, path: relativePath } = arg as {
+        sessionId: string;
+        path: string;
+      };
+      const absolutePath = services.file.resolveFilePath(relativePath);
+      return services.sqlite.open({ sessionId, absolutePath });
+    },
+
+    'sqlite:query': (arg) => {
+      const { sessionId, sql } = arg as { sessionId: string; sql: string };
+      return services.sqlite.query({ sessionId, sql });
+    },
+
+    'sqlite:listTables': (arg) => {
+      const { sessionId } = arg as { sessionId: string };
+      return services.sqlite.listTables(sessionId);
+    },
+
+    'sqlite:close': (arg) => {
+      const { sessionId } = arg as { sessionId: string };
+      services.sqlite.closeSession(sessionId);
+      return { ok: true };
+    },
+
+    'duckdbFile:open': async (arg) => {
+      const { sessionId, path: relativePath } = arg as {
+        sessionId: string;
+        path: string;
+      };
+      const absolutePath = services.file.resolveFilePath(relativePath);
+      return services.duckdbFile.open({ sessionId, absolutePath });
+    },
+
+    'duckdbFile:query': async (arg) => {
+      const { sessionId, sql } = arg as { sessionId: string; sql: string };
+      return services.duckdbFile.query({ sessionId, sql });
+    },
+
+    'duckdbFile:listTables': async (arg) => {
+      const { sessionId } = arg as { sessionId: string };
+      return services.duckdbFile.listTables(sessionId);
+    },
+
+    'duckdbFile:close': async (arg) => {
+      const { sessionId } = arg as { sessionId: string };
+      await services.duckdbFile.closeSession(sessionId);
+      return { ok: true };
+    },
   };
 
   (Object.keys(handlers) as IpcChannel[]).forEach((channel) => {
@@ -347,6 +417,21 @@ export function registerIpc(
       return handlers[channel](arg);
     });
   });
+}
+
+export function registerWorkspaceWatcher(
+  services: MuledServices,
+  getWindow: () => BrowserWindow | null,
+): void {
+  workspaceWatcher = new WorkspaceWatcherService();
+  workspaceWatcher.setOnChange(() => {
+    const win = getWindow();
+    if (!win || win.isDestroyed()) {
+      return;
+    }
+    win.webContents.send('workspace:filesystemChanged');
+  });
+  syncWorkspaceWatcherRoot(services);
 }
 
 export function registerThemeWatcher(
@@ -400,6 +485,7 @@ export function registerConfigWatcher(
     if (workspacePathChanged) {
       try {
         services.workspace.setRoot(nextWorkspacePath);
+        syncWorkspaceWatcherRoot(services);
       } catch {
         /* 无效路径时保留当前工作区 */
       }

@@ -17,9 +17,16 @@ export const QUERY_PANEL_DEFAULT_HEIGHT = 320;
 /** 上方 CSV 编辑区保留高度下限 */
 export const QUERY_PANEL_MAIN_MIN_HEIGHT = 120;
 
+interface QueryPanelRenderProps {
+  maximized: boolean;
+  onMaximizedChange: (maximized: boolean) => void;
+  onExpandedChange: (expanded: boolean) => void;
+}
+
 interface CsvTabViewProps {
   tab: EditorTab;
   children: ReactNode;
+  renderQueryPanel?: (props: QueryPanelRenderProps) => ReactNode;
 }
 
 function getQueryPanelMaxHeight(containerHeight: number): number {
@@ -29,7 +36,11 @@ function getQueryPanelMaxHeight(containerHeight: number): number {
   );
 }
 
-export default function CsvTabView({ tab, children }: CsvTabViewProps) {
+export default function CsvTabView({
+  tab,
+  children,
+  renderQueryPanel,
+}: CsvTabViewProps) {
   const [queryMaximized, setQueryMaximized] = useState(false);
   const [queryExpanded, setQueryExpanded] = useState(false);
   const [panelHeight, setPanelHeight] = useState(QUERY_PANEL_DEFAULT_HEIGHT);
@@ -103,12 +114,20 @@ export default function CsvTabView({ tab, children }: CsvTabViewProps) {
         className={`CsvTabView__panelShell${showPanelResize ? ' CsvTabView__panelShell--sized' : ''}`}
         style={showPanelResize ? { height: panelHeight } : undefined}
       >
-        <CsvQueryPanel
-          tab={tab}
-          maximized={queryMaximized}
-          onMaximizedChange={setQueryMaximized}
-          onExpandedChange={setQueryExpanded}
-        />
+        {renderQueryPanel ? (
+          renderQueryPanel({
+            maximized: queryMaximized,
+            onMaximizedChange: setQueryMaximized,
+            onExpandedChange: setQueryExpanded,
+          })
+        ) : (
+          <CsvQueryPanel
+            tab={tab}
+            maximized={queryMaximized}
+            onMaximizedChange={setQueryMaximized}
+            onExpandedChange={setQueryExpanded}
+          />
+        )}
       </div>
     </div>
   );

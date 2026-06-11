@@ -8,6 +8,7 @@ import {
   resolvePath,
 } from '../../shared/pathUtils';
 import type {
+  FileReadBinaryBufferResult,
   FileReadBinaryResult,
   FileReadResult,
 } from '../../shared/types/ipc';
@@ -126,6 +127,26 @@ export default class FileService {
     const data = fs.readFileSync(absolutePath);
     return {
       base64: data.toString('base64'),
+      mime: guessMime(absolutePath),
+    };
+  }
+
+  readBinaryBuffer(filePath: string): FileReadBinaryBufferResult {
+    const absolutePath = this.resolveFilePath(filePath);
+    const stat = fs.statSync(absolutePath);
+    if (!stat.isFile()) {
+      throw new Error(`Not a file: ${filePath}`);
+    }
+    if (!BINARY_PREVIEW_EXT.test(absolutePath)) {
+      throw new Error(`Not a previewable binary file: ${filePath}`);
+    }
+    const data = fs.readFileSync(absolutePath);
+    return {
+      data: new Uint8Array(
+        data.buffer,
+        data.byteOffset,
+        data.byteLength,
+      ),
       mime: guessMime(absolutePath),
     };
   }

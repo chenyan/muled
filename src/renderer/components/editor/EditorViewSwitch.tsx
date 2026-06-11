@@ -3,12 +3,14 @@ import type { EditorViewMode } from '../../../shared/types/config';
 interface EditorViewSwitchProps {
   viewMode: EditorViewMode;
   disabled: boolean;
+  showPreview?: boolean;
   onChange: (mode: EditorViewMode) => void;
 }
 
 export default function EditorViewSwitch({
   viewMode,
   disabled,
+  showPreview = true,
   onChange,
 }: EditorViewSwitchProps) {
   return (
@@ -29,14 +31,16 @@ export default function EditorViewSwitch({
       >
         Source
       </button>
-      <button
-        type="button"
-        className={`EditorViewSwitch__btn${viewMode === 'preview' ? ' EditorViewSwitch__btn--active' : ''}`}
-        disabled={disabled}
-        onClick={() => onChange('preview')}
-      >
-        Preview
-      </button>
+      {showPreview ? (
+        <button
+          type="button"
+          className={`EditorViewSwitch__btn${viewMode === 'preview' ? ' EditorViewSwitch__btn--active' : ''}`}
+          disabled={disabled}
+          onClick={() => onChange('preview')}
+        >
+          Preview
+        </button>
+      ) : null}
     </div>
   );
 }

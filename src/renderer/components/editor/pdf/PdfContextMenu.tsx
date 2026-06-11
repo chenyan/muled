@@ -13,6 +13,7 @@ interface PdfContextMenuProps {
   onCopy: () => void;
   onCopyToOtherPane: () => void;
   onTranslate: () => void;
+  onRecordNote: () => void;
   onClose: () => void;
 }
 
@@ -28,6 +29,7 @@ export default function PdfContextMenu({
   onCopy,
   onCopyToOtherPane,
   onTranslate,
+  onRecordNote,
   onClose,
 }: PdfContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -101,6 +103,15 @@ export default function PdfContextMenu({
         onClick={onCopy}
       >
         复制
+      </button>
+      <div className="PdfContextMenu__separator" role="separator" />
+      <button
+        type="button"
+        role="menuitem"
+        className="PdfContextMenu__item"
+        onClick={onRecordNote}
+      >
+        记录笔记
       </button>
     </div>
   );
