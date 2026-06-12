@@ -26,18 +26,24 @@ describe('exportMnoteFromWysiwyg', () => {
     expect(doc?.entries[0]?.label).toBe('要点');
     expect(doc?.entries[0]?.quote).toBe('quoted line');
     expect(doc?.entries[0]?.body).toBe('my comment');
+    expect(exported).toMatch(/```mnote-entry[\s\S]*> quoted line[\s\S]*```/);
   });
 
-  it('preserves multiple entries separated by horizontal rules', () => {
-    const multi = `${sample}\n\n---\n\n${serializeMnoteEntry({
-      id: '20260611-002',
-      loc: 'lines=10',
-      body: 'second',
-    })}`;
+  it('preserves multiple entries and freeform markdown', () => {
+    const multi = `${sample}
+
+# Section
+
+${serializeMnoteEntry({
+  id: '20260611-002',
+  loc: 'lines=10',
+  body: 'second',
+})}`;
     const prepared = prepareMnoteForWysiwyg(multi);
     const exported = exportMnoteFromWysiwyg(prepared, multi);
     const doc = parseMnoteDocument(exported);
     expect(doc?.entries).toHaveLength(2);
     expect(doc?.entries[1]?.body).toBe('second');
+    expect(exported).toContain('# Section');
   });
 });

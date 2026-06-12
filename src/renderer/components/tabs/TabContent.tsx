@@ -3,7 +3,6 @@ import {
   useEffect,
   useRef,
   useState,
-  type MouseEvent,
 } from 'react';
 import {
   findSelectionSpan,
@@ -18,7 +17,6 @@ import EditorContextMenu, {
 } from '../ai/EditorContextMenu';
 import TranslationPopup from '../ai/TranslationPopup';
 import NoteRecordingOverlay from '../mnote/NoteRecordingOverlay';
-import MnotePanelView from '../mnote/MnotePanelView';
 import type { MnoteEntry } from '../../lib/mnoteFormat';
 import { useTabTranslation } from '../../hooks/useTabTranslation';
 import { buildMarkdownMnoteLoc } from '../../lib/buildMarkdownMnoteLoc';
@@ -76,7 +74,7 @@ import type {
   EditorTab,
   PdfRevealTarget,
 } from '../../types/tab';
-import { isEditableTextTab, isSavableTab, tabLabel } from '../../types/tab';
+import { isEditableTextTab, isSavableTab, tabLabel, tabUsesSourceCodeEditor } from '../../types/tab';
 
 interface TabContentProps {
   tab: EditorTab | null;
@@ -112,18 +110,11 @@ interface TabContentProps {
     input: AppendMnoteEntryInput,
   ) => Promise<void>;
   onOpenMnoteSplit?: (sourcePath: string) => void;
-  mnotePanelMode?: boolean;
   activeMnoteEntryId?: string | null;
-  scrollToMnoteEntryId?: string | null;
   onMnoteEntryClick?: (entry: MnoteEntry) => void;
   onClearMnoteReveal?: () => void;
-  onSourceVisibleLineChange?: (line: number) => void;
   onPdfPageChange?: (page: number) => void;
-  mnoteSyncPaused?: boolean;
-  onToggleMnoteSyncPause?: () => void;
-  mnoteSourceContent?: string;
-  mnoteSourceMissing?: boolean;
-  mnoteQuotePdfHighlight?: PdfRevealTarget | null;
+  mnotePagePdfHighlights?: PdfRevealTarget[];
   mnoteQuoteEditorHighlight?: EditorRevealTarget | null;
 }
 
@@ -152,18 +143,11 @@ export default function TabContent({
   onCopyPdfSelectionToOtherPane,
   onAppendMnote,
   onOpenMnoteSplit,
-  mnotePanelMode = false,
   activeMnoteEntryId = null,
-  scrollToMnoteEntryId = null,
   onMnoteEntryClick,
   onClearMnoteReveal,
-  onSourceVisibleLineChange,
   onPdfPageChange,
-  mnoteSyncPaused = false,
-  onToggleMnoteSyncPause,
-  mnoteSourceContent,
-  mnoteSourceMissing = false,
-  mnoteQuotePdfHighlight = null,
+  mnotePagePdfHighlights = [],
   mnoteQuoteEditorHighlight = null,
 }: TabContentProps) {
   const isPane = layout === 'pane';
@@ -437,9 +421,67 @@ export default function TabContent({
     [],
   );
 
+  const handleSourceEditorContextMenu = useCallback(
+    (e: MouseEvent) => {
+      if (!tab || tab.truncated || !tabUsesSourceCodeEditor(tab)) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const captured = captureSnapshot();
+      let snapshot: EditorAiSnapshot;
+      if (captured) {
+        snapshot = captured;
+      } else {
+        const pos =
+          sourceRef.current?.getPositionAtCoords(e.clientX, e.clientY) ??
+          sourceRef.current?.getInsertPosition() ??
+          null;
+        snapshot = {
+          selection: '',
+          sourceRange: pos != null ? { from: pos, to: pos } : null,
+        };
+      }
+
+      if (tab.kind === 'markdown') {
+        const content = sourceRef.current?.getValue() ?? tab.content;
+        const pendingLoc = buildMarkdownMnoteLoc({
+          tab,
+          sourceRef: sourceRef.current,
+          selectionText: snapshot.selection,
+          sourceRange: snapshot.sourceRange,
+          content,
+        });
+        setContextMenu({
+          x: e.clientX,
+          y: e.clientY,
+          snapshot,
+          anchorRect: null,
+          showTranslate: false,
+          showAiEdit: true,
+          showRecordNote: true,
+          pendingLoc,
+        });
+        return;
+      }
+
+      setContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        snapshot,
+        anchorRect: null,
+        showTranslate: false,
+        showAiEdit: true,
+        showRecordNote: false,
+      });
+    },
+    [captureSnapshot, tab],
+  );
+
   const handleEditorContextMenu = useCallback(
     (e: MouseEvent) => {
       if (!tab || tab.truncated) return;
+      if (tabUsesSourceCodeEditor(tab)) return;
 
       if (tab.kind === 'markdown') {
         e.preventDefault();
@@ -468,20 +510,12 @@ export default function TabContent({
               tab.viewMode === 'rich-text' || tab.viewMode === 'preview';
             showAiEdit = tab.viewMode === 'rich-text';
           }
-        } else if (tab.viewMode === 'source') {
-          const captured = captureSnapshot();
-          if (captured) {
-            snapshot = captured;
-            showAiEdit = Boolean(captured.selection.trim());
-          }
         }
 
         const content =
-          tab.viewMode === 'source'
-            ? (sourceRef.current?.getValue() ?? tab.content)
-            : tab.viewMode === 'preview'
-              ? tab.content
-              : getWysiwygContent();
+          tab.viewMode === 'preview'
+            ? tab.content
+            : getWysiwygContent();
         const pendingLoc = buildMarkdownMnoteLoc({
           tab,
           sourceRef: sourceRef.current,
@@ -551,14 +585,15 @@ export default function TabContent({
         return;
       }
 
-      if (!menu.snapshot.selection) return;
-
       if (action === 'translate') {
+        if (!menu.snapshot.selection) return;
         const rect = menu.anchorRect;
         if (!rect) return;
         await runTranslate(menu.snapshot.selection, rect);
         return;
       }
+
+      if (action === 'replace' && !menu.snapshot.selection) return;
 
       onAiOpen(action, menu.snapshot);
     },
@@ -618,9 +653,9 @@ export default function TabContent({
   const showWysiwyg =
     tab.kind === 'markdown' && tab.viewMode === 'rich-text';
   const showMnoteWysiwyg =
-    tab.kind === 'mnote' && !mnotePanelMode && tab.viewMode === 'rich-text';
+    tab.kind === 'mnote' && tab.viewMode === 'rich-text';
   const showMnoteSource =
-    tab.kind === 'mnote' && !mnotePanelMode && tab.viewMode === 'source';
+    tab.kind === 'mnote' && tab.viewMode === 'source';
   const showMarkdownPreview =
     tab.kind === 'markdown' && tab.viewMode === 'preview';
   const showHtmlPreview = tab.kind === 'html' && tab.viewMode === 'preview';
@@ -703,16 +738,6 @@ export default function TabContent({
           )}
         </div>
         <div className="TabContent__headerRight">
-          {isPane && onToggleMnoteSyncPause ? (
-            <button
-              type="button"
-              className="TabContent__mnoteSyncButton"
-              title={mnoteSyncPaused ? '恢复笔记同步滚动' : '暂停笔记同步滚动'}
-              onClick={onToggleMnoteSyncPause}
-            >
-              {mnoteSyncPaused ? '恢复同步' : '暂停同步'}
-            </button>
-          ) : null}
           {!isPane && mnotePath && mnoteExists && onOpenMnoteSplit && (
             <button
               type="button"
@@ -731,7 +756,7 @@ export default function TabContent({
               onChange={handleViewModeChange}
             />
           )}
-          {tab.kind === 'mnote' && !mnotePanelMode && (
+          {tab.kind === 'mnote' && (
             <EditorViewSwitch
               viewMode={tab.viewMode}
               disabled={tab.truncated}
@@ -821,16 +846,7 @@ export default function TabContent({
         )}
         {tab.kind === 'image' ? (
           <ImagePreview tab={tab} />
-        ) : tab.kind === 'mnote' && mnotePanelMode && onMnoteEntryClick ? (
-          <MnotePanelView
-            content={tab.content}
-            sourceContent={mnoteSourceContent}
-            sourceMissing={mnoteSourceMissing}
-            activeEntryId={activeMnoteEntryId}
-            scrollToEntryId={scrollToMnoteEntryId}
-            onEntryClick={onMnoteEntryClick}
-          />
-        ) : tab.kind === 'mnote' && !mnotePanelMode ? (
+        ) : tab.kind === 'mnote' ? (
           <div
             ref={editorPaneRef}
             className="TabContent__editorPane"
@@ -846,6 +862,8 @@ export default function TabContent({
                 readOnly={tab.truncated}
                 onChange={onContentChange}
                 onOpenFile={onOpenFileFromEditor}
+                onMnoteEntryClick={onMnoteEntryClick}
+                activeMnoteEntryId={activeMnoteEntryId}
               />
             )}
             {showMnoteSource && (
@@ -859,6 +877,7 @@ export default function TabContent({
                 readOnly={tab.truncated}
                 reveal={tab.reveal ?? null}
                 onChange={onContentChange}
+                onContextMenu={handleSourceEditorContextMenu}
               />
             )}
           </div>
@@ -871,7 +890,8 @@ export default function TabContent({
             onCopySelectionToOtherPane={onCopyPdfSelectionToOtherPane}
             onPdfPageChange={onPdfPageChange}
             onPdfRevealComplete={onClearMnoteReveal}
-            mnoteQuoteHighlight={mnoteQuotePdfHighlight}
+            mnotePageHighlights={mnotePagePdfHighlights}
+            activeMnoteEntryId={activeMnoteEntryId}
           />
         ) : tab.kind === 'pptx' ? (
           <PptxViewerView tab={tab} />
@@ -916,6 +936,7 @@ export default function TabContent({
                 readOnly={tab.truncated}
                 reveal={tab.reveal ?? null}
                 onChange={onContentChange}
+                onContextMenu={handleSourceEditorContextMenu}
               />
             </div>
           </CsvTabView>
@@ -977,9 +998,7 @@ export default function TabContent({
                 mnoteQuoteHighlight={mnoteQuoteEditorHighlight}
                 onRevealComplete={onClearMnoteReveal}
                 onChange={onContentChange}
-                onVisibleLineChange={
-                  tab.kind === 'markdown' ? onSourceVisibleLineChange : undefined
-                }
+                onContextMenu={handleSourceEditorContextMenu}
               />
             )}
           </div>

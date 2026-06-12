@@ -85,7 +85,10 @@ export function isMuledMathSpan(node: {
   name?: string | null;
   attributes?: Array<{ type: string; name?: string | null }> | null;
 }): boolean {
-  if (node.type !== 'mdxJsxTextElement' || node.name !== 'span') {
+  if (
+    (node.type !== 'mdxJsxTextElement' && node.type !== 'mdxJsxFlowElement') ||
+    node.name !== 'span'
+  ) {
     return false;
   }
   return (node.attributes ?? []).some(
@@ -96,10 +99,13 @@ export function isMuledMathSpan(node: {
 export function isRenderableHtmlMdastNode(
   node: Nodes,
 ): node is RenderableHtmlMdastNode {
-  if (node.type === 'html' || node.type === 'mdxJsxFlowElement') {
+  if (node.type === 'html') {
     return true;
   }
-  return node.type === 'mdxJsxTextElement' && !isMuledMathSpan(node);
+  if (node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement') {
+    return !isMuledMathSpan(node);
+  }
+  return false;
 }
 
 /** 将 mdast HTML / MDX JSX 节点序列化为可渲染的 HTML 字符串 */

@@ -11,6 +11,7 @@ import {
   getStrudelMirror,
   loadStrudelRepl,
   readStrudelEditorCode,
+  writeStrudelEditorCode,
   type StrudelEditorElement,
 } from '../../lib/strudelRepl';
 import {
@@ -92,6 +93,8 @@ const StrudelReplPreview = forwardRef<
 >(function StrudelReplPreview({ tab, sourceFont }, ref) {
   const hostRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<StrudelEditorElement | null>(null);
+  const contentRef = useRef(tab.content);
+  contentRef.current = tab.content;
   const [ready, setReady] = useState(false);
   const [mirrorReady, setMirrorReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -135,19 +138,18 @@ const StrudelReplPreview = forwardRef<
     }
 
     let cancelled = false;
-    let editor = host.querySelector('strudel-editor') as StrudelEditorElement | null;
-    if (!editor) {
-      editor = document.createElement('strudel-editor') as StrudelEditorElement;
-      host.appendChild(editor);
-    }
+    host.replaceChildren();
+    const editor = document.createElement('strudel-editor') as StrudelEditorElement;
+    editor.setAttribute('code', contentRef.current);
+    host.appendChild(editor);
     editorRef.current = editor;
-    editor.setAttribute('code', tab.content);
     setMirrorReady(false);
 
     void waitForStrudelMirror(editor).then((mounted) => {
       if (cancelled || mounted !== editorRef.current) {
         return;
       }
+      writeStrudelEditorCode(mounted, contentRef.current);
       setMirrorReady(true);
     });
 
@@ -161,11 +163,10 @@ const StrudelReplPreview = forwardRef<
   }, [ready, tab.relativePath]);
 
   useEffect(() => {
-    const editor = editorRef.current;
-    if (!editor || !mirrorReady) {
+    if (!editorRef.current || !mirrorReady) {
       return;
     }
-    editor.setAttribute('code', tab.content);
+    writeStrudelEditorCode(editorRef.current, tab.content);
   }, [mirrorReady, tab.content]);
 
   const handlePlay = useCallback(async () => {

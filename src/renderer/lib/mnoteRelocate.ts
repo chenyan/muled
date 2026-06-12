@@ -170,6 +170,21 @@ export function resolveMnoteQuotePdfHighlight(
   };
 }
 
+/** 指定 PDF 页上所有带 quote+bbox 的笔记高亮 */
+export function resolveMnoteQuotePdfHighlightsForPage(
+  entries: MnoteEntry[],
+  page: number,
+): PdfRevealTarget[] {
+  const highlights: PdfRevealTarget[] = [];
+  for (const entry of entries) {
+    const highlight = resolveMnoteQuotePdfHighlight(entry);
+    if (highlight && highlight.page === page) {
+      highlights.push(highlight);
+    }
+  }
+  return highlights;
+}
+
 /** 有 quote 的 Markdown 笔记：返回应高亮的行范围 */
 export function resolveMnoteQuoteEditorHighlight(
   entry: MnoteEntry,

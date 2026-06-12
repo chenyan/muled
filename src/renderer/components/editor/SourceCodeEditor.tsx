@@ -1,4 +1,4 @@
-import { EditorState } from '@codemirror/state';
+import { EditorSelection, EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import {
   forwardRef,
@@ -26,6 +26,22 @@ import {
   getSourceLanguageLabel,
 } from '../../lib/fileLanguage';
 
+function clampDocPos(view: EditorView, pos: number): number {
+  return Math.max(0, Math.min(pos, view.state.doc.length));
+}
+
+function resolvePosAtCoords(
+  view: EditorView,
+  clientX: number,
+  clientY: number,
+): number | null {
+  const hit = view.posAtCoords({ x: clientX, y: clientY });
+  if (hit == null || typeof hit.pos !== 'number' || Number.isNaN(hit.pos)) {
+    return null;
+  }
+  return clampDocPos(view, hit.pos);
+}
+
 export interface SourceCodeEditorProps {
   tabId: string;
   tabKey: string;
@@ -38,6 +54,7 @@ export interface SourceCodeEditorProps {
   onRevealComplete?: () => void;
   onChange: (value: string) => void;
   onVisibleLineChange?: (line: number) => void;
+  onContextMenu?: (event: MouseEvent) => void;
 }
 
 export interface SourceCodeEditorHandle {
@@ -48,6 +65,8 @@ export interface SourceCodeEditorHandle {
   getSelectionRange: () => { from: number; to: number } | null;
   getSelectionLines: () => { start: number; end: number };
   getCursorLine: () => number;
+  getInsertPosition: () => number | null;
+  getPositionAtCoords: (clientX: number, clientY: number) => number | null;
 }
 
 const SourceCodeEditor = forwardRef<
@@ -66,11 +85,15 @@ const SourceCodeEditor = forwardRef<
     onRevealComplete,
     onChange,
     onVisibleLineChange,
+    onContextMenu,
   },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const contextMenuSelectionRef = useRef<{ from: number; to: number } | null>(
+    null,
+  );
   const revealRef = useRef(reveal);
   revealRef.current = reveal;
   const appliedRevealIdRef = useRef<string | null>(null);
@@ -80,6 +103,8 @@ const SourceCodeEditor = forwardRef<
   onChangeRef.current = onChange;
   const onVisibleLineChangeRef = useRef(onVisibleLineChange);
   onVisibleLineChangeRef.current = onVisibleLineChange;
+  const onContextMenuRef = useRef(onContextMenu);
+  onContextMenuRef.current = onContextMenu;
 
   const languageId = getSourceLanguageId(relativePath);
   const languageLabel = getSourceLanguageLabel(languageId);
@@ -133,6 +158,16 @@ const SourceCodeEditor = forwardRef<
       const { from } = view.state.selection.main;
       return view.state.doc.lineAt(from).number;
     },
+    getInsertPosition: () => {
+      const view = viewRef.current;
+      if (!view) return null;
+      return view.state.selection.main.head;
+    },
+    getPositionAtCoords: (clientX: number, clientY: number) => {
+      const view = viewRef.current;
+      if (!view) return null;
+      return resolvePosAtCoords(view, clientX, clientY);
+    },
   }));
 
   const extensions = useMemo(() => {
@@ -143,11 +178,14 @@ const SourceCodeEditor = forwardRef<
       ...buildCommonSourceUiExtensions(sourceTheme),
       EditorView.lineWrapping,
       EditorView.domEventHandlers({
-        scroll(event, view) {
-          const scrollTop = (event.target as HTMLElement).scrollTop;
+        scroll(_event, view) {
+          const onLineChange = onVisibleLineChangeRef.current;
+          if (!onLineChange) return false;
+          // IntersectionObserver 触发的合成 scroll 事件没有 target，用 scrollDOM 更可靠
+          const scrollTop = view.scrollDOM.scrollTop;
           const block = view.lineBlockAtHeight(scrollTop + 24);
           const line = view.state.doc.lineAt(block.from).number;
-          onVisibleLineChangeRef.current?.(line);
+          onLineChange(line);
           return false;
         },
       }),
@@ -250,6 +288,60 @@ const SourceCodeEditor = forwardRef<
       cancelled = true;
     };
   }, [mnoteQuoteHighlight]);
+
+  // capture 阶段监听，避免 CodeMirror/Vim 在 contextmenu 前清掉选区
+  useEffect(() => {
+    const parent = containerRef.current;
+    if (!parent) return undefined;
+
+    const saveSelectionOnRightPointer = (event: PointerEvent) => {
+      if (event.button !== 2) return;
+      const view = viewRef.current;
+      if (!view) return;
+      const { from, to } = view.state.selection.main;
+      contextMenuSelectionRef.current = from === to ? null : { from, to };
+      // 阻止 CodeMirror/Vim 在 contextmenu 前移动光标或清选区
+      event.stopPropagation();
+    };
+
+    const handleContextMenu = (event: MouseEvent) => {
+      const onMenu = onContextMenuRef.current;
+      if (!onMenu) return;
+
+      const view = viewRef.current;
+      if (view) {
+        const saved = contextMenuSelectionRef.current;
+        contextMenuSelectionRef.current = null;
+        if (saved) {
+          const { from, to } = view.state.selection.main;
+          if (from === to) {
+            const anchor = clampDocPos(view, saved.from);
+            const head = clampDocPos(view, saved.to);
+            view.dispatch({
+              selection: EditorSelection.single(anchor, head),
+            });
+          }
+        }
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      onMenu(event);
+    };
+
+    parent.addEventListener('pointerdown', saveSelectionOnRightPointer, {
+      capture: true,
+    });
+    parent.addEventListener('contextmenu', handleContextMenu, { capture: true });
+    return () => {
+      parent.removeEventListener('pointerdown', saveSelectionOnRightPointer, {
+        capture: true,
+      });
+      parent.removeEventListener('contextmenu', handleContextMenu, {
+        capture: true,
+      });
+    };
+  }, [tabKey]);
 
   return (
     <div className="MuledSourceEditor">

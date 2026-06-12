@@ -50,7 +50,8 @@ const MDAST_HTML_VISITOR: MdastImportVisitor<Html> = {
 
 const MDAST_MDX_JSX_FLOW_HTML_VISITOR: MdastImportVisitor<MdxJsxFlowElement> = {
   priority: 55,
-  testNode: (node) => node.type === 'mdxJsxFlowElement',
+  testNode: (node) =>
+    node.type === 'mdxJsxFlowElement' && !isMuledMathSpan(node),
   visitNode({ mdastNode, lexicalParent }) {
     appendHtmlNode(lexicalParent, mdastNode, true);
   },

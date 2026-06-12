@@ -19,9 +19,6 @@ export default class OpenAIService {
     if (!trimmedPrompt) {
       return { error: '请输入提示词' };
     }
-    if (!selection.trim()) {
-      return { error: '请先选中要处理的文本' };
-    }
 
     const { openai } = this.configService.get();
     if (!openai.api_key) {
@@ -43,7 +40,7 @@ export default class OpenAIService {
         messages: [
           {
             role: 'user',
-            content: buildAiUserContent(trimmedPrompt, selection),
+            content: buildAiUserContent(trimmedPrompt, selection.trim()),
           },
         ],
       });

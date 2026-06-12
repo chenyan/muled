@@ -47,26 +47,20 @@ export default function NoteRecordingOverlay({
   onSave,
 }: NoteRecordingOverlayProps) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const quoteRef = useRef<HTMLTextAreaElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
-  const [quote, setQuote] = useState(initialQuote);
   const [body, setBody] = useState('');
   const [label, setLabel] = useState('');
+  const quote = initialQuote.trim();
 
   useEffect(() => {
     if (!open) return undefined;
-    setQuote(initialQuote);
     setBody('');
     setLabel('');
     const id = window.requestAnimationFrame(() => {
-      if (initialQuote.trim()) {
-        bodyRef.current?.focus();
-      } else {
-        quoteRef.current?.focus();
-      }
+      bodyRef.current?.focus();
     });
     return () => window.cancelAnimationFrame(id);
-  }, [initialQuote, open]);
+  }, [open, initialQuote]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -109,17 +103,12 @@ export default function NoteRecordingOverlay({
       aria-label="记录笔记"
     >
       <div className="NoteRecordingOverlay__header">记录笔记</div>
-      <label className="NoteRecordingOverlay__field">
-        <span className="NoteRecordingOverlay__label">摘录（可选）</span>
-        <textarea
-          ref={quoteRef}
-          className="NoteRecordingOverlay__textarea NoteRecordingOverlay__textarea--quote"
-          rows={3}
-          value={quote}
-          placeholder="留空表示仅记录位置"
-          onChange={(e) => setQuote(e.target.value)}
-        />
-      </label>
+      {quote ? (
+        <div className="NoteRecordingOverlay__field">
+          <span className="NoteRecordingOverlay__label">摘录</span>
+          <div className="NoteRecordingOverlay__quote">{quote}</div>
+        </div>
+      ) : null}
       <label className="NoteRecordingOverlay__field">
         <span className="NoteRecordingOverlay__label">批注</span>
         <textarea

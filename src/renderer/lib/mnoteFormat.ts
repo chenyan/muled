@@ -22,6 +22,8 @@ export interface MnoteDocument {
 
 const ENTRY_FENCE_RE = /```mnote-entry\r?\n([\s\S]*?)```/g;
 
+const META_KEYS = new Set(['id', 'loc', 'created', 'label', 'sync']);
+
 export function parseMnoteEntryMeta(raw: string): MnoteEntryMeta | null {
   const lines = raw.trim().split(/\r?\n/);
   const meta: Record<string, string> = {};
@@ -42,7 +44,7 @@ export function parseMnoteEntryMeta(raw: string): MnoteEntryMeta | null {
   };
 }
 
-function parseEntryTail(tail: string): { quote?: string; body: string } {
+export function parseEntryTail(tail: string): { quote?: string; body: string } {
   const trimmed = tail.replace(/^\r?\n/, '');
   if (!trimmed) return { body: '' };
 
@@ -68,6 +70,56 @@ function parseEntryTail(tail: string): { quote?: string; body: string } {
   const body = lines.slice(index).join('\n').trim();
   const quote = quoteLines.length > 0 ? quoteLines.join('\n') : undefined;
   return { quote, body };
+}
+
+function splitMetaLines(interior: string): {
+  metaLines: string[];
+  tail: string;
+} {
+  const normalized = interior.replace(/^\r?\n/, '');
+  const lines = normalized.split(/\r?\n/);
+  const metaLines: string[] = [];
+  let index = 0;
+
+  while (index < lines.length) {
+    const line = lines[index]!;
+    if (!line.trim()) {
+      index += 1;
+      continue;
+    }
+    const colon = line.indexOf(':');
+    if (colon < 0) break;
+    const key = line.slice(0, colon).trim();
+    if (!META_KEYS.has(key)) break;
+    metaLines.push(line);
+    index += 1;
+  }
+
+  return {
+    metaLines,
+    tail: lines.slice(index).join('\n'),
+  };
+}
+
+export function parseMnoteEntryBlock(interior: string): {
+  meta: MnoteEntryMeta | null;
+  quote?: string;
+  body: string;
+} {
+  const { metaLines, tail } = splitMetaLines(interior);
+  const meta = parseMnoteEntryMeta(metaLines.join('\n'));
+  const { quote, body } = parseEntryTail(tail);
+  return { meta, quote, body };
+}
+
+export function isMetaOnlyMnoteInterior(interior: string): boolean {
+  const { metaLines, tail } = splitMetaLines(interior);
+  if (metaLines.length === 0) return false;
+  return !tail.trim();
+}
+
+function trimLegacyEntryTail(tail: string): string {
+  return tail.replace(/^\s*(?:---\s*)?/, '').replace(/\s*---\s*$/, '').trim();
 }
 
 export function parseMnoteDocument(content: string): MnoteDocument | null {
@@ -107,13 +159,25 @@ export function parseMnoteDocument(content: string): MnoteDocument | null {
   for (let i = 0; i < blocks.length; i += 1) {
     const current = blocks[i]!;
     const nextStart = blocks[i + 1]?.start ?? body.length;
-    let tail = body.slice(current.end, nextStart);
-    tail = tail.replace(/^\s*(?:---\s*)?/, '').replace(/\s*---\s*$/, '');
+    const legacyTail = trimLegacyEntryTail(body.slice(current.end, nextStart));
 
-    const meta = parseMnoteEntryMeta(current.meta);
+    let meta: MnoteEntryMeta | null;
+    let quote: string | undefined;
+    let entryBody: string;
+
+    if (isMetaOnlyMnoteInterior(current.meta)) {
+      meta = parseMnoteEntryMeta(current.meta);
+      const parsedTail = parseEntryTail(legacyTail);
+      quote = parsedTail.quote;
+      entryBody = parsedTail.body;
+    } else {
+      const parsedBlock = parseMnoteEntryBlock(current.meta);
+      meta = parsedBlock.meta;
+      quote = parsedBlock.quote;
+      entryBody = parsedBlock.body;
+    }
+
     if (!meta) continue;
-
-    const { quote, body: entryBody } = parseEntryTail(tail);
     entries.push({ ...meta, quote, body: entryBody });
   }
 
@@ -187,6 +251,39 @@ export function formatBlockquote(text: string): string {
     .join('\n');
 }
 
+export function serializeMnoteEntryMeta(meta: MnoteEntryMeta): string {
+  const metaLines = ['```mnote-entry', `id: ${meta.id}`, `loc: ${meta.loc}`];
+  if (meta.created) metaLines.push(`created: ${meta.created}`);
+  if (meta.label?.trim()) metaLines.push(`label: ${meta.label.trim()}`);
+  if (meta.sync) metaLines.push(`sync: ${meta.sync}`);
+  metaLines.push('```');
+  return metaLines.join('\n');
+}
+
+export function serializeMnoteEntryInterior(entry: {
+  id: string;
+  loc: string;
+  created?: string;
+  label?: string;
+  sync?: 'primary' | 'auto';
+  quote?: string;
+  body?: string;
+}): string {
+  const parts = [`id: ${entry.id}`, `loc: ${entry.loc}`];
+  if (entry.created) parts.push(`created: ${entry.created}`);
+  if (entry.label?.trim()) parts.push(`label: ${entry.label.trim()}`);
+  if (entry.sync) parts.push(`sync: ${entry.sync}`);
+
+  if (entry.quote?.trim()) {
+    parts.push('', formatBlockquote(entry.quote.trim()));
+  }
+  if (entry.body?.trim()) {
+    parts.push('', entry.body.trim());
+  }
+
+  return parts.join('\n');
+}
+
 export function serializeMnoteEntry(entry: {
   id: string;
   loc: string;
@@ -196,20 +293,7 @@ export function serializeMnoteEntry(entry: {
   quote?: string;
   body?: string;
 }): string {
-  const metaLines = ['```mnote-entry', `id: ${entry.id}`, `loc: ${entry.loc}`];
-  if (entry.created) metaLines.push(`created: ${entry.created}`);
-  if (entry.label?.trim()) metaLines.push(`label: ${entry.label.trim()}`);
-  if (entry.sync) metaLines.push(`sync: ${entry.sync}`);
-  metaLines.push('```');
-
-  const chunks = [metaLines.join('\n')];
-  if (entry.quote?.trim()) {
-    chunks.push('', formatBlockquote(entry.quote.trim()));
-  }
-  if (entry.body?.trim()) {
-    chunks.push('', entry.body.trim());
-  }
-  return chunks.join('\n');
+  return `\`\`\`mnote-entry\n${serializeMnoteEntryInterior(entry)}\n\`\`\``;
 }
 
 export function appendMnoteEntryToContent(
@@ -221,7 +305,7 @@ export function appendMnoteEntryToContent(
   if (!trimmed) {
     return `${block}\n`;
   }
-  return `${trimmed}\n\n---\n\n${block}\n`;
+  return `${trimmed}\n\n${block}\n`;
 }
 
 export function generateMnoteEntryId(existingContent: string, now = new Date()): string {
@@ -249,12 +333,15 @@ export function linesFromCharRange(
   return { start, end: Math.max(start, end) };
 }
 
-export function serializeMnoteDocument(doc: MnoteDocument): string {
+export function serializeMnoteDocument(doc: MnoteDocument, body = ''): string {
   const header = `---\nmuled:\n  kind: mnote\n  version: ${doc.version}\n  source: ${doc.source}\n---\n\n`;
+  if (body.trim()) {
+    return `${header}${body.trimEnd()}\n`;
+  }
   if (doc.entries.length === 0) {
     return header;
   }
-  return `${header}${doc.entries.map((entry) => serializeMnoteEntry(entry)).join('\n\n---\n\n')}\n`;
+  return `${header}${doc.entries.map((entry) => serializeMnoteEntry(entry)).join('\n\n')}\n`;
 }
 
 export function formatMarkdownMnoteLoc(lines: { start: number; end: number }): string {

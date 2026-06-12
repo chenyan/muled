@@ -1,7 +1,33 @@
 import {
   disposeStrudelEditor,
+  writeStrudelEditorCode,
   type StrudelEditorElement,
 } from '../renderer/lib/strudelRepl';
+
+describe('writeStrudelEditorCode', () => {
+  it('uses mirror.setCode when the editor mirror is ready', () => {
+    const setCode = jest.fn();
+    const setAttribute = jest.fn();
+    const editor = {
+      editor: { setCode },
+      setAttribute,
+    } as unknown as StrudelEditorElement;
+
+    writeStrudelEditorCode(editor, 's("bd")');
+
+    expect(setCode).toHaveBeenCalledWith('s("bd")');
+    expect(setAttribute).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the code attribute before the mirror mounts', () => {
+    const setAttribute = jest.fn();
+    const editor = { setAttribute } as unknown as StrudelEditorElement;
+
+    writeStrudelEditorCode(editor, 'note("c4")');
+
+    expect(setAttribute).toHaveBeenCalledWith('code', 'note("c4")');
+  });
+});
 
 describe('disposeStrudelEditor', () => {
   it('stops mirror, clears listeners, and removes editor nodes', () => {

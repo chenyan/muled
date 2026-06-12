@@ -147,6 +147,22 @@ export function getStrudelMirror(
   return element?.editor ?? null;
 }
 
+/** 将代码写入 strudel-editor（优先走 mirror.setCode，避免 setAttribute 同值不触发更新） */
+export function writeStrudelEditorCode(
+  element: StrudelEditorElement | null | undefined,
+  code: string,
+): void {
+  if (!element) {
+    return;
+  }
+  const mirror = getStrudelMirror(element);
+  if (mirror) {
+    mirror.setCode(code);
+    return;
+  }
+  element.setAttribute('code', code);
+}
+
 /** 停止调度并释放 StrudelMirror 注册的 document 监听器 */
 export function disposeStrudelEditor(
   element: StrudelEditorElement | null | undefined,

@@ -5,6 +5,7 @@ import {
   relocateMdLines,
   resolveMnoteQuoteEditorHighlight,
   resolveMnoteQuotePdfHighlight,
+  resolveMnoteQuotePdfHighlightsForPage,
   resolveMnoteReveal,
 } from '../renderer/lib/mnoteRelocate';
 import { appendFingerprintToLoc } from '../renderer/lib/mnoteFingerprint';
@@ -76,6 +77,42 @@ describe('mnoteRelocate', () => {
       page: 2,
       bbox: [0.1, 0.2, 0.9, 0.5],
     });
+  });
+
+  it('collects all quote pdf highlights on a page', () => {
+    const entries: MnoteEntry[] = [
+      {
+        id: 'a',
+        loc: 'page=2; bbox=0.1,0.2,0.4,0.3',
+        quote: 'one',
+        body: '',
+      },
+      {
+        id: 'b',
+        loc: 'page=2; bbox=0.5,0.2,0.9,0.3',
+        quote: 'two',
+        body: '',
+      },
+      {
+        id: 'c',
+        loc: 'page=3; bbox=0,0,1,1',
+        quote: 'other page',
+        body: '',
+      },
+      { id: 'd', loc: 'page=2', quote: 'no bbox', body: '' },
+    ];
+    expect(resolveMnoteQuotePdfHighlightsForPage(entries, 2)).toEqual([
+      {
+        id: 'a',
+        page: 2,
+        bbox: [0.1, 0.2, 0.4, 0.3],
+      },
+      {
+        id: 'b',
+        page: 2,
+        bbox: [0.5, 0.2, 0.9, 0.3],
+      },
+    ]);
   });
 
   it('skips quote pdf highlight without bbox', () => {

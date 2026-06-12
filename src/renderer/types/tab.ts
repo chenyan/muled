@@ -82,6 +82,22 @@ export function isEditableTextTab(tab: EditorTab): boolean {
   );
 }
 
+/** 当前 Tab 是否使用 CodeMirror Source 编辑器 */
+export function tabUsesSourceCodeEditor(tab: EditorTab): boolean {
+  if (!isEditableTextTab(tab)) return false;
+  if (tab.kind === 'text') return true;
+  if (tab.viewMode !== 'source') return false;
+  return (
+    tab.kind === 'markdown' ||
+    tab.kind === 'mnote' ||
+    tab.kind === 'html' ||
+    tab.kind === 'csv' ||
+    tab.kind === 'ipynb' ||
+    tab.kind === 'strudel' ||
+    tab.kind === 'p5'
+  );
+}
+
 /** 可保存的 Tab（文本、DOCX 或 XLSX） */
 export function isSavableTab(tab: EditorTab): boolean {
   return isEditableTextTab(tab) || tab.kind === 'docx' || tab.kind === 'xlsx';

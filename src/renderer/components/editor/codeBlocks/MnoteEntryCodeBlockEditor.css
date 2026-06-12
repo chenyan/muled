@@ -1,4 +1,7 @@
 .MnoteEntryCodeBlockEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin: 0;
   padding: 10px 12px;
   border: 1px solid var(--muled-border);
@@ -7,12 +10,70 @@
   outline: none;
 }
 
-.MnoteEntryCodeBlockEditor:focus-visible {
+.MnoteEntryCodeBlockEditor--active {
   border-color: var(--muled-accent, #2563eb);
-  box-shadow: 0 0 0 1px var(--muled-accent, #2563eb);
+  background: color-mix(in srgb, var(--muled-accent, #2563eb) 8%, var(--muled-surface));
 }
 
-/* WYSIWYG 笔记编辑区：与分屏卡片列表保持相同间距与层次 */
+.MnoteEntryCodeBlockEditor__meta--navigable {
+  cursor: pointer;
+  border-radius: 6px;
+  margin: -4px -6px 0;
+  padding: 4px 6px;
+}
+
+.MnoteEntryCodeBlockEditor__meta--navigable:hover {
+  background: color-mix(in srgb, var(--muled-accent, #2563eb) 6%, transparent);
+}
+
+.MnoteEntryCodeBlockEditor__meta--navigable:focus-visible {
+  outline: 1px solid var(--muled-accent, #2563eb);
+  outline-offset: 1px;
+}
+
+.MnoteEntryCodeBlockEditor__jumpHint {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muled-muted);
+}
+
+.MnoteEntryCodeBlockEditor__quote,
+.MnoteEntryCodeBlockEditor__body {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  resize: none;
+  overflow: hidden;
+  font: inherit;
+  color: inherit;
+  outline: none;
+}
+
+.MnoteEntryCodeBlockEditor__quote {
+  padding: 6px 10px;
+  border-left: 3px solid var(--muled-border);
+  font-size: 12px;
+  color: var(--muled-muted);
+  line-height: 1.45;
+}
+
+.MnoteEntryCodeBlockEditor__quote::placeholder {
+  color: color-mix(in srgb, var(--muled-muted) 70%, transparent);
+}
+
+.MnoteEntryCodeBlockEditor__body {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.MnoteEntryCodeBlockEditor__body::placeholder {
+  color: color-mix(in srgb, var(--muled-muted) 70%, transparent);
+}
+
+/* WYSIWYG 笔记编辑区 */
 .MuledMDXEditorHost--mnote {
   padding: 12px;
 }
@@ -21,33 +82,6 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-
-.MuledMDXEditorHost--mnote .MnoteEntryCodeBlockEditor {
-  margin-bottom: 0;
-}
-
-.MuledMDXEditorHost--mnote .mdxeditor blockquote {
-  margin: 0;
-  padding: 6px 10px;
-  border: none;
-  border-left: 3px solid var(--muled-border);
-  border-radius: 0;
-  color: var(--muled-muted);
-  font-size: 12px;
-  background: transparent;
-}
-
-.MuledMDXEditorHost--mnote .mdxeditor-root-contenteditable > p {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.MuledMDXEditorHost--mnote .mdxeditor hr {
-  border: none;
-  height: 0;
-  margin: 0;
 }
 
 .MuledMDXEditorHost--mnote

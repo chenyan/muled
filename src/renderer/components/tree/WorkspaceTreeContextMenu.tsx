@@ -24,6 +24,7 @@ interface WorkspaceTreeContextMenuProps {
   anchorX: number;
   anchorY: number;
   onOpenDirectoryGrid: (relativePath: string) => void;
+  onOpenFileInNewTab?: (relativePath: string) => void;
   onOpenFileInSplit?: (relativePath: string, placement: SplitPlacement) => void;
   onCreateFile: () => void;
   onCreateDirectory: () => void;
@@ -38,6 +39,7 @@ export default function WorkspaceTreeContextMenu({
   anchorX,
   anchorY,
   onOpenDirectoryGrid,
+  onOpenFileInNewTab,
   onOpenFileInSplit,
   onCreateFile,
   onCreateDirectory,
@@ -132,6 +134,19 @@ export default function WorkspaceTreeContextMenu({
         </button>
       ) : (
         <>
+          {onOpenFileInNewTab ? (
+            <button
+              type="button"
+              role="menuitem"
+              className="WorkspaceTreeContextMenu__item"
+              onClick={() => {
+                onOpenFileInNewTab(item.path);
+                onClose();
+              }}
+            >
+              新tab打开
+            </button>
+          ) : null}
           {onOpenFileInSplit ? (
             <div className="WorkspaceTreeContextMenu__submenu">
               <div

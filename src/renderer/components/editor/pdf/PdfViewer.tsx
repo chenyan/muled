@@ -42,7 +42,8 @@ interface PdfViewerProps {
   onCopySelectionToOtherPane?: (text: string) => void;
   onPdfPageChange?: (page: number) => void;
   onPdfRevealComplete?: () => void;
-  mnoteQuoteHighlight?: PdfRevealTarget | null;
+  mnotePageHighlights?: PdfRevealTarget[];
+  activeMnoteEntryId?: string | null;
 }
 
 export default function PdfViewer({
@@ -53,7 +54,8 @@ export default function PdfViewer({
   onCopySelectionToOtherPane,
   onPdfPageChange,
   onPdfRevealComplete,
-  mnoteQuoteHighlight = null,
+  mnotePageHighlights = [],
+  activeMnoteEntryId = null,
 }: PdfViewerProps) {
   const { engine, isLoading, error } = usePdfEngine();
   const pdfBuffer = tab.pdfBuffer;
@@ -99,9 +101,17 @@ export default function PdfViewer({
     );
   }
 
-  if (isLoading || !engine) {
+  if (isLoading) {
     return (
       <div className="PdfPreview PdfPreview--loading">正在加载 PDF 引擎…</div>
+    );
+  }
+
+  if (!engine) {
+    return (
+      <div className="PdfPreview PdfPreview--empty" role="alert">
+        PDF 引擎未就绪
+      </div>
     );
   }
 
@@ -164,7 +174,8 @@ export default function PdfViewer({
                                 <PdfMnotePageHighlight
                                   pageIndex={pageIndex}
                                   reveal={tab.pdfReveal}
-                                  quoteHighlight={mnoteQuoteHighlight}
+                                  pageHighlights={mnotePageHighlights}
+                                  activeEntryId={activeMnoteEntryId}
                                 />
                               </PagePointerProvider>
                             )}

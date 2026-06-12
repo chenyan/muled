@@ -5,6 +5,7 @@ import { normalizeMarkdownWikiImages } from './normalizeMarkdownWikiImages';
 import { normalizeMarkdownWikiLinks } from './normalizeMarkdownWikiLinks';
 import { splitTopLevelMarkdownBlocks } from './splitMarkdownBlocks';
 import { normalizeMarkdownBlockMathAndHtml } from './wysiwygBlockNormalize';
+import { ensureWysiwygTrailingBlankLine } from './ensureWysiwygTrailingBlankLine';
 
 function joinPreparedBlocks(blocks: string[], fallback: string): string {
   if (blocks.length === 0 && !fallback.trim()) {
@@ -18,7 +19,9 @@ export function prepareMarkdownForWysiwyg(raw: string): string {
   const withoutFrontmatter = normalizeMarkdownFrontmatterForWysiwyg(raw);
   const blocks = splitTopLevelMarkdownBlocks(withoutFrontmatter);
   const body = joinPreparedBlocks(blocks, withoutFrontmatter);
-  return normalizeMarkdownWikiLinks(normalizeMarkdownWikiImages(body));
+  return ensureWysiwygTrailingBlankLine(
+    normalizeMarkdownWikiLinks(normalizeMarkdownWikiImages(body)),
+  );
 }
 
 /**

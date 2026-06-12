@@ -115,4 +115,24 @@ describe('applyAiInEditor', () => {
     );
     expect(result).toBe('aa  bye  bb');
   });
+
+  it('appends at cursor when there is no selection', () => {
+    const result = applyAiInEditor(
+      'hello world',
+      { selection: '', sourceRange: { from: 5, to: 5 } },
+      'append',
+      'X',
+    );
+    expect(result).toBe('helloX world');
+  });
+
+  it('appends at document end when there is no selection or range', () => {
+    const result = applyAiInEditor(
+      'hello',
+      { selection: '', sourceRange: null },
+      'append',
+      ' world',
+    );
+    expect(result).toBe('hello world');
+  });
 });

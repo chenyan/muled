@@ -758,11 +758,17 @@
 .PdfMnotePageHighlight {
   position: absolute;
   pointer-events: none;
-  background: rgba(37, 99, 235, 0.18);
-  border: 2px solid rgba(37, 99, 235, 0.65);
+  background: rgba(37, 99, 235, 0.14);
+  border: 1.5px solid rgba(37, 99, 235, 0.45);
   border-radius: 2px;
   z-index: 4;
   box-sizing: border-box;
+}
+
+.PdfMnotePageHighlight--active {
+  background: rgba(37, 99, 235, 0.22);
+  border-width: 2px;
+  border-color: rgba(37, 99, 235, 0.75);
 }
 
 .TabContent__save:disabled {

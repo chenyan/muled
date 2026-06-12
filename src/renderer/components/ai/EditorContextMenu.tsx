@@ -57,13 +57,16 @@ export default function EditorContextMenu({
 
   if (!open) return null;
 
-  const aiDisabled = !hasSelection || !hasApiKey;
+  const appendDisabled = !hasApiKey;
+  const replaceDisabled = !hasSelection || !hasApiKey;
   const translateDisabled = !hasSelection || !hasApiKey;
-  const aiTitle = (() => {
+  const appendTitle = !hasApiKey ? '未配置 OpenAI API Key' : undefined;
+  const replaceTitle = (() => {
     if (!hasSelection) return '请先选中文字';
     if (!hasApiKey) return '未配置 OpenAI API Key';
     return undefined;
   })();
+  const translateTitle = replaceTitle;
 
   return (
     <div
@@ -78,7 +81,7 @@ export default function EditorContextMenu({
           role="menuitem"
           className="EditorContextMenu__item"
           disabled={translateDisabled}
-          title={aiTitle}
+          title={translateTitle}
           onClick={() => onSelect('translate')}
         >
           翻译该句
@@ -93,8 +96,8 @@ export default function EditorContextMenu({
             type="button"
             role="menuitem"
             className="EditorContextMenu__item"
-            disabled={aiDisabled}
-            title={aiTitle}
+            disabled={appendDisabled}
+            title={appendTitle}
             onClick={() => onSelect('append')}
           >
             Chat Append
@@ -103,8 +106,8 @@ export default function EditorContextMenu({
             type="button"
             role="menuitem"
             className="EditorContextMenu__item"
-            disabled={aiDisabled}
-            title={aiTitle}
+            disabled={replaceDisabled}
+            title={replaceTitle}
             onClick={() => onSelect('replace')}
           >
             Chat Replace

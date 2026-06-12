@@ -1,12 +1,15 @@
 .NoteRecordingOverlay {
   position: fixed;
   z-index: 1200;
+  box-sizing: border-box;
   width: min(400px, calc(100vw - 16px));
+  max-width: calc(100vw - 16px);
   padding: 12px 14px;
   border: 1px solid var(--muled-border);
   border-radius: 10px;
   background: var(--muled-surface);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
 }
 
 .NoteRecordingOverlay__header {
@@ -20,6 +23,7 @@
   flex-direction: column;
   gap: 4px;
   margin-bottom: 8px;
+  min-width: 0;
 }
 
 .NoteRecordingOverlay__label {
@@ -27,9 +31,30 @@
   color: var(--muled-muted);
 }
 
+.NoteRecordingOverlay__quote {
+  box-sizing: border-box;
+  max-width: 100%;
+  margin: 0;
+  padding: 6px 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  font-family: var(--muled-editor-font-family, inherit);
+  border-left: 3px solid var(--muled-border);
+  border-radius: 0 6px 6px 0;
+  background: var(--muled-bg);
+  color: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
 .NoteRecordingOverlay__textarea,
 .NoteRecordingOverlay__input {
+  box-sizing: border-box;
+  display: block;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding: 6px 8px;
   font-size: 12px;
   font-family: inherit;
@@ -38,10 +63,6 @@
   background: var(--muled-bg);
   color: inherit;
   resize: vertical;
-}
-
-.NoteRecordingOverlay__textarea--quote {
-  font-family: var(--muled-editor-font-family, inherit);
 }
 
 .NoteRecordingOverlay__actions {

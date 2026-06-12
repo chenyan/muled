@@ -1,9 +1,9 @@
 import { exportMarkdownFromWysiwyg } from './normalizeMarkdownWikiImages';
 import {
   parseMnoteDocument,
-  serializeMnoteDocument,
   type MnoteDocument,
 } from './mnoteFormat';
+import { collapseMnoteEntriesFromWysiwyg } from './mnoteWysiwygTransform';
 
 const FRONTMATTER_TABLE_RE =
   /^<table\b[^>]*\bdata-muled-frontmatter(?:=(?:"[^"]*"|'[^']*'|[^\s>]+))?[^>]*>[\s\S]*?<\/table>\s*/i;
@@ -27,25 +27,11 @@ export function exportMnoteFromWysiwyg(
   original?: string,
 ): string {
   const exported = exportMarkdownFromWysiwyg(source, original);
-  const direct = parseMnoteDocument(exported);
-  if (direct) {
-    return serializeMnoteDocument(direct);
-  }
-
-  const origDoc = original ? parseMnoteDocument(original) : null;
+  const origDoc = original ? parseMnoteDocument(original) : parseMnoteDocument(exported);
   if (!origDoc) {
     return exported;
   }
 
-  // frontmatter 表格往返会把嵌套 muled 压成字符串，保留原始 header 再解析正文
-  const body = stripLeadingFrontmatter(exported);
-  const recomposed = `${mnoteHeader(origDoc)}${body}${body ? '\n' : ''}`;
-  const doc = parseMnoteDocument(recomposed);
-  if (!doc) {
-    return exported;
-  }
-  return serializeMnoteDocument({
-    ...origDoc,
-    entries: doc.entries,
-  });
+  const body = collapseMnoteEntriesFromWysiwyg(stripLeadingFrontmatter(exported));
+  return `${mnoteHeader(origDoc)}${body}${body ? '\n' : ''}`;
 }

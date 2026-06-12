@@ -23,6 +23,7 @@ interface SidebarTabsProps {
   onSwitchWorkspace: (absolutePath: string) => void;
   onWorkspaceHistoryChanged?: (pickerPaths: string[]) => void;
   onOpenFile: (relativePath: string) => void;
+  onOpenFileInNewTab?: (relativePath: string) => void;
   onOpenFileInSplit?: (relativePath: string, placement: SplitPlacement) => void;
   onOpenDirectoryGrid: (relativePath: string) => void;
   onDeletePath?: (relativePath: string) => Promise<boolean>;
@@ -46,6 +47,7 @@ export default function SidebarTabs({
   onSwitchWorkspace,
   onWorkspaceHistoryChanged,
   onOpenFile,
+  onOpenFileInNewTab,
   onOpenFileInSplit,
   onOpenDirectoryGrid,
   onDeletePath,
@@ -122,6 +124,7 @@ export default function SidebarTabs({
             onSwitchWorkspace={onSwitchWorkspace}
             onWorkspaceHistoryChanged={onWorkspaceHistoryChanged}
             onOpenFile={onOpenFile}
+            onOpenFileInNewTab={onOpenFileInNewTab}
             onOpenFileInSplit={onOpenFileInSplit}
             onOpenDirectoryGrid={onOpenDirectoryGrid}
             onDeletePath={onDeletePath}

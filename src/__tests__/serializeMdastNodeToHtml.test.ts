@@ -60,5 +60,12 @@ describe('serializeMdastNodeToHtml', () => {
         attributes: [{ type: 'mdxJsxAttribute', name: 'data-muled-math' }],
       }),
     ).toBe(true);
+    expect(
+      isMuledMathSpan({
+        type: 'mdxJsxFlowElement',
+        name: 'span',
+        attributes: [{ type: 'mdxJsxAttribute', name: 'data-muled-math' }],
+      }),
+    ).toBe(true);
   });
 });

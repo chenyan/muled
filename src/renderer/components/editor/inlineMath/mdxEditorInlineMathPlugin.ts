@@ -13,6 +13,7 @@ import {
   splitTextWithInlineMath,
   textMayContainInlineMath,
 } from '../../../lib/inlineMathDelimiters';
+import { isMuledMathSpan } from '../../../lib/serializeMdastNodeToHtml';
 import {
   $createInlineMathNode,
   $isInlineMathNode,
@@ -20,10 +21,12 @@ import {
 } from './InlineMathNode';
 
 function readMuledMathAttribute(node: Nodes): string | null {
-  if (node.type !== 'mdxJsxTextElement' || node.name !== 'span') {
+  if (!isMuledMathSpan(node)) {
     return null;
   }
-  const attr = node.attributes.find(
+  const attr = (
+    node as Extract<Nodes, { type: 'mdxJsxTextElement' | 'mdxJsxFlowElement' }>
+  ).attributes.find(
     (item) =>
       item.type === 'mdxJsxAttribute' && item.name === 'data-muled-math',
   );

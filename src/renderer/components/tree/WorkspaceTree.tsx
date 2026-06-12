@@ -48,6 +48,7 @@ interface WorkspaceTreeProps {
   /** 状态栏路径点击等：在树中展开并选中，不重复打开文件 */
   revealRequest?: WorkspaceTreeRevealRequest | null;
   onOpenFile: (relativePath: string) => void;
+  onOpenFileInNewTab?: (relativePath: string) => void;
   onOpenFileInSplit?: (relativePath: string, placement: SplitPlacement) => void;
   onOpenDirectoryGrid: (relativePath: string) => void;
   onDeletePath?: (relativePath: string) => Promise<boolean>;
@@ -63,6 +64,7 @@ interface WorkspaceTreeFileListProps {
   selectionResetKey: number;
   revealRequest?: WorkspaceTreeRevealRequest | null;
   onOpenFile: (relativePath: string) => void;
+  onOpenFileInNewTab?: (relativePath: string) => void;
   onOpenFileInSplit?: (relativePath: string, placement: SplitPlacement) => void;
   onOpenDirectoryGrid: (relativePath: string) => void;
   onDeletePath?: (relativePath: string) => Promise<boolean>;
@@ -77,6 +79,7 @@ function WorkspaceTreeFileList({
   selectionResetKey,
   revealRequest,
   onOpenFile,
+  onOpenFileInNewTab,
   onOpenFileInSplit,
   onOpenDirectoryGrid,
   onDeletePath,
@@ -716,6 +719,7 @@ function WorkspaceTreeFileList({
               anchorX={context.anchorRect.left}
               anchorY={context.anchorRect.top}
               onOpenDirectoryGrid={onOpenDirectoryGrid}
+              onOpenFileInNewTab={onOpenFileInNewTab}
               onOpenFileInSplit={onOpenFileInSplit}
               onCreateFile={() => {
                 void createPlaceholder(
@@ -771,6 +775,7 @@ export default function WorkspaceTree({
   selectionResetKey,
   revealRequest,
   onOpenFile,
+  onOpenFileInNewTab,
   onOpenFileInSplit,
   onOpenDirectoryGrid,
   onDeletePath,

@@ -47,6 +47,10 @@ import MULED_CODE_BLOCK_DESCRIPTORS, {
 import './codeBlocks/MnoteEntryCodeBlockEditor.css';
 import { exportMnoteFromWysiwyg } from '../../lib/exportMnoteFromWysiwyg';
 import { prepareMnoteForWysiwyg } from '../../lib/prepareMnoteForWysiwyg';
+import type { MnoteEntry } from '../../lib/mnoteFormat';
+import {
+  MnoteEntryInteractionContext,
+} from '../mnote/MnoteEntryInteractionContext';
 import MarkdownEditorErrorBoundary from './MarkdownEditorErrorBoundary';
 import { getWysiwygContentRoot } from '../../lib/wysiwygContentRoot';
 import {
@@ -65,6 +69,8 @@ export interface MarkdownEditorProps {
   variant?: MarkdownEditorVariant;
   onChange: (markdown: string) => void;
   onOpenFile?: (relativePath: string) => void;
+  onMnoteEntryClick?: (entry: MnoteEntry) => void;
+  activeMnoteEntryId?: string | null;
 }
 
 export type MarkdownEditorHandle = MDXEditorMethods & {
@@ -91,6 +97,8 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
       variant = 'markdown',
       onChange,
       onOpenFile,
+      onMnoteEntryClick,
+      activeMnoteEntryId = null,
     },
     ref,
   ) {
@@ -447,7 +455,21 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
 
     const editorKey = `${tabKey}:${editorEpoch}`;
 
-    return (
+    const mnoteInteraction = useMemo(
+      () =>
+        isMnote
+          ? {
+              onEntryClick: onMnoteEntryClick,
+              activeEntryId: activeMnoteEntryId,
+              onEdit: () => {
+                userEditedRef.current = true;
+              },
+            }
+          : {},
+      [activeMnoteEntryId, isMnote, onMnoteEntryClick],
+    );
+
+    const editorHost = (
       <div
         ref={scrollHostRef}
         className={
@@ -487,6 +509,12 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
           />
         ) : null}
       </div>
+    );
+
+    return (
+      <MnoteEntryInteractionContext value={mnoteInteraction}>
+        {editorHost}
+      </MnoteEntryInteractionContext>
     );
   },
 );

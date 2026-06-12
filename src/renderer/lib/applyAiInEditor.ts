@@ -27,6 +27,10 @@ function applyAtSpan(
   return content.slice(0, span.from) + insert + content.slice(span.to);
 }
 
+function clampInsertPosition(content: string, pos: number): number {
+  return Math.max(0, Math.min(pos, content.length));
+}
+
 /** 将 AI 结果写回文档字符串 */
 // eslint-disable-next-line import/prefer-default-export
 export function applyAiInEditor(
@@ -36,13 +40,25 @@ export function applyAiInEditor(
   aiText: string,
 ): string | null {
   const { selection, sourceRange } = snapshot;
-  if (!selection) return null;
 
   if (sourceRange) {
-    const clamped = clampSourceRange(content, sourceRange);
-    if (clamped) {
-      return applyAtSpan(content, clamped, mode, aiText);
+    const from = clampInsertPosition(content, sourceRange.from);
+    const to = clampInsertPosition(content, sourceRange.to);
+    if (from < to) {
+      return applyAtSpan(content, { from, to }, mode, aiText);
     }
+    if (from === to && mode === 'append') {
+      return content.slice(0, from) + aiText + content.slice(from);
+    }
+  }
+
+  if (!selection) {
+    return mode === 'append' ? content + aiText : null;
+  }
+
+  const clamped = sourceRange ? clampSourceRange(content, sourceRange) : null;
+  if (clamped) {
+    return applyAtSpan(content, clamped, mode, aiText);
   }
 
   const span = findSelectionSpan(content, selection);

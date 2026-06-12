@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { usePdfiumEngine } from '@embedpdf/engines/react';
 import type { PdfEngine } from '@embedpdf/models';
-import { PDFIUM_WASM_URL } from '../../../lib/pdfWasm';
+import { resolvePdfiumWasmUrl } from '../../../lib/pdfWasm';
 
 /** 应用启动后延迟预加载 PDF 引擎，避免阻塞首屏 */
 const PDF_ENGINE_PRELOAD_DELAY_MS = 1200;
@@ -35,8 +35,8 @@ interface PdfEngineProviderProps {
 
 function PdfEngineLoader({ children }: PdfEngineProviderProps) {
   const { engine, isLoading, error } = usePdfiumEngine({
-    wasmUrl: PDFIUM_WASM_URL,
-    // Electron CSP (index.ejs) 仅允许 script-src 'self'；默认 worker:true 会用 blob: Worker 并被拦截
+    wasmUrl: resolvePdfiumWasmUrl(),
+    // Electron 下 EmbedPDF blob/module Worker 与 Webpack worker chunk 均不稳定，使用主线程 direct 模式
     worker: false,
   });
 
@@ -68,7 +68,7 @@ export default function PdfEngineProvider({ children }: PdfEngineProviderProps) 
   if (!preloadReady) {
     return (
       <PdfEngineContext.Provider
-        value={{ engine: null, isLoading: false, error: null }}
+        value={{ engine: null, isLoading: true, error: null }}
       >
         {children}
       </PdfEngineContext.Provider>

@@ -593,6 +593,7 @@ export function useEditorTabs(
       const currentTabs = tabsRef.current;
       const existing = currentTabs.find((t) => t.relativePath === relativePath);
       if (existing) {
+        await activateTabId(existing.id);
         return existing.id;
       }
 
@@ -606,6 +607,7 @@ export function useEditorTabs(
         const loaded = await loadFileIntoTab(relativePath, base);
         const id = newId();
         setTabs((prev) => [...prev, { ...loaded, id }]);
+        setActiveTabId(id);
         return id;
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
@@ -613,7 +615,7 @@ export function useEditorTabs(
         return null;
       }
     },
-    [],
+    [activateTabId],
   );
 
   const openPath = useCallback(async (relativePath: string) => {
@@ -1317,6 +1319,7 @@ export function useEditorTabs(
     activeTab,
     activeTabId,
     openPath,
+    openPathInNewTab,
     openPathInSplit,
     openPathFromEditorLink,
     getTabNavigation,
