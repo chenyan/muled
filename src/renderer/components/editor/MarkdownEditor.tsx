@@ -38,6 +38,7 @@ import {
 import { pushStatusToast } from '../../lib/statusToast';
 import { useWysiwygTheme } from '../../hooks/useAppTheme';
 import mdxEditorInlineMathPlugin from './inlineMath/mdxEditorInlineMathPlugin';
+import wysiwygEditorActionsBridgePlugin from './wysiwygEditorActionsBridgePlugin';
 import mdxEditorWikiImagePlugin from './mdxEditorWikiImagePlugin';
 import mdxEditorWikiVideoPlugin from './wikiVideo/mdxEditorWikiVideoPlugin';
 import WikiLinkPickerMenu from './WikiLinkPickerMenu';
@@ -99,6 +100,7 @@ export type MarkdownEditorHandle = MDXEditorMethods & {
   ) => WysiwygSentenceSelection | null;
   getSelectionRect: () => DOMRect | null;
   revealOutlineTarget: (target: { line: number; title: string }) => boolean;
+  restoreContextMenuSelection: () => void;
 };
 
 /** 仅 WYSIWYG；Source 由 {@link SourceCodeEditor} 按后缀高亮 */
@@ -135,6 +137,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
     onChangeRef.current = onChange;
     const onOpenFileRef = useRef(onOpenFile);
     onOpenFileRef.current = onOpenFile;
+    const contextMenuSelectionRef = useRef<Range | null>(null);
     const onWikiMenuRef = useRef<(state: WikiLinkPickerState) => void>(() => {});
     const [wikiLinkMenu, setWikiLinkMenu] = useState<WikiLinkPickerState | null>(
       null,
@@ -183,6 +186,19 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
         },
         getSelectionRect() {
           return getSelectionBoundingRect();
+        },
+        restoreContextMenuSelection() {
+          const saved = contextMenuSelectionRef.current;
+          contextMenuSelectionRef.current = null;
+          if (!saved) {
+            return;
+          }
+          const selection = window.getSelection();
+          if (!selection) {
+            return;
+          }
+          selection.removeAllRanges();
+          selection.addRange(saved);
         },
         revealOutlineTarget(target: { line: number; title: string }) {
           const host = scrollHostRef.current;
@@ -255,6 +271,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
         mdxEditorHtmlPlugin(),
         mdxEditorFaultTolerancePlugin(),
         mdxEditorInlineMathPlugin(),
+        wysiwygEditorActionsBridgePlugin(),
       ],
       [codeBlockDescriptors, wikiImagePlugin, wikiVideoPlugin, imagePreviewHandler],
     );
@@ -377,14 +394,29 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
       const host = scrollHostRef.current;
       if (!host || readOnly) return undefined;
 
+      const saveSelectionOnRightPointer = (event: PointerEvent) => {
+        if (event.button !== 2) return;
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+          contextMenuSelectionRef.current = selection.getRangeAt(0).cloneRange();
+        } else {
+          contextMenuSelectionRef.current = null;
+        }
+      };
+
       const onPointerDown = (event: PointerEvent) => {
+        if (event.button === 2) {
+          saveSelectionOnRightPointer(event);
+          return;
+        }
         handleWysiwygClickBelowContent(host, event, () => {
           userEditedRef.current = true;
         });
       };
 
-      host.addEventListener('pointerdown', onPointerDown);
-      return () => host.removeEventListener('pointerdown', onPointerDown);
+      host.addEventListener('pointerdown', onPointerDown, { capture: true });
+      return () =>
+        host.removeEventListener('pointerdown', onPointerDown, { capture: true });
     }, [readOnly, tabKey, editorEpoch]);
 
     useEffect(() => {

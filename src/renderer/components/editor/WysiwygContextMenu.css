@@ -1,9 +1,9 @@
-.WorkspaceTreeContextMenu--floating {
+.WysiwygContextMenu--floating {
   position: fixed;
   z-index: 1050;
 }
 
-.WorkspaceTreeContextMenu {
+.WysiwygContextMenu {
   min-width: 148px;
   padding: 3px;
   border-radius: 6px;
@@ -14,11 +14,11 @@
     0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
-.WorkspaceTreeContextMenu__submenu {
+.WysiwygContextMenu__submenu {
   position: relative;
 }
 
-.WorkspaceTreeContextMenu__submenuTrigger {
+.WysiwygContextMenu__submenuTrigger {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -37,19 +37,19 @@
   transition: background-color 0.1s ease;
 }
 
-.WorkspaceTreeContextMenu__submenuTrigger::after {
+.WysiwygContextMenu__submenuTrigger::after {
   content: '›';
   color: var(--muled-muted-fg);
   font-size: 12px;
   line-height: 1;
 }
 
-.WorkspaceTreeContextMenu__submenu:hover > .WorkspaceTreeContextMenu__submenuTrigger,
-.WorkspaceTreeContextMenu__submenu:focus-within > .WorkspaceTreeContextMenu__submenuTrigger {
+.WysiwygContextMenu__submenu:hover > .WysiwygContextMenu__submenuTrigger,
+.WysiwygContextMenu__submenu:focus-within > .WysiwygContextMenu__submenuTrigger {
   background: var(--muled-hover);
 }
 
-.WorkspaceTreeContextMenu__submenuPanel {
+.WysiwygContextMenu__submenuPanel {
   display: none;
   position: absolute;
   top: -3px;
@@ -64,12 +64,12 @@
     0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
-.WorkspaceTreeContextMenu__submenu:hover > .WorkspaceTreeContextMenu__submenuPanel,
-.WorkspaceTreeContextMenu__submenu:focus-within > .WorkspaceTreeContextMenu__submenuPanel {
+.WysiwygContextMenu__submenu:hover > .WysiwygContextMenu__submenuPanel,
+.WysiwygContextMenu__submenu:focus-within > .WysiwygContextMenu__submenuPanel {
   display: block;
 }
 
-.WorkspaceTreeContextMenu__item {
+.WysiwygContextMenu__item {
   display: block;
   width: 100%;
   box-sizing: border-box;
@@ -85,21 +85,17 @@
   transition: background-color 0.1s ease, color 0.1s ease;
 }
 
-.WorkspaceTreeContextMenu__item:hover:not(:disabled),
-.WorkspaceTreeContextMenu__item:focus-visible:not(:disabled) {
+.WysiwygContextMenu__item:hover:not(:disabled),
+.WysiwygContextMenu__item:focus-visible:not(:disabled) {
   background: var(--muled-hover);
 }
 
-.WorkspaceTreeContextMenu__item--danger {
-  color: var(--muled-danger, #c62828);
+.WysiwygContextMenu__item:disabled {
+  color: var(--muled-muted-fg);
+  cursor: not-allowed;
 }
 
-.WorkspaceTreeContextMenu__item--danger:hover:not(:disabled),
-.WorkspaceTreeContextMenu__item--danger:focus-visible:not(:disabled) {
-  background: var(--muled-danger-bg, rgba(198, 40, 40, 0.08));
-}
-
-.WorkspaceTreeContextMenu__separator {
+.WysiwygContextMenu__separator {
   height: 1px;
   margin: 2px 6px;
   background: var(--muled-input-border);

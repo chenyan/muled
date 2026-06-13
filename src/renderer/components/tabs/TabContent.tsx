@@ -15,6 +15,10 @@ import type {
 import EditorContextMenu, {
   type EditorContextMenuAction,
 } from '../ai/EditorContextMenu';
+import WysiwygContextMenu, {
+  type WysiwygContextMenuSelect,
+} from '../editor/WysiwygContextMenu';
+import { runWysiwygEditorAction } from '../../lib/wysiwygEditorActions';
 import TranslationPopup from '../ai/TranslationPopup';
 import NoteRecordingOverlay from '../mnote/NoteRecordingOverlay';
 import type { MnoteEntry } from '../../lib/mnoteFormat';
@@ -163,6 +167,9 @@ export default function TabContent({
     showTranslate: boolean;
     showAiEdit: boolean;
     showRecordNote: boolean;
+    showWysiwygEdit?: boolean;
+    showMathBlock?: boolean;
+    hasSelection: boolean;
     pendingLoc?: string;
   } | null>(null);
   const [noteOverlay, setNoteOverlay] = useState<{
@@ -480,6 +487,7 @@ export default function TabContent({
           showTranslate: false,
           showAiEdit: true,
           showRecordNote: true,
+          hasSelection: Boolean(snapshot.selection.trim()),
           pendingLoc,
         });
         return;
@@ -493,6 +501,7 @@ export default function TabContent({
         showTranslate: false,
         showAiEdit: true,
         showRecordNote: false,
+        hasSelection: Boolean(snapshot.selection.trim()),
       });
     },
     [captureSnapshot, tab],
@@ -503,46 +512,60 @@ export default function TabContent({
       if (!tab || tab.truncated) return;
       if (tabUsesSourceCodeEditor(tab)) return;
 
-      if (tab.kind === 'markdown') {
+      if (tab.kind === 'markdown' || tab.kind === 'mnote') {
         e.preventDefault();
+        mdxRef.current?.restoreContextMenuSelection();
 
-        const showRenderedMarkdown =
-          tab.viewMode === 'rich-text' || tab.viewMode === 'preview';
+        const isRichText = tab.viewMode === 'rich-text';
+        const isPreview = tab.viewMode === 'preview';
         let snapshot: EditorAiSnapshot = { selection: '', sourceRange: null };
         let anchorRect: DOMRect | null = null;
         let showTranslate = false;
         let showAiEdit = false;
+        let showRecordNote = tab.kind === 'markdown';
+        const selectionMarkdown = isRichText
+          ? (mdxRef.current?.getSelectionMarkdown() ?? '')
+          : '';
+        const hasSelection = Boolean(selectionMarkdown.trim());
 
-        if (showRenderedMarkdown) {
+        if (isRichText || isPreview) {
           const picked = mdxRef.current?.selectSentenceAtPoint(
             e.clientX,
             e.clientY,
           );
           if (picked?.text.trim()) {
             const current =
-              tab.viewMode === 'preview' ? tab.content : getWysiwygContent();
+              isPreview ? tab.content : getWysiwygContent();
             snapshot = {
               selection: picked.text,
               sourceRange: findSelectionSpan(current, picked.text),
             };
             anchorRect = picked.rect;
-            showTranslate =
-              tab.viewMode === 'rich-text' || tab.viewMode === 'preview';
-            showAiEdit = tab.viewMode === 'rich-text';
+            showTranslate = isRichText || isPreview;
+            showAiEdit = isRichText;
+          } else if (hasSelection) {
+            const current = getWysiwygContent();
+            snapshot = {
+              selection: selectionMarkdown,
+              sourceRange: findSelectionSpan(current, selectionMarkdown),
+            };
+            anchorRect = mdxRef.current?.getSelectionRect() ?? null;
+            showAiEdit = isRichText;
           }
         }
 
         const content =
-          tab.viewMode === 'preview'
-            ? tab.content
-            : getWysiwygContent();
-        const pendingLoc = buildMarkdownMnoteLoc({
-          tab,
-          sourceRef: sourceRef.current,
-          selectionText: snapshot.selection,
-          sourceRange: snapshot.sourceRange,
-          content,
-        });
+          isPreview ? tab.content : getWysiwygContent();
+        const pendingLoc =
+          tab.kind === 'markdown'
+            ? buildMarkdownMnoteLoc({
+                tab,
+                sourceRef: sourceRef.current,
+                selectionText: snapshot.selection,
+                sourceRange: snapshot.sourceRange,
+                content,
+              })
+            : undefined;
 
         setContextMenu({
           x: e.clientX,
@@ -551,7 +574,10 @@ export default function TabContent({
           anchorRect,
           showTranslate,
           showAiEdit,
-          showRecordNote: true,
+          showRecordNote,
+          showWysiwygEdit: isRichText && !tab.truncated,
+          showMathBlock: tab.kind === 'markdown',
+          hasSelection,
           pendingLoc,
         });
         return;
@@ -571,6 +597,7 @@ export default function TabContent({
         showTranslate: false,
         showAiEdit: true,
         showRecordNote: false,
+        hasSelection: true,
       });
     },
     [captureSnapshot, getWysiwygContent, tab],
@@ -618,6 +645,22 @@ export default function TabContent({
       onAiOpen(action, menu.snapshot);
     },
     [contextMenu, onAiOpen, openNoteOverlay, runTranslate],
+  );
+
+  const handleWysiwygContextMenuSelect = useCallback(
+    async (selection: WysiwygContextMenuSelect) => {
+      if (selection.kind === 'edit') {
+        setContextMenu(null);
+        mdxRef.current?.restoreContextMenuSelection();
+        if (runWysiwygEditorAction(selection.action)) {
+          mdxRef.current?.markUserEdited();
+        }
+        return;
+      }
+
+      await handleContextMenuSelect(selection.action);
+    },
+    [handleContextMenuSelect],
   );
 
   const handleSaveNote = useCallback(
@@ -710,18 +753,37 @@ export default function TabContent({
           : undefined
       }
     >
-      <EditorContextMenu
-        open={contextMenu !== null}
-        x={contextMenu?.x ?? 0}
-        y={contextMenu?.y ?? 0}
-        hasSelection={Boolean(contextMenu?.snapshot.selection)}
-        hasApiKey={hasApiKey}
-        showTranslate={contextMenu?.showTranslate ?? false}
-        showAiEdit={contextMenu?.showAiEdit ?? true}
-        showRecordNote={contextMenu?.showRecordNote ?? false}
-        onClose={() => setContextMenu(null)}
-        onSelect={handleContextMenuSelect}
-      />
+      {contextMenu?.showWysiwygEdit ? (
+        <WysiwygContextMenu
+          open={contextMenu !== null}
+          x={contextMenu?.x ?? 0}
+          y={contextMenu?.y ?? 0}
+          hasSelection={contextMenu?.hasSelection ?? false}
+          readOnly={Boolean(tab.truncated)}
+          showMathBlock={contextMenu?.showMathBlock ?? true}
+          hasApiKey={hasApiKey}
+          showTranslate={contextMenu?.showTranslate ?? false}
+          showAiEdit={contextMenu?.showAiEdit ?? true}
+          showRecordNote={contextMenu?.showRecordNote ?? false}
+          onClose={() => setContextMenu(null)}
+          onSelect={(selection) => {
+            void handleWysiwygContextMenuSelect(selection);
+          }}
+        />
+      ) : (
+        <EditorContextMenu
+          open={contextMenu !== null}
+          x={contextMenu?.x ?? 0}
+          y={contextMenu?.y ?? 0}
+          hasSelection={Boolean(contextMenu?.snapshot.selection)}
+          hasApiKey={hasApiKey}
+          showTranslate={contextMenu?.showTranslate ?? false}
+          showAiEdit={contextMenu?.showAiEdit ?? true}
+          showRecordNote={contextMenu?.showRecordNote ?? false}
+          onClose={() => setContextMenu(null)}
+          onSelect={handleContextMenuSelect}
+        />
+      )}
       <TranslationPopup
         popup={translationPopup}
         onClose={() => setTranslationPopup(null)}
