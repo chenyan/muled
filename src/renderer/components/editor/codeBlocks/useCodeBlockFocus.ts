@@ -20,13 +20,22 @@ function focusTarget(ref: FocusTargetRef): void {
 export default function useCodeBlockFocus(
   focusEmitter: CodeBlockEditorProps['focusEmitter'],
   targetRef: FocusTargetRef,
+  shouldSkipFocusRef?: RefObject<boolean>,
+  alternateFocusRef?: RefObject<HTMLElement | null>,
 ): void {
   useEffect(() => {
     const unsub = focusEmitter.subscribe(() => {
+      if (shouldSkipFocusRef?.current) {
+        return;
+      }
+      const alternate = alternateFocusRef?.current;
+      if (alternate && document.activeElement === alternate) {
+        return;
+      }
       focusTarget(targetRef);
     });
     return unsub;
-  }, [focusEmitter, targetRef]);
+  }, [alternateFocusRef, focusEmitter, shouldSkipFocusRef, targetRef]);
 }
 
 /** textarea 随内容增高，避免出现内部滚动条 */

@@ -21,7 +21,18 @@ const DEFAULT_CSS: Record<WysiwygTheme, string> = {
 /** 当前 dark 调色板版本；缺失或旧版时自动覆盖为内置默认 */
 const DARK_CSS_PALETTE_VERSION = `--wysiwyg-palette: ${WYSIWYG_DARK_PALETTE_VERSION}`;
 
-const ACME_CSS_PALETTE_VERSION = '--wysiwyg-palette: 4';
+const ACME_CSS_PALETTE_VERSION = '--wysiwyg-palette: 5';
+
+const LIGHT_CSS_PALETTE_VERSION = '--wysiwyg-palette: 2';
+
+function maybeUpgradeLightCss(filePath: string): string {
+  const content = fs.readFileSync(filePath, 'utf8');
+  if (content.includes(LIGHT_CSS_PALETTE_VERSION)) {
+    return content;
+  }
+  fs.writeFileSync(filePath, DEFAULT_CSS.light, 'utf8');
+  return DEFAULT_CSS.light;
+}
 
 function maybeUpgradeAcmeCss(filePath: string): string {
   const content = fs.readFileSync(filePath, 'utf8');
@@ -62,6 +73,9 @@ export function readWysiwygCss(theme: WysiwygTheme): string {
   }
   if (theme === 'acme') {
     return maybeUpgradeAcmeCss(filePath);
+  }
+  if (theme === 'light') {
+    return maybeUpgradeLightCss(filePath);
   }
   return fs.readFileSync(filePath, 'utf8');
 }

@@ -4,14 +4,20 @@ import {
   type CodeBlockEditorProps,
   useCodeBlockEditorContext,
 } from '@mdxeditor/editor';
-import { useEffect, useMemo, useRef } from 'react';
+import { $setSelection } from 'lexical';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useWysiwygTheme } from '../../../hooks/useWysiwygStyles';
-import {
-  codeBlockLanguageId,
-  codeBlockLanguageLabel,
-} from '../../../lib/fileLanguage';
+import { codeBlockLanguageId } from '../../../lib/fileLanguage';
 import { buildWysiwygCodeBlockExtensions } from '../../../lib/wysiwygCodeMirrorSetup';
-import useCodeBlockFocus from './useCodeBlockFocus';
+import CodeBlockLanguageInput from './CodeBlockLanguageInput';
+import './PlainCodeBlockEditor.css';
+
+function isLanguageHeaderTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    Boolean(target.closest('.MuledPlainCodeBlock__header'))
+  );
+}
 
 /** CodeMirror 代码块：每块一个实例，语法高亮、无内部滚动条 */
 export default function PlainCodeBlockEditor({
@@ -19,16 +25,80 @@ export default function PlainCodeBlockEditor({
   language,
   focusEmitter,
 }: CodeBlockEditorProps) {
-  const { setCode } = useCodeBlockEditorContext();
+  const { setCode, setLanguage, parentEditor } = useCodeBlockEditorContext();
+  const rootRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const languageInputRef = useRef<HTMLInputElement>(null);
+  const languageEditingRef = useRef(false);
+  const lastPointerTargetRef = useRef<EventTarget | null>(null);
   const onChangeRef = useRef(setCode);
   onChangeRef.current = setCode;
   const wysiwygTheme = useWysiwygTheme();
 
   const languageId = codeBlockLanguageId(language);
 
-  useCodeBlockFocus(focusEmitter, viewRef);
+  const handleLanguageEditingChange = useCallback(
+    (editing: boolean) => {
+      languageEditingRef.current = editing;
+      if (editing) {
+        parentEditor.update(() => {
+          $setSelection(null);
+        });
+      }
+    },
+    [parentEditor],
+  );
+
+  const focusLanguageInput = useCallback(() => {
+    languageEditingRef.current = true;
+    parentEditor.update(() => {
+      $setSelection(null);
+    });
+    languageInputRef.current?.focus();
+  }, [parentEditor]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) {
+      return undefined;
+    }
+
+    const onPointerDownCapture = (event: PointerEvent) => {
+      lastPointerTargetRef.current = event.target;
+      if (!isLanguageHeaderTarget(event.target)) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      focusLanguageInput();
+    };
+
+    root.addEventListener('pointerdown', onPointerDownCapture, true);
+    return () => {
+      root.removeEventListener('pointerdown', onPointerDownCapture, true);
+    };
+  }, [focusLanguageInput]);
+
+  useEffect(() => {
+    const unsub = focusEmitter.subscribe(() => {
+      queueMicrotask(() => {
+        if (languageEditingRef.current) {
+          return;
+        }
+        if (isLanguageHeaderTarget(lastPointerTargetRef.current)) {
+          focusLanguageInput();
+          return;
+        }
+        const input = languageInputRef.current;
+        if (input && document.activeElement === input) {
+          return;
+        }
+        viewRef.current?.focus();
+      });
+    });
+    return unsub;
+  }, [focusEmitter, focusLanguageInput]);
 
   const extensions = useMemo(
     () => [
@@ -38,8 +108,19 @@ export default function PlainCodeBlockEditor({
           onChangeRef.current(update.state.doc.toString());
         }
       }),
+      EditorView.domEventHandlers({
+        focus: () => {
+          if (languageEditingRef.current) {
+            return true;
+          }
+          parentEditor.update(() => {
+            $setSelection(null);
+          });
+          return false;
+        },
+      }),
     ],
-    [languageId, wysiwygTheme],
+    [languageId, parentEditor, wysiwygTheme],
   );
 
   useEffect(() => {
@@ -72,11 +153,17 @@ export default function PlainCodeBlockEditor({
   }, [code]);
 
   return (
-    <div className="MuledPlainCodeBlock">
-      <div ref={containerRef} className="MuledPlainCodeBlock__cm" />
-      <div className="MuledPlainCodeBlock__label" aria-hidden="true">
-        {codeBlockLanguageLabel(language)}
+    <div ref={rootRef} className="MuledPlainCodeBlock">
+      <div className="MuledPlainCodeBlock__header">
+        <span className="MuledPlainCodeBlock__headerHint">语言</span>
+        <CodeBlockLanguageInput
+          language={language}
+          onLanguageChange={setLanguage}
+          inputRef={languageInputRef}
+          onEditingChange={handleLanguageEditingChange}
+        />
       </div>
+      <div ref={containerRef} className="MuledPlainCodeBlock__cm" />
     </div>
   );
 }

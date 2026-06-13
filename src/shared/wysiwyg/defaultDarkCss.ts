@@ -341,22 +341,34 @@ export default `
   background: var(--wysiwyg-code-bg, ${P.codeBg});
 }
 
+.MuledPlainCodeBlock__header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 2px 6px;
+  border-bottom: 1px solid var(--wysiwyg-border, ${P.border});
+  background: color-mix(in srgb, var(--wysiwyg-bg, ${P.bg}) 72%, transparent);
+}
+
 .MuledPlainCodeBlock__label {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  z-index: 1;
   padding: 2px 6px;
   font-size: 10px;
   font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--wysiwyg-muted, ${P.muted});
   background: color-mix(in srgb, var(--wysiwyg-bg, ${P.bg}) 88%, transparent);
   border: 1px solid var(--wysiwyg-border, ${P.border});
   border-radius: 4px;
-  pointer-events: none;
-  user-select: none;
+  min-width: 3ch;
+  max-width: 16ch;
+  cursor: text;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.MuledPlainCodeBlock__label:focus {
+  color: var(--wysiwyg-fg, ${P.fg});
+  border-color: var(--wysiwyg-accent, ${P.accent});
 }
 
 .MuledPlainCodeBlock__cm {

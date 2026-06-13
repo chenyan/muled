@@ -1,0 +1,61 @@
+/* 组件级样式：覆盖 ~/.config/muled/wysiwyg/*.css 中的旧版右上角浮层规则 */
+.MuledPlainCodeBlock {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.MuledPlainCodeBlock__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--wysiwyg-border, var(--muled-border));
+  background: var(--wysiwyg-surface, var(--muled-surface));
+}
+
+.MuledPlainCodeBlock__headerHint {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--wysiwyg-muted, var(--muled-muted));
+  user-select: none;
+  white-space: nowrap;
+}
+
+.MuledPlainCodeBlock .MuledPlainCodeBlock__label {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  z-index: auto !important;
+  pointer-events: auto !important;
+  user-select: text !important;
+  flex: 0 1 12ch;
+  width: 12ch;
+  min-width: 5ch;
+  max-width: 20ch;
+  margin: 0;
+  padding: 2px 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--wysiwyg-fg, var(--muled-fg));
+  background: var(--wysiwyg-code-bg, var(--muled-code-bg, transparent));
+  border: 1px solid var(--wysiwyg-border, var(--muled-border));
+  border-radius: 4px;
+  cursor: text;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.MuledPlainCodeBlock .MuledPlainCodeBlock__label:focus {
+  border-color: var(--wysiwyg-accent, var(--muled-accent));
+}
+
+.MuledPlainCodeBlock__cm {
+  flex: 1 1 auto;
+  min-height: 96px;
+}

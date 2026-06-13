@@ -2,6 +2,10 @@
 export default `
 /* Muled WYSIWYG — light theme (可编辑) */
 
+[data-muled-wysiwyg-theme='light'] {
+  --wysiwyg-palette: 2;
+}
+
 .MuledMDXEditor__errorFallback {
   margin: 1rem;
   padding: 0.75rem 1rem;
@@ -255,22 +259,34 @@ export default `
   background: #fafafa;
 }
 
+.MuledPlainCodeBlock__header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 2px 6px;
+  border-bottom: 1px solid #e4e4e7;
+  background: rgba(244, 244, 245, 0.72);
+}
+
 .MuledPlainCodeBlock__label {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  z-index: 1;
   padding: 2px 6px;
   font-size: 10px;
   font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.04em;
   color: #71717a;
   background: rgba(244, 244, 245, 0.88);
   border: 1px solid #e4e4e7;
   border-radius: 4px;
-  pointer-events: none;
-  user-select: none;
+  min-width: 3ch;
+  max-width: 16ch;
+  cursor: text;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.MuledPlainCodeBlock__label:focus {
+  color: #18181b;
+  border-color: #a1a1aa;
 }
 
 .MuledPlainCodeBlock__cm {

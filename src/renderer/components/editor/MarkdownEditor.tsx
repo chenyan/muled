@@ -46,6 +46,7 @@ import MULED_CODE_BLOCK_DESCRIPTORS, {
   MULED_MNOTE_CODE_BLOCK_DESCRIPTORS,
 } from './codeBlocks/muledCodeBlockDescriptors';
 import './codeBlocks/MnoteEntryCodeBlockEditor.css';
+import './codeBlocks/PlainCodeBlockEditor.css';
 import './codeBlocks/StrudelCodeBlockEditor.css';
 import { exportMnoteFromWysiwyg } from '../../lib/exportMnoteFromWysiwyg';
 import { prepareMnoteForWysiwyg } from '../../lib/prepareMnoteForWysiwyg';
