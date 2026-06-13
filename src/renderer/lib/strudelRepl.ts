@@ -81,6 +81,43 @@ export interface StrudelMirrorInstance {
 
 export interface StrudelEditorElement extends HTMLElement {
   editor?: StrudelMirrorInstance | null;
+  code?: string;
+  solo?: boolean;
+}
+
+/** 统一换行，避免 CRLF 干扰 Strudel 解析 */
+export function normalizeStrudelSource(code: string): string {
+  return code.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
+
+export function waitForStrudelMirror(
+  element: StrudelEditorElement,
+): Promise<StrudelEditorElement> {
+  return new Promise((resolve) => {
+    const check = () => {
+      if (element.editor) {
+        resolve(element);
+        return;
+      }
+      requestAnimationFrame(check);
+    };
+    check();
+  });
+}
+
+/** 挂载 <strudel-editor>；通过 .code 属性初始化，避免 setAttribute 编码/竞态问题 */
+export function mountStrudelEditor(
+  host: HTMLElement,
+  code: string,
+  options?: { solo?: boolean },
+): StrudelEditorElement {
+  host.replaceChildren();
+  const editor = document.createElement('strudel-editor') as StrudelEditorElement;
+  const normalized = normalizeStrudelSource(code);
+  editor.solo = options?.solo ?? false;
+  editor.code = normalized;
+  host.appendChild(editor);
+  return editor;
 }
 
 export interface StrudelRuntimeApi {
@@ -126,11 +163,15 @@ export function getStrudelRuntime(): StrudelRuntimeApi {
   return api;
 }
 
-/** 从已挂载的 strudel-editor 读取当前代码 */
+/** 从已挂载的 strudel-editor 读取当前代码（优先 CodeMirror 文档，避免 mirror.code 滞后） */
 export function readStrudelEditorCode(element: StrudelEditorElement): string | null {
   const mirror = element.editor;
   if (!mirror) {
     return null;
+  }
+  const fromDoc = mirror.editor?.state.doc.toString();
+  if (typeof fromDoc === 'string') {
+    return fromDoc;
   }
   if (typeof mirror.getCode === 'function') {
     return mirror.getCode();
@@ -138,7 +179,7 @@ export function readStrudelEditorCode(element: StrudelEditorElement): string | n
   if (typeof mirror.code === 'string') {
     return mirror.code;
   }
-  return mirror.editor?.state.doc.toString() ?? null;
+  return null;
 }
 
 export function getStrudelMirror(
@@ -155,12 +196,59 @@ export function writeStrudelEditorCode(
   if (!element) {
     return;
   }
+  const normalized = normalizeStrudelSource(code);
   const mirror = getStrudelMirror(element);
   if (mirror) {
-    mirror.setCode(code);
+    mirror.setCode(normalized);
     return;
   }
-  element.setAttribute('code', code);
+  element.code = normalized;
+}
+
+/** 将 CodeMirror 中的最新代码同步到 mirror，供 evaluate 使用 */
+export function syncStrudelMirrorFromEditor(
+  element: StrudelEditorElement | null | undefined,
+): string | null {
+  const live = element ? readStrudelEditorCode(element) : null;
+  if (live === null || !element) {
+    return live;
+  }
+  writeStrudelEditorCode(element, live);
+  return live;
+}
+
+/** 播放前先同步编辑器内容，避免 mirror.code 滞后导致语法错误 */
+export async function evaluateStrudelEditor(
+  element: StrudelEditorElement | null | undefined,
+  play = true,
+): Promise<void> {
+  const mirror = getStrudelMirror(element);
+  if (!mirror || !element) {
+    return;
+  }
+  syncStrudelMirrorFromEditor(element);
+  await mirror.evaluate(play);
+}
+
+export async function stopStrudelEditor(
+  element: StrudelEditorElement | null | undefined,
+): Promise<void> {
+  const mirror = getStrudelMirror(element);
+  if (!mirror) {
+    return;
+  }
+  await mirror.stop();
+}
+
+export async function toggleStrudelEditor(
+  element: StrudelEditorElement | null | undefined,
+): Promise<void> {
+  const mirror = getStrudelMirror(element);
+  if (!mirror || !element) {
+    return;
+  }
+  syncStrudelMirrorFromEditor(element);
+  await mirror.toggle();
 }
 
 /** 停止调度并释放 StrudelMirror 注册的 document 监听器 */

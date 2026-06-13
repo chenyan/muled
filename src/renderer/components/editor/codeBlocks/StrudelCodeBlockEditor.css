@@ -1,0 +1,120 @@
+.StrudelCodeBlockEditor {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.StrudelCodeBlockEditor__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--wysiwyg-border, var(--muled-border));
+  background: var(--wysiwyg-surface, var(--muled-surface));
+}
+
+.StrudelCodeBlockEditor__label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--wysiwyg-fg, var(--muled-fg));
+}
+
+.StrudelCodeBlockEditor__actions {
+  display: inline-flex;
+  flex-shrink: 0;
+  border: 1px solid var(--wysiwyg-border, var(--muled-border));
+}
+
+.StrudelCodeBlockEditor__iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-left: 1px solid var(--wysiwyg-border, var(--muled-border));
+  background: var(--wysiwyg-code-bg, var(--muled-bg));
+  color: var(--wysiwyg-fg-muted, var(--muled-fg-muted));
+  cursor: pointer;
+}
+
+.StrudelCodeBlockEditor__iconBtn:first-child {
+  border-left: none;
+}
+
+.StrudelCodeBlockEditor__iconBtn:hover:not(:disabled) {
+  background: var(--wysiwyg-hover, var(--muled-hover));
+  color: var(--wysiwyg-fg, var(--muled-fg));
+}
+
+.StrudelCodeBlockEditor__iconBtn--play {
+  color: var(--wysiwyg-accent, var(--muled-accent));
+}
+
+.StrudelCodeBlockEditor__iconBtn--play:hover:not(:disabled) {
+  color: var(--wysiwyg-accent, var(--muled-accent));
+}
+
+.StrudelCodeBlockEditor__iconBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.StrudelCodeBlockEditor__hint {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--wysiwyg-fg-muted, var(--muled-text-muted));
+}
+
+.StrudelCodeBlockEditor__host {
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  background: var(--wysiwyg-code-bg, var(--muled-bg));
+}
+
+.StrudelCodeBlockEditor__host strudel-editor {
+  display: none;
+}
+
+.StrudelCodeBlockEditor__host > div {
+  flex: 1;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+}
+
+.StrudelCodeBlockEditor__host .cm-editor {
+  flex: 1;
+  min-height: 120px;
+  height: auto !important;
+}
+
+.StrudelCodeBlockEditor__host .cm-scroller {
+  min-height: 120px;
+  overflow: visible;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  font-variant-ligatures: none;
+  font-feature-settings: 'liga' 0, 'calt' 0;
+}
+
+.StrudelCodeBlockEditor__host .cm-gutters {
+  display: none;
+}
+
+.StrudelCodeBlockEditor--error {
+  padding: 12px 16px;
+  color: var(--wysiwyg-fg-muted, var(--muled-text-muted));
+  text-align: center;
+}
+
+.MuledCodeBlockWithPreview--strudel .MuledCodeBlockWithPreview__placeholder {
+  margin: 0;
+  padding: 12px 16px;
+}

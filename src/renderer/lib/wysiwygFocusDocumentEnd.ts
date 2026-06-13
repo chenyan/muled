@@ -56,7 +56,7 @@ function shouldIgnoreEndClick(target: EventTarget | null): boolean {
 
   if (
     target.closest(
-      '.MuledCodeBlockWithPreview__textarea, .MnoteEntryCodeBlockEditor__quote, .MnoteEntryCodeBlockEditor__body',
+      '.MuledCodeBlockWithPreview__textarea, .MnoteEntryCodeBlockEditor__quote, .MnoteEntryCodeBlockEditor__body, .StrudelCodeBlockEditor__host .cm-content',
     )
   ) {
     return true;

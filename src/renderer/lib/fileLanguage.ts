@@ -208,5 +208,9 @@ export function codeBlockLanguageId(language: string): SourceLanguageId {
 }
 
 export function codeBlockLanguageLabel(language: string): string {
+  const key = language.trim().toLowerCase();
+  if (key === 'strudel') {
+    return 'Strudel';
+  }
   return getSourceLanguageLabel(codeBlockLanguageId(language));
 }

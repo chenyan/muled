@@ -8,9 +8,12 @@ import {
 } from 'react';
 import {
   disposeStrudelEditor,
-  getStrudelMirror,
+  evaluateStrudelEditor,
   loadStrudelRepl,
+  mountStrudelEditor,
   readStrudelEditorCode,
+  stopStrudelEditor,
+  toggleStrudelEditor,
   writeStrudelEditorCode,
   type StrudelEditorElement,
 } from '../../lib/strudelRepl';
@@ -139,9 +142,7 @@ const StrudelReplPreview = forwardRef<
 
     let cancelled = false;
     host.replaceChildren();
-    const editor = document.createElement('strudel-editor') as StrudelEditorElement;
-    editor.setAttribute('code', contentRef.current);
-    host.appendChild(editor);
+    const editor = mountStrudelEditor(host, contentRef.current);
     editorRef.current = editor;
     setMirrorReady(false);
 
@@ -170,27 +171,15 @@ const StrudelReplPreview = forwardRef<
   }, [mirrorReady, tab.content]);
 
   const handlePlay = useCallback(async () => {
-    const mirror = getStrudelMirror(editorRef.current);
-    if (!mirror) {
-      return;
-    }
-    await mirror.evaluate(true);
+    await evaluateStrudelEditor(editorRef.current, true);
   }, []);
 
   const handleStop = useCallback(async () => {
-    const mirror = getStrudelMirror(editorRef.current);
-    if (!mirror) {
-      return;
-    }
-    await mirror.stop();
+    await stopStrudelEditor(editorRef.current);
   }, []);
 
   const handleToggle = useCallback(async () => {
-    const mirror = getStrudelMirror(editorRef.current);
-    if (!mirror) {
-      return;
-    }
-    await mirror.toggle();
+    await toggleStrudelEditor(editorRef.current);
   }, []);
 
   const handleExport = useCallback(

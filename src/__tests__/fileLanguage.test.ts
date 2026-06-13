@@ -1,4 +1,5 @@
 import {
+  codeBlockLanguageLabel,
   getSourceLanguageId,
   getSourceLanguageLabel,
   isHtmlPath,
@@ -57,5 +58,10 @@ describe('fileLanguage', () => {
     expect(getSourceLanguageLabel('scheme')).toBe('Scheme');
     expect(getSourceLanguageLabel('scala')).toBe('Scala');
     expect(getSourceLanguageLabel('plain')).toBe('Plain Text');
+  });
+
+  it('labels strudel code fences as Strudel', () => {
+    expect(codeBlockLanguageLabel('strudel')).toBe('Strudel');
+    expect(codeBlockLanguageLabel('STRUDEL')).toBe('Strudel');
   });
 });
