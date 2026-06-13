@@ -27,6 +27,7 @@ import {
 import { appendTextAtDocumentEnd } from '../../lib/appendTextAtDocumentEnd';
 import {
   appendTextToEditorTab,
+  getEditorContentForViewSwitch,
   getEditorViewContent,
 } from '../../lib/editorViewBridge';
 import {
@@ -528,7 +529,10 @@ export default function AppShell() {
     ) {
       return;
     }
-    const content = getEditorViewContent(tab.id) ?? tab.content;
+    const content =
+      getEditorContentForViewSwitch(tab.id) ??
+      getEditorViewContent(tab.id) ??
+      tab.content;
     const next = nextViewModeForTab(tab.kind, tab.viewMode);
     editor.setViewMode(tab.id, next, content);
     pushStatusToast(`视图: ${editorViewModeLabel(next)}`, 'info');

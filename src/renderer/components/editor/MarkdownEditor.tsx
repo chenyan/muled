@@ -58,6 +58,7 @@ import {
   selectSentenceAtPointInRoot,
   type WysiwygSentenceSelection,
 } from '../../lib/wysiwygSentenceSelection';
+import { handleWysiwygClickBelowContent } from '../../lib/wysiwygFocusDocumentEnd';
 
 export type MarkdownEditorVariant = 'markdown' | 'mnote';
 
@@ -73,9 +74,22 @@ export interface MarkdownEditorProps {
   activeMnoteEntryId?: string | null;
 }
 
+function exportLiveMarkdownFromEditor(
+  editor: MDXEditorMethods,
+  originalMarkdown: string,
+  isMnote: boolean,
+): string {
+  const raw = editor.getMarkdown?.() ?? originalMarkdown;
+  return isMnote
+    ? exportMnoteFromWysiwyg(raw, originalMarkdown)
+    : exportMarkdownFromWysiwyg(raw, originalMarkdown);
+}
+
 export type MarkdownEditorHandle = MDXEditorMethods & {
   /** 未手动编辑时返回磁盘原文，避免 WYSIWYG 被动序列化改写文件 */
   getPersistedMarkdown: () => string;
+  /** 始终从编辑器读取当前内容（视图切换时使用） */
+  getLiveMarkdown: () => string;
   markUserEdited: () => void;
   hasUserEdited: () => boolean;
   selectSentenceAtPoint: (
@@ -140,10 +154,18 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
           if (!userEditedRef.current) {
             return originalMarkdownRef.current;
           }
-          const raw = editor.getMarkdown?.() ?? originalMarkdownRef.current;
-          return isMnote
-            ? exportMnoteFromWysiwyg(raw, originalMarkdownRef.current)
-            : exportMarkdownFromWysiwyg(raw, originalMarkdownRef.current);
+          return exportLiveMarkdownFromEditor(
+            editor,
+            originalMarkdownRef.current,
+            isMnote,
+          );
+        },
+        getLiveMarkdown() {
+          return exportLiveMarkdownFromEditor(
+            editor,
+            originalMarkdownRef.current,
+            isMnote,
+          );
         },
         markUserEdited() {
           userEditedRef.current = true;
@@ -269,12 +291,11 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
           return;
         }
         onChangeRef.current(
-          isMnote
-            ? exportMnoteFromWysiwyg(nextMarkdown, originalMarkdownRef.current)
-            : exportMarkdownFromWysiwyg(
-                nextMarkdown,
-                originalMarkdownRef.current,
-              ),
+          exportLiveMarkdownFromEditor(
+            { getMarkdown: () => nextMarkdown },
+            originalMarkdownRef.current,
+            isMnote,
+          ),
         );
       },
       [isMnote, scheduleHydrationFinish],
@@ -350,6 +371,20 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
       // tabKey / editorEpoch：MDXEditor 经 key 重挂载，内容由 preparedInitialMarkdown 注入，不再 setMarkdown 二次解析
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tabKey, editorEpoch, scheduleHydrationFinish]);
+
+    useEffect(() => {
+      const host = scrollHostRef.current;
+      if (!host || readOnly) return undefined;
+
+      const onPointerDown = (event: PointerEvent) => {
+        handleWysiwygClickBelowContent(host, event, () => {
+          userEditedRef.current = true;
+        });
+      };
+
+      host.addEventListener('pointerdown', onPointerDown);
+      return () => host.removeEventListener('pointerdown', onPointerDown);
+    }, [readOnly, tabKey, editorEpoch]);
 
     useEffect(() => {
       const host = scrollHostRef.current;
@@ -474,8 +509,8 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
         ref={scrollHostRef}
         className={
           isMnote
-            ? 'MuledMDXEditorHost MuledMDXEditorHost--mnote'
-            : 'MuledMDXEditorHost'
+            ? `MuledMDXEditorHost MuledMDXEditorHost--mnote${readOnly ? '' : ' MuledMDXEditorHost--editable'}`
+            : `MuledMDXEditorHost${readOnly ? '' : ' MuledMDXEditorHost--editable'}`
         }
       >
         <MarkdownEditorErrorBoundary onReset={handleEditorReset}>

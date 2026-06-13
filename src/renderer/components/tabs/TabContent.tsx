@@ -215,6 +215,10 @@ export default function TabContent({
     return mdxRef.current?.getPersistedMarkdown() ?? tab?.content ?? '';
   }, [tab?.content]);
 
+  const getWysiwygLiveContent = useCallback((): string => {
+    return mdxRef.current?.getLiveMarkdown() ?? tab?.content ?? '';
+  }, [tab?.content]);
+
   const usesWysiwygEditor = useCallback(
     (kind: EditorTab['kind'], viewMode: EditorViewMode): boolean =>
       (kind === 'markdown' || kind === 'mnote') && viewMode === 'rich-text',
@@ -252,6 +256,17 @@ export default function TabContent({
     }
     return tab.content;
   }, [getWysiwygContent, tab]);
+
+  const getContentForViewSwitch = useCallback((): string => {
+    if (!tab || !isEditableTextTab(tab)) return '';
+    if (
+      (tab.kind === 'markdown' || tab.kind === 'mnote') &&
+      tab.viewMode === 'rich-text'
+    ) {
+      return getWysiwygLiveContent();
+    }
+    return getEditableContent();
+  }, [getEditableContent, getWysiwygLiveContent, tab]);
 
   const captureSnapshot = useCallback((): EditorAiSnapshot | null => {
     if (!tab || !isEditableTextTab(tab)) return null;
@@ -353,6 +368,7 @@ export default function TabContent({
     });
     registerEditorViewHandlers(tab.id, {
       getEditorContent,
+      getContentForViewSwitch,
       appendToEnd: appendToEditorEnd,
     });
     registerEditorOutlineHandlers(tab.id, {
@@ -376,13 +392,17 @@ export default function TabContent({
       registerEditorViewHandlers(tab.id, null);
       registerEditorOutlineHandlers(tab.id, null);
     };
-  }, [appendToEditorEnd, applyAiResult, captureSnapshot, getEditorContent, tab]);
+  }, [appendToEditorEnd, applyAiResult, captureSnapshot, getContentForViewSwitch, getEditorContent, tab]);
 
   const handleViewModeChange = useCallback(
     (next: EditorViewMode) => {
       if (!tab || next === tab.viewMode) return;
       if (tab.kind === 'markdown' || tab.kind === 'mnote') {
-        onViewModeChange(tab.id, next, getEditableContent());
+        const content = getContentForViewSwitch();
+        onViewModeChange(tab.id, next, content);
+        if (content !== tab.content) {
+          onContentChange(content);
+        }
         return;
       }
       if (
@@ -402,10 +422,10 @@ export default function TabContent({
         return;
       }
       if (tab.kind === 'docx') {
-        onViewModeChange(tab.id, next);
+        onViewModeChange(tab.id, next, tab.content);
       }
     },
-    [getEditableContent, tab, onViewModeChange],
+    [getContentForViewSwitch, getEditableContent, onContentChange, tab, onViewModeChange],
   );
 
   const openNoteOverlay = useCallback(

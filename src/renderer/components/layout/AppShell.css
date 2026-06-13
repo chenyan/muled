@@ -823,6 +823,14 @@
   overscroll-behavior: contain;
 }
 
+.MuledMDXEditorHost--editable .mdxeditor-root-contenteditable,
+.MuledMDXEditorHost--editable
+  .mdxeditor-root-contenteditable
+  [contenteditable='true'] {
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
 .MuledMDXEditorHost a[href^='#muled-wiki:'],
 .MuledMDXEditorHost a[href^='muled-wiki-link:'],
 .MuledMDXEditorHost .mdxeditor a[href^='http://'],

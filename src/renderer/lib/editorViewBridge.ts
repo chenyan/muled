@@ -1,5 +1,7 @@
 export interface EditorViewHandlers {
   getEditorContent: () => string;
+  /** 离开当前视图时采集内容（WYSIWYG 需读编辑器实时状态） */
+  getContentForViewSwitch: () => string;
   appendToEnd: (text: string) => void;
 }
 
@@ -18,6 +20,10 @@ export function registerEditorViewHandlers(
 
 export function getEditorViewContent(tabId: string): string | null {
   return handlersByTabId.get(tabId)?.getEditorContent() ?? null;
+}
+
+export function getEditorContentForViewSwitch(tabId: string): string | null {
+  return handlersByTabId.get(tabId)?.getContentForViewSwitch() ?? null;
 }
 
 export function appendTextToEditorTab(tabId: string, text: string): boolean {
