@@ -60,6 +60,8 @@ function platformCandidatePaths(tool: ShellToolId): string[] {
       path.join(home, '.cargo', 'bin'),
       'C:\\Program Files\\ripgrep',
       'C:\\Program Files\\fd',
+      'C:\\Program Files\\Chez Scheme',
+      'C:\\Program Files (x86)\\Chez Scheme',
     ];
     return dirs.flatMap((dir) => names.map((name) => path.join(dir, name)));
   }
@@ -82,6 +84,9 @@ function platformCandidatePaths(tool: ShellToolId): string[] {
     path.join(home, '.local', 'bin'),
     path.join(home, '.cargo', 'bin'),
   ];
+  if (tool === 'chez') {
+    dirs.push('/opt/homebrew/opt/chezscheme/bin', '/usr/local/opt/chezscheme/bin');
+  }
   return dirs.flatMap((dir) => names.map((name) => path.join(dir, name)));
 }
 
@@ -108,14 +113,17 @@ export function detectToolPaths(
 ): DetectToolsResult {
   const fd = detectToolPath('fd', env);
   const rg = detectToolPath('rg', env);
+  const chez = detectToolPath('chez', env);
   return {
     tools: {
       fd: fd ?? '',
       rg: rg ?? '',
+      chez: chez ?? '',
     },
     found: {
       fd: fd !== null,
       rg: rg !== null,
+      chez: chez !== null,
     },
   };
 }
@@ -136,9 +144,10 @@ export function resolveToolExecutable(
 export function resolveToolPaths(
   config: ToolPathsConfig,
   env: NodeJS.ProcessEnv = getShellProcessEnv(),
-): { fd: string | null; rg: string | null } {
+): { fd: string | null; rg: string | null; chez: string | null } {
   return {
     fd: resolveToolExecutable('fd', config.fd, env),
     rg: resolveToolExecutable('rg', config.rg, env),
+    chez: resolveToolExecutable('chez', config.chez, env),
   };
 }

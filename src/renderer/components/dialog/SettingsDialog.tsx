@@ -73,6 +73,7 @@ export default function SettingsDialog({
       const missing: string[] = [];
       if (!result.found.fd) missing.push('fd');
       if (!result.found.rg) missing.push('ripgrep (rg)');
+      if (!result.found.chez) missing.push('Chez Scheme (chez)');
       if (missing.length > 0) {
         setDetectHint(
           `未找到 ${missing.join('、')}，请手动输入可执行文件路径，或先安装后再检测。`,
@@ -360,9 +361,9 @@ export default function SettingsDialog({
               <section className="SettingsDialog__section">
                 <h3 className="SettingsDialog__sectionTitle">命令行工具</h3>
                 <p className="SettingsDialog__sectionHint">
-                  命令面板中的 <code>fd</code>、<code>rg</code> 搜索依赖本机可执行文件。
-                  路径留空时在 PATH 中查找；从 Finder 启动的 release
-                  包若找不到，可点「自动检测」或手动填写绝对路径。
+                  命令面板中的 <code>fd</code>、<code>rg</code> 搜索，以及 WYSIWYG 中{' '}
+                  <code>scheme</code> 代码块运行，依赖本机可执行文件。路径留空时在
+                  PATH 中查找；从 Finder 启动的 release 包若找不到，可点「自动检测」或手动填写绝对路径。
                 </p>
                 <div className="SettingsDialog__grid">
                   <label className="SettingsDialog__field SettingsDialog__field--full">
@@ -384,6 +385,17 @@ export default function SettingsDialog({
                       value={form.tools.rg}
                       onChange={(e) =>
                         patch('tools', { ...form.tools, rg: e.target.value })
+                      }
+                    />
+                  </label>
+                  <label className="SettingsDialog__field SettingsDialog__field--full">
+                    <span className="SettingsDialog__label">Chez Scheme (chez)</span>
+                    <input
+                      className="SettingsDialog__input"
+                      placeholder="/opt/homebrew/bin/chez"
+                      value={form.tools.chez}
+                      onChange={(e) =>
+                        patch('tools', { ...form.tools, chez: e.target.value })
                       }
                     />
                   </label>

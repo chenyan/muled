@@ -142,6 +142,9 @@ const muled = {
       invoke('duckdbFile:listTables', { sessionId }),
     close: (sessionId: string) => invoke('duckdbFile:close', { sessionId }),
   },
+  scheme: {
+    run: (args: { code: string }) => invoke('scheme:run', args),
+  },
   menu: {
     onOpenTranslationHistory: (listener: (path: string) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, path: string) => {

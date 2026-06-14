@@ -35,7 +35,8 @@ import {
 } from '../services/shellSearchService';
 import WorkspaceService from '../services/workspaceService';
 import WorkspaceWatcherService from '../services/workspaceWatcherService';
-import { detectToolPaths } from '../services/toolPathService';
+import { detectToolPaths, resolveToolExecutable } from '../services/toolPathService';
+import { runSchemeScript } from '../services/schemeRunService';
 import DuckdbService from '../services/duckdbService';
 import DuckdbFileService from '../services/duckdbFileService';
 import SqliteService from '../services/sqliteService';
@@ -406,6 +407,19 @@ export function registerIpc(
       const { sessionId } = arg as { sessionId: string };
       await services.duckdbFile.closeSession(sessionId);
       return { ok: true };
+    },
+
+    'scheme:run': (arg) => {
+      const { code } = arg as { code: string };
+      const chez = resolveToolExecutable(
+        'chez',
+        services.config.get().tools.chez,
+      );
+      if (!chez) {
+        return { error: 'not_configured' as const };
+      }
+      const result = runSchemeScript(chez, code);
+      return { ok: true as const, ...result };
     },
   };
 

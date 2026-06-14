@@ -63,12 +63,12 @@ beforeEach(() => {
             wysiwyg: 'system',
             source: 'system',
           },
-          tools: { fd: '', rg: '' },
+          tools: { fd: '', rg: '', chez: '' },
         },
       }),
       detectTools: async () => ({
-        tools: { fd: '', rg: '' },
-        found: { fd: false, rg: false },
+        tools: { fd: '', rg: '', chez: '' },
+        found: { fd: false, rg: false, chez: false },
       }),
       save: async () => ({ config: mockConfig, workspacePathChanged: false }),
       getWysiwygCss: async () => ({
@@ -162,6 +162,9 @@ beforeEach(() => {
       }),
       listTables: async () => ({ ok: true as const, tables: [] }),
       close: async () => ({ ok: true }),
+    },
+    scheme: {
+      run: async () => ({ ok: true as const, stdout: '', stderr: '', exitCode: 0 }),
     },
     menu: {
       onOpenTranslationHistory: () => () => undefined,

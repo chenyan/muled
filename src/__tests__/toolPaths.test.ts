@@ -6,23 +6,36 @@ import {
 import { resolveToolExecutable } from '../main/services/toolPathService';
 
 describe('parseToolPaths', () => {
-  it('parses fd and rg paths', () => {
+  it('parses fd, rg, and chez paths', () => {
     expect(
-      parseToolPaths({ fd: ' /opt/homebrew/bin/fd ', rg: '~/bin/rg' }),
+      parseToolPaths({
+        fd: ' /opt/homebrew/bin/fd ',
+        rg: '~/bin/rg',
+        chez: '/opt/homebrew/bin/chez',
+      }),
     ).toEqual({
       fd: '/opt/homebrew/bin/fd',
       rg: '~/bin/rg',
+      chez: '/opt/homebrew/bin/chez',
     });
   });
 
   it('defaults missing fields to empty strings', () => {
-    expect(parseToolPaths(null)).toEqual({ fd: '', rg: '' });
+    expect(parseToolPaths(null)).toEqual({ fd: '', rg: '', chez: '' });
   });
 });
 
 describe('shellToolPathNames', () => {
   it('includes fdfind on linux', () => {
     expect(shellToolPathNames('fd', 'linux')).toEqual(['fdfind', 'fd']);
+  });
+
+  it('includes chez aliases', () => {
+    expect(shellToolPathNames('chez', 'darwin')).toEqual([
+      'chez',
+      'scheme',
+      'petite',
+    ]);
   });
 });
 

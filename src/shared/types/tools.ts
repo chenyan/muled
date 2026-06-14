@@ -1,12 +1,14 @@
-/** 命令面板 fd / ripgrep 可执行文件路径；留空表示在 PATH 中自动查找 */
+/** 命令面板 fd / ripgrep / Chez Scheme 可执行文件路径；留空表示在 PATH 中自动查找 */
 export interface ToolPathsConfig {
   fd: string;
   rg: string;
+  chez: string;
 }
 
 export const DEFAULT_TOOL_PATHS: ToolPathsConfig = {
   fd: '',
   rg: '',
+  chez: '',
 };
 
 export type ShellToolId = keyof ToolPathsConfig;
@@ -19,6 +21,7 @@ export function parseToolPaths(raw: unknown): ToolPathsConfig {
   return {
     fd: typeof data.fd === 'string' ? data.fd.trim() : '',
     rg: typeof data.rg === 'string' ? data.rg.trim() : '',
+    chez: typeof data.chez === 'string' ? data.chez.trim() : '',
   };
 }
 
@@ -29,6 +32,12 @@ export function shellToolPathNames(
 ): string[] {
   if (tool === 'rg') {
     return platform === 'win32' ? ['rg.exe', 'rg'] : ['rg'];
+  }
+  if (tool === 'chez') {
+    if (platform === 'win32') {
+      return ['chez.exe', 'chez', 'scheme.exe', 'scheme', 'petite.exe', 'petite'];
+    }
+    return ['chez', 'scheme', 'petite'];
   }
   if (platform === 'linux') {
     return ['fdfind', 'fd'];
@@ -43,3 +52,13 @@ export interface DetectToolsResult {
   tools: ToolPathsConfig;
   found: Record<ShellToolId, boolean>;
 }
+
+export interface SchemeRunResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+}
+
+export type SchemeRunResponse =
+  | { error: 'not_configured' }
+  | ({ ok: true } & SchemeRunResult);

@@ -38,6 +38,7 @@ import {
 import { pushStatusToast } from '../../lib/statusToast';
 import { useWysiwygTheme } from '../../hooks/useAppTheme';
 import mdxEditorInlineMathPlugin from './inlineMath/mdxEditorInlineMathPlugin';
+import mdxEditorTripleBacktickShortcutPlugin from './mdxEditorTripleBacktickShortcutPlugin';
 import wysiwygEditorActionsBridgePlugin from './wysiwygEditorActionsBridgePlugin';
 import mdxEditorWikiImagePlugin from './mdxEditorWikiImagePlugin';
 import mdxEditorWikiVideoPlugin from './wikiVideo/mdxEditorWikiVideoPlugin';
@@ -264,11 +265,12 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
         imagePlugin({ imagePreviewHandler }),
         tablePlugin(),
         thematicBreakPlugin(),
-        markdownShortcutPlugin(),
         codeBlockPlugin({
           defaultCodeBlockLanguage: 'txt',
           codeBlockEditorDescriptors: codeBlockDescriptors,
         }),
+        mdxEditorTripleBacktickShortcutPlugin(),
+        markdownShortcutPlugin(),
         mdxEditorHtmlPlugin(),
         mdxEditorFaultTolerancePlugin(),
         mdxEditorInlineMathPlugin(),

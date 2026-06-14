@@ -1,6 +1,6 @@
 import type { PublicConfig } from './config';
 import type { SettingsForm, SettingsGetResult } from './settings';
-import type { DetectToolsResult } from './tools';
+import type { DetectToolsResult, SchemeRunResponse } from './tools';
 import type { ResolvedThemeConfig, ThemeConfig } from './theme';
 import type { SearchStartResult } from './search';
 import type { CsvQueryResponse, CsvRegisterResponse } from './csvQuery';
@@ -97,7 +97,8 @@ export type IpcChannel =
   | 'duckdbFile:open'
   | 'duckdbFile:query'
   | 'duckdbFile:listTables'
-  | 'duckdbFile:close';
+  | 'duckdbFile:close'
+  | 'scheme:run';
 
 export interface WysiwygCssResult {
   css: string;
@@ -259,6 +260,10 @@ export interface IpcInvokeMap {
   'duckdbFile:close': {
     args: { sessionId: string };
     result: { ok: boolean };
+  };
+  'scheme:run': {
+    args: { code: string };
+    result: SchemeRunResponse;
   };
 }
 
