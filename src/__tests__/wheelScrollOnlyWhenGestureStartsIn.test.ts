@@ -1,5 +1,6 @@
 import {
   createWheelGestureTracker,
+  isWheelEventInElement,
   WHEEL_GESTURE_IDLE_MS,
 } from '../renderer/lib/wheelScrollOnlyWhenGestureStartsIn';
 
@@ -41,5 +42,28 @@ describe('createWheelGestureTracker', () => {
     tracker.noteWheel(true);
     expect(tracker.shouldAllowBoundaryScroll()).toBe(true);
     tracker.dispose();
+  });
+});
+
+describe('isWheelEventInElement', () => {
+  it('detects wheel events that pass through shadow DOM hosts', () => {
+    const boundary = document.createElement('div');
+    const host = document.createElement('div');
+    const inner = document.createElement('div');
+    boundary.append(host);
+    host.append(inner);
+    document.body.append(boundary);
+
+    const event = new WheelEvent('wheel', { bubbles: true, composed: true });
+    Object.defineProperty(event, 'composedPath', {
+      value: () => [inner, host, boundary, document],
+    });
+
+    expect(isWheelEventInElement(event, boundary)).toBe(true);
+    expect(isWheelEventInElement(event, document.createElement('div'))).toBe(
+      false,
+    );
+
+    boundary.remove();
   });
 });

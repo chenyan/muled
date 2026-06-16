@@ -83,6 +83,7 @@ const muled = {
     readBinary: (path: string) => invoke('file:readBinary', { path }),
     readBinaryBuffer: (path: string) =>
       invoke('file:readBinaryBuffer', { path }),
+    readBytes: (path: string) => invoke('file:readBytes', { path }),
     write: (path: string, content: string) =>
       invoke('file:write', { path, content }),
     writeBinary: (path: string, base64: string) =>

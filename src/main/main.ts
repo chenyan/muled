@@ -24,6 +24,10 @@ import {
   type MuledServices,
 } from './ipc/registerIpc';
 import MenuBuilder from './menu';
+import {
+  registerMuledFileProtocolHandler,
+  registerMuledFileScheme,
+} from './registerMuledFileProtocol';
 import { resolveHtmlPath } from './util';
 
 class AppUpdater {
@@ -36,6 +40,8 @@ class AppUpdater {
 
 let mainWindow: BrowserWindow | null = null;
 let services: MuledServices | null = null;
+
+registerMuledFileScheme();
 
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
@@ -138,6 +144,7 @@ app.on('window-all-closed', () => {
 app
   .whenReady()
   .then(() => {
+    registerMuledFileProtocolHandler();
     services = createServices();
     registerIpc(services, () => mainWindow);
     registerThemeWatcher(services, () => mainWindow);

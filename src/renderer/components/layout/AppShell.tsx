@@ -7,6 +7,7 @@ import {
   type CSSProperties,
 } from 'react';
 import type { AiApplyMode } from '../../../shared/buildAiPrompt';
+import { EditorIndentProvider } from '../../hooks/useEditorIndentSettings';
 import { DEFAULT_PUBLIC_CONFIG } from '../../../shared/defaultPublicConfig';
 import type { PublicConfig } from '../../../shared/types/config';
 import type { SettingsForm } from '../../../shared/types/settings';
@@ -295,6 +296,29 @@ export default function AppShell() {
     [editor.activeTab, pdfOutline],
   );
 
+  const notifySaveFailure = useCallback((reason: string) => {
+    if (reason === 'truncated') {
+      pushStatusToast('文件已截断，无法保存', 'error');
+    } else if (reason === 'no_path') {
+      pushStatusToast('请先打开文件再保存', 'error');
+    } else {
+      pushStatusToast('无法保存', 'error');
+    }
+  }, []);
+
+  const handleSave = useCallback(
+    async (tabId: string) => {
+      const result = await editor.saveTab(tabId);
+      if (result.ok) {
+        pushStatusToast('已保存', 'success');
+        return true;
+      }
+      notifySaveFailure(result.reason);
+      return false;
+    },
+    [editor, notifySaveFailure],
+  );
+
   const handlePaletteSubmit = useCallback(
     (input: string) => {
       const tab = editor.activeTab;
@@ -329,6 +353,25 @@ export default function AppShell() {
         return { ok: true as const };
       }
 
+      if (result.kind === 'save') {
+        if (!editor.activeTabId) {
+          return { ok: false as const, error: '没有打开的标签页' };
+        }
+        void handleSave(editor.activeTabId).catch((err) => {
+          const message = err instanceof Error ? err.message : String(err);
+          pushStatusToast(`保存失败: ${message}`, 'error');
+        });
+        return { ok: true as const };
+      }
+
+      if (result.kind === 'close') {
+        if (!editor.activeTabId) {
+          return { ok: false as const, error: '没有打开的标签页' };
+        }
+        void editor.closeTab(editor.activeTabId).catch(() => undefined);
+        return { ok: true as const };
+      }
+
       if (!tab || !isEditableTextTab(tab)) {
         return { ok: false as const, error: '当前标签页不可编辑' };
       }
@@ -338,7 +381,7 @@ export default function AppShell() {
       editor.updateTabContent(tab.id, result.content);
       return { ok: true as const };
     },
-    [editor, handleSwitchWorkspace],
+    [editor, handleSave, handleSwitchWorkspace],
   );
 
   useEffect(() => {
@@ -484,29 +527,6 @@ export default function AppShell() {
       setSplitCollapsePreserve(null);
     }
   }, [editor.activeTabId, splitCollapsePreserve]);
-
-  const notifySaveFailure = useCallback((reason: string) => {
-    if (reason === 'truncated') {
-      pushStatusToast('文件已截断，无法保存', 'error');
-    } else if (reason === 'no_path') {
-      pushStatusToast('请先打开文件再保存', 'error');
-    } else {
-      pushStatusToast('无法保存', 'error');
-    }
-  }, []);
-
-  const handleSave = useCallback(
-    async (tabId: string) => {
-      const result = await editor.saveTab(tabId);
-      if (result.ok) {
-        pushStatusToast('已保存', 'success');
-        return true;
-      }
-      notifySaveFailure(result.reason);
-      return false;
-    },
-    [editor, notifySaveFailure],
-  );
 
   const toggleTabViewMode = useCallback(() => {
     const tab = editor.activeTab;
@@ -1009,6 +1029,7 @@ export default function AppShell() {
   );
 
   return (
+    <EditorIndentProvider value={uiConfig.editor.indent}>
     <div
       className={`AppShell${sidebarResizing ? ' AppShell--sidebar-resizing' : ''}`}
     >
@@ -1153,5 +1174,6 @@ export default function AppShell() {
         />
       </main>
     </div>
+    </EditorIndentProvider>
   );
 }

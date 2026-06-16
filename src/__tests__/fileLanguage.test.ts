@@ -19,6 +19,7 @@ describe('fileLanguage', () => {
   it('detects html paths', () => {
     expect(isHtmlPath('index.html')).toBe(true);
     expect(isHtmlPath('legacy.htm')).toBe(true);
+    expect(isHtmlPath('page.xhtml')).toBe(true);
     expect(isHtmlPath('notes.md')).toBe(false);
     expect(isHtmlPath(null)).toBe(false);
   });
@@ -44,6 +45,7 @@ describe('fileLanguage', () => {
     expect(getSourceLanguageId('beat.strudel')).toBe('javascript');
     expect(getSourceLanguageId('sketch.p5')).toBe('javascript');
     expect(getSourceLanguageId('readme.md')).toBe('markdown');
+    expect(getSourceLanguageId('page.xhtml')).toBe('html');
     expect(getSourceLanguageId('paper.tex')).toBe('latex');
     expect(getSourceLanguageId('notes.org')).toBe('org');
     expect(getSourceLanguageId('main.scm')).toBe('scheme');

@@ -28,7 +28,11 @@ import { lintKeymap } from '@codemirror/lint';
 import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
 import { EditorView } from '@codemirror/view';
 import type { ResolvedTheme } from '../../shared/types/theme';
+import type { EditorIndentSettings } from '../../shared/editorIndentConfig';
+import { DEFAULT_EDITOR_INDENT } from '../../shared/editorIndentConfig';
 import { codeMirrorThemeFor } from './codemirrorThemeFor';
+import { buildCodeEditorIndentExtensions } from './codemirrorIndentExtension';
+import { codeMirrorBracketMatchThemeFix } from './codemirrorBracketMatchTheme';
 
 /**
  * 语法高亮的 bold/italic、字体连字会改变字宽，导致光标与文字错位。
@@ -102,10 +106,13 @@ export function flattenExtensions(
 /** Source 编辑器通用 UI 扩展（主题、行号等） */
 export function buildCommonSourceUiExtensions(
   theme: ResolvedTheme = 'light',
+  indent: EditorIndentSettings = DEFAULT_EDITOR_INDENT,
 ): Extension[] {
   return flattenExtensions([
     sourceEditorSetup(),
+    buildCodeEditorIndentExtensions(indent),
     codeMirrorThemeFor(theme),
+    codeMirrorBracketMatchThemeFix(),
     sourceEditorMeasureFixExtension(),
   ]);
 }

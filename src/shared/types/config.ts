@@ -1,8 +1,10 @@
 import type { EditorFontSettings } from '../editorFontConfig';
+import type { EditorIndentSettings } from '../editorIndentConfig';
 import type { ToolPathsConfig } from './tools';
 import type { ResolvedThemeConfig, ThemeConfig } from './theme';
 
 export type { EditorFontSettings };
+export type { EditorIndentSettings };
 export type { ResolvedThemeConfig, ThemeConfig, ThemePreference, ResolvedTheme } from './theme';
 
 export type EditorMode = 'vim' | 'normal';
@@ -20,6 +22,7 @@ export interface MuledConfig {
     default_view: EditorViewMode | null;
     source: EditorFontSettings;
     wysiwyg: EditorFontSettings;
+    indent: EditorIndentSettings;
   };
   workspace: {
     path: string;

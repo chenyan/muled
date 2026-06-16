@@ -1,6 +1,7 @@
-import { useEffect, type RefObject } from 'react';
+import { useLayoutEffect, type RefObject } from 'react';
 
-export const WHEEL_GESTURE_IDLE_MS = 150;
+/** 触控板惯性滚动事件间隔可能略长，过短会把手势误判为结束。 */
+export const WHEEL_GESTURE_IDLE_MS = 400;
 
 export function isPointerInElement(
   event: Pick<WheelEvent, 'clientX' | 'clientY'>,
@@ -13,6 +14,13 @@ export function isPointerInElement(
     event.clientY >= top &&
     event.clientY <= bottom
   );
+}
+
+export function isWheelEventInElement(
+  event: WheelEvent,
+  element: HTMLElement,
+): boolean {
+  return event.composedPath().includes(element);
 }
 
 export type WheelGestureTracker = {
@@ -61,30 +69,25 @@ export function createWheelGestureTracker(
 export function useWheelScrollOnlyWhenGestureStartsIn(
   boundaryRef: RefObject<HTMLElement | null>,
 ): void {
-  useEffect(() => {
+  useLayoutEffect(() => {
     const tracker = createWheelGestureTracker();
 
-    const resolveBoundary = () => boundaryRef.current;
-
     const onDocumentWheelCapture = (event: WheelEvent) => {
-      const boundary = resolveBoundary();
+      const boundary = boundaryRef.current;
       if (!boundary) return;
-      tracker.noteWheel(isPointerInElement(event, boundary));
-    };
 
-    const onBoundaryWheelCapture = (event: WheelEvent) => {
-      if (tracker.shouldAllowBoundaryScroll()) return;
-      event.preventDefault();
-      event.stopPropagation();
+      tracker.noteWheel(isPointerInElement(event, boundary));
+
+      if (
+        isWheelEventInElement(event, boundary) &&
+        !tracker.shouldAllowBoundaryScroll()
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
     };
 
     document.addEventListener('wheel', onDocumentWheelCapture, {
-      capture: true,
-      passive: true,
-    });
-
-    const boundary = resolveBoundary();
-    boundary?.addEventListener('wheel', onBoundaryWheelCapture, {
       capture: true,
       passive: false,
     });
@@ -92,7 +95,6 @@ export function useWheelScrollOnlyWhenGestureStartsIn(
     return () => {
       tracker.dispose();
       document.removeEventListener('wheel', onDocumentWheelCapture, true);
-      boundary?.removeEventListener('wheel', onBoundaryWheelCapture, true);
     };
   }, [boundaryRef]);
 }

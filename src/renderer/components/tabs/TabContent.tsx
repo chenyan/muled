@@ -709,6 +709,32 @@ export default function TabContent({
     [runTranslate],
   );
 
+  const handleHtmlPreviewTranslate = useCallback(
+    (request: { sentence: string; anchorRect: DOMRect }) => {
+      void runTranslate(request.sentence, request.anchorRect);
+    },
+    [runTranslate],
+  );
+
+  const handleHtmlPreviewRecordNote = useCallback(
+    (request: {
+      quote: string;
+      loc: string;
+      anchorRect: DOMRect;
+      menuX: number;
+      menuY: number;
+    }) => {
+      openNoteOverlay({
+        quote: request.quote,
+        loc: request.loc,
+        anchorRect: request.anchorRect,
+        anchorX: request.menuX,
+        anchorY: request.menuY,
+      });
+    },
+    [openNoteOverlay],
+  );
+
   if (!tab) {
     return <div className="TabContent TabContent--empty">无打开的标签页</div>;
   }
@@ -988,7 +1014,16 @@ export default function TabContent({
             onOpenDirectory={onOpenDirectoryGrid}
           />
         ) : tab.kind === 'html' && showHtmlPreview ? (
-          <HtmlPreview tab={tab} workspaceRoot={workspaceRoot} />
+          <HtmlPreview
+            tab={tab}
+            workspaceRoot={workspaceRoot}
+            hasApiKey={hasApiKey}
+            showNote={Boolean(onAppendMnote && tab.relativePath)}
+            onTranslate={handleHtmlPreviewTranslate}
+            onRecordNote={
+              onAppendMnote ? handleHtmlPreviewRecordNote : undefined
+            }
+          />
         ) : showStrudelRepl ? (
           <StrudelReplPreview
             ref={strudelReplRef}

@@ -1,6 +1,7 @@
-import { getIndentation } from '@codemirror/language';
+import { getIndentation, IndentContext } from '@codemirror/language';
 import { EditorState } from '@codemirror/state';
 import { schemeLanguageDefinition } from '../renderer/lib/scheme/schemeLanguage';
+import { schemeIndentServiceExtension } from '../renderer/lib/scheme/schemeIndent';
 import { schemeStructuredEditingPolicy } from '../renderer/lib/scheme/schemeVimCoexist';
 import parseSchemeOutline from '../renderer/lib/scheme/schemeOutline';
 import {
@@ -21,7 +22,7 @@ function schemeState(
   return EditorState.create({
     doc,
     selection,
-    extensions: [schemeLanguageDefinition],
+    extensions: [schemeLanguageDefinition, schemeIndentServiceExtension],
   });
 }
 
@@ -89,6 +90,77 @@ describe('scheme indent', () => {
   it('indents define-with-args body after signature', () => {
     const doc = '(define (foo x)\n';
     expect(indentCol(doc)).toBe(2);
+  });
+
+  it('indents define body when Enter is pressed before trailing close paren', () => {
+    const doc = '(define (factorial n))';
+    const pos = doc.length - 1;
+    const state = schemeState(doc, { anchor: pos });
+    const cx = new IndentContext(state, { simulateBreak: pos });
+    expect(getIndentation(cx, pos)).toBe(2);
+  });
+
+  it('indents define body when Enter is pressed before multiple close parens', () => {
+    const cases = [
+      { doc: '(define (factorial n)))', pos: 21 },
+      { doc: '((define (factorial n)))', pos: 22 },
+      { doc: '(define (factorial n))))', pos: 21 },
+    ];
+    for (const { doc, pos } of cases) {
+      const state = schemeState(doc, { anchor: pos });
+      const cx = new IndentContext(state, { simulateBreak: pos });
+      expect(getIndentation(cx, pos)).toBe(2);
+    }
+  });
+
+  it('indents when cursor is after param before multiple close parens', () => {
+    const doc = '(define (factorial n))';
+    const pos = 20;
+    const state = schemeState(doc, { anchor: pos });
+    const cx = new IndentContext(state, { simulateBreak: pos });
+    expect(cx.textAfterPos(pos)).toBe('))');
+    expect(getIndentation(cx, pos)).toBe(2);
+  });
+
+  it('indents after param before multiple close parens without indent service', () => {
+    const doc = '(define (factorial n))';
+    const pos = 20;
+    const state = EditorState.create({
+      doc,
+      selection: { anchor: pos },
+      extensions: [schemeLanguageDefinition],
+    });
+    const cx = new IndentContext(state, { simulateBreak: pos });
+    expect(getIndentation(cx, pos)).toBe(2);
+  });
+
+  it('indents before multiple close parens without indent service fallback', () => {
+    const cases = [
+      { doc: '(define (factorial n))', pos: 21, label: 'one paren' },
+      { doc: '(define (factorial n)))', pos: 21, label: 'two parens' },
+    ];
+    for (const { doc, pos } of cases) {
+      const state = EditorState.create({
+        doc,
+        selection: { anchor: pos },
+        extensions: [schemeLanguageDefinition],
+      });
+      const cx = new IndentContext(state, { simulateBreak: pos });
+      expect(getIndentation(cx, pos)).toBe(2);
+    }
+  });
+
+  it('indents define body inside let before multiple close parens', () => {
+    const doc = '(let () (define (f n)))';
+    const pos = doc.length - 2;
+    const state = schemeState(doc, { anchor: pos });
+    const cx = new IndentContext(state, { simulateBreak: pos });
+    expect(getIndentation(cx, pos)).toBe(2);
+  });
+
+  it('indents define body when close paren follows on next line', () => {
+    const doc = '(define (factorial n)\n)';
+    expect(indentCol(doc, doc.indexOf('\n') + 1)).toBe(2);
   });
 
   it('aligns let bindings with the first binding', () => {

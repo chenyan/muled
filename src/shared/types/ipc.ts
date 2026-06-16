@@ -28,6 +28,11 @@ export interface FileReadBinaryBufferResult {
   mime: string;
 }
 
+/** 任意文本文件的原始字节（用于 HTML 预览按编码解码） */
+export interface FileReadBytesResult {
+  data: Uint8Array;
+}
+
 export interface WorkspaceState {
   root: string;
   paths: string[];
@@ -80,6 +85,7 @@ export type IpcChannel =
   | 'file:read'
   | 'file:readBinary'
   | 'file:readBinaryBuffer'
+  | 'file:readBytes'
   | 'file:write'
   | 'file:writeBinary'
   | 'ai:complete'
@@ -185,6 +191,10 @@ export interface IpcInvokeMap {
   'file:readBinaryBuffer': {
     args: { path: string };
     result: FileReadBinaryBufferResult;
+  };
+  'file:readBytes': {
+    args: { path: string };
+    result: FileReadBytesResult;
   };
   'file:write': {
     args: { path: string; content: string };

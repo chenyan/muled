@@ -1,4 +1,5 @@
 import { isMarkdownPath } from './fileLanguage';
+import { isHtmlPath } from './fileLanguage';
 import { isPdfPath } from './mime';
 
 /** 源文件对应的旁注路径：`attention.pdf` → `attention.pdf.mnote` */
@@ -11,8 +12,12 @@ export function isMnotePath(relativePath: string | null | undefined): boolean {
   return /\.mnote$/i.test(relativePath.replace(/\/$/, ''));
 }
 
-/** 支持记录笔记的源文件类型（Markdown / PDF） */
+/** 支持记录笔记的源文件类型（Markdown / PDF / HTML） */
 export function isMnoteSourcePath(relativePath: string | null | undefined): boolean {
   if (!relativePath) return false;
-  return isMarkdownPath(relativePath) || isPdfPath(relativePath);
+  return (
+    isMarkdownPath(relativePath) ||
+    isPdfPath(relativePath) ||
+    isHtmlPath(relativePath)
+  );
 }

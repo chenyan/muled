@@ -49,6 +49,9 @@
 [data-muled-ui-theme='acme'] .WorkspaceTreeContextMenu,
 [data-muled-ui-theme='acme'] .WorkspaceTreeContextMenu__item,
 [data-muled-ui-theme='acme'] .WorkspaceTreeContextMenu__submenuTrigger,
+[data-muled-ui-theme='acme'] .HtmlPreviewContextMenu,
+[data-muled-ui-theme='acme'] .HtmlPreviewContextMenu__item,
+[data-muled-ui-theme='acme'] .HtmlPreviewContextMenu__submenuTrigger,
 [data-muled-ui-theme='acme'] .TranslationPopup,
 [data-muled-ui-theme='acme'] .StatusToast,
 [data-muled-ui-theme='acme'] .ImagePreview__zoom button,
@@ -355,6 +358,8 @@
 [data-muled-ui-theme='acme'] .WorkspaceTreeContextMenu,
 [data-muled-ui-theme='acme'] .WorkspaceTreeContextMenu__submenuPanel,
 [data-muled-ui-theme='acme'] .PdfContextMenu,
+[data-muled-ui-theme='acme'] .HtmlPreviewContextMenu,
+[data-muled-ui-theme='acme'] .HtmlPreviewContextMenu__submenuPanel,
 [data-muled-ui-theme='acme'] .StatusToast {
   border: 1px solid #000;
   box-shadow: none;
@@ -402,7 +407,10 @@
 [data-muled-ui-theme='acme'] .WysiwygContextMenu__submenu:focus-within > .WysiwygContextMenu__submenuTrigger,
 [data-muled-ui-theme='acme'] .WorkspaceTreeContextMenu__item:hover:not(:disabled),
 [data-muled-ui-theme='acme'] .WorkspaceTreeContextMenu__submenu:hover > .WorkspaceTreeContextMenu__submenuTrigger,
-[data-muled-ui-theme='acme'] .WorkspaceTreeContextMenu__submenu:focus-within > .WorkspaceTreeContextMenu__submenuTrigger {
+[data-muled-ui-theme='acme'] .WorkspaceTreeContextMenu__submenu:focus-within > .WorkspaceTreeContextMenu__submenuTrigger,
+[data-muled-ui-theme='acme'] .HtmlPreviewContextMenu__item:hover:not(:disabled),
+[data-muled-ui-theme='acme'] .HtmlPreviewContextMenu__submenu:hover > .HtmlPreviewContextMenu__submenuTrigger,
+[data-muled-ui-theme='acme'] .HtmlPreviewContextMenu__submenu:focus-within > .HtmlPreviewContextMenu__submenuTrigger {
   background: var(--muled-hover);
   color: #000;
 }

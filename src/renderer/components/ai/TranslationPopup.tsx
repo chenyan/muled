@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import TranslationMarkdown from './TranslationMarkdown';
 import './TranslationPopup.css';
 
@@ -20,19 +20,27 @@ function clampPosition(
   popupWidth: number,
   popupHeight: number,
 ): { top: number; left: number } {
-  const margin = 8;
-  const top = Math.min(
-    rect.bottom + margin,
-    window.innerHeight - popupHeight - margin,
-  );
+  const margin = 12;
+  const maxHeight = window.innerHeight - margin * 2;
+  const height = Math.min(popupHeight, maxHeight);
+  const spaceBelow = window.innerHeight - rect.bottom - margin;
+  const spaceAbove = rect.top - margin;
+
+  let top: number;
+  if (height <= spaceBelow) {
+    top = rect.bottom + margin;
+  } else if (height <= spaceAbove) {
+    top = rect.top - height - margin;
+  } else {
+    top = Math.max(margin, window.innerHeight - height - margin);
+  }
+
   const left = Math.min(
-    rect.left,
+    Math.max(rect.left, margin),
     window.innerWidth - popupWidth - margin,
   );
-  return {
-    top: Math.max(margin, top),
-    left: Math.max(margin, left),
-  };
+
+  return { top, left };
 }
 
 export default function TranslationPopup({
@@ -40,6 +48,14 @@ export default function TranslationPopup({
   onClose,
 }: TranslationPopupProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+
+  useLayoutEffect(() => {
+    if (!popup || !panelRef.current) return;
+    const panel = panelRef.current;
+    const rect = panel.getBoundingClientRect();
+    setPosition(clampPosition(popup.rect, rect.width, rect.height));
+  }, [popup?.content, popup?.error, popup?.rect, popup?.sentence, popup?.status]);
 
   useEffect(() => {
     if (!popup) return undefined;
@@ -63,11 +79,6 @@ export default function TranslationPopup({
   }, [onClose, popup]);
 
   if (!popup) return null;
-
-  const panel = panelRef.current;
-  const width = panel?.offsetWidth ?? 360;
-  const height = panel?.offsetHeight ?? 160;
-  const position = clampPosition(popup.rect, width, height);
 
   return (
     <div

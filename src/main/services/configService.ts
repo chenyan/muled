@@ -8,6 +8,10 @@ import type {
   MuledConfig,
   PublicConfig,
 } from '../../shared/types/config';
+import {
+  DEFAULT_EDITOR_INDENT,
+  parseEditorIndentSettings,
+} from '../../shared/editorIndentConfig';
 import type { ConfigSaveResult } from '../../shared/types/ipc';
 import {
   DEFAULT_BUFFER_BYTES,
@@ -50,6 +54,7 @@ const DEFAULT_CONFIG: MuledConfig = {
     default_view: null,
     source: DEFAULT_SOURCE_FONT,
     wysiwyg: DEFAULT_WYSIWYG_FONT,
+    indent: DEFAULT_EDITOR_INDENT,
   },
   workspace: {
     path: os.homedir(),
@@ -132,6 +137,7 @@ function parseConfig(raw: unknown): MuledConfig {
       default_view: defaultView,
       source: parseEditorFontSettings(editor.source, DEFAULT_SOURCE_FONT),
       wysiwyg: parseEditorFontSettings(editor.wysiwyg, DEFAULT_WYSIWYG_FONT),
+      indent: parseEditorIndentSettings(editor.indent),
     },
     workspace: {
       path: workspacePath,
@@ -168,6 +174,7 @@ export function ensureConfigFile(): void {
       default_view: 'source',
       source: DEFAULT_SOURCE_FONT,
       wysiwyg: DEFAULT_WYSIWYG_FONT,
+      indent: DEFAULT_EDITOR_INDENT,
     },
     workspace: {
       path: '~/projects',
@@ -232,6 +239,7 @@ export default class ConfigService {
         default_view: deriveDefaultView(editor.mode, editor.default_view),
         source: editor.source,
         wysiwyg: editor.wysiwyg,
+        indent: editor.indent,
       },
       workspace: { path: workspace.path },
       ui,
@@ -263,6 +271,7 @@ export default class ConfigService {
           default_view: editor.default_view,
           source: { ...editor.source },
           wysiwyg: { ...editor.wysiwyg },
+          indent: { ...editor.indent },
         },
         workspace: {
           path: compressTilde(workspace.path),

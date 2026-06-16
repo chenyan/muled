@@ -261,6 +261,11 @@ export function registerIpc(
       return services.file.readBinaryBuffer(filePath);
     },
 
+    'file:readBytes': (arg) => {
+      const { path: filePath } = arg as { path: string };
+      return services.file.readBytes(filePath);
+    },
+
     'file:write': (arg) => {
       const { path: filePath, content } = arg as {
         path: string;

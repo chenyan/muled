@@ -27,11 +27,11 @@ const acmeTheme = EditorView.theme(
     },
     '.cm-activeLine': { backgroundColor: `${P.selection}66` },
     '.cm-selectionMatch': { backgroundColor: P.highlight },
-    '&.cm-focused .cm-matchingBracket, &.cm-focused .cm-nonmatchingBracket': {
-      outline: `1px solid ${P.border}`,
-    },
     '&.cm-focused .cm-matchingBracket': {
       backgroundColor: P.highlight,
+    },
+    '&.cm-focused .cm-nonmatchingBracket': {
+      backgroundColor: `${P.highlight}88`,
     },
     '.cm-gutters': {
       borderRight: `1px solid ${P.border}`,

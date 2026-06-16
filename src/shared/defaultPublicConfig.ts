@@ -1,4 +1,8 @@
 import { DEFAULT_SOURCE_FONT, DEFAULT_WYSIWYG_FONT } from './editorFontConfig';
+import {
+  DEFAULT_EDITOR_INDENT,
+  parseEditorIndentSettings,
+} from './editorIndentConfig';
 import type { PublicConfig } from './types/config';
 import { DEFAULT_THEME_CONFIG } from './types/theme';
 
@@ -10,6 +14,7 @@ export const DEFAULT_PUBLIC_CONFIG: PublicConfig = {
     default_view: 'source',
     source: DEFAULT_SOURCE_FONT,
     wysiwyg: DEFAULT_WYSIWYG_FONT,
+    indent: DEFAULT_EDITOR_INDENT,
   },
   workspace: { path: '' },
   ui: { sidebar_width: 260, tree_initial_expansion_depth: 1 },

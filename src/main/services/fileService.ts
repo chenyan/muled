@@ -10,6 +10,7 @@ import {
 import type {
   FileReadBinaryBufferResult,
   FileReadBinaryResult,
+  FileReadBytesResult,
   FileReadResult,
 } from '../../shared/types/ipc';
 import type { ConfigService } from './configService';
@@ -148,6 +149,22 @@ export default class FileService {
         data.byteLength,
       ),
       mime: guessMime(absolutePath),
+    };
+  }
+
+  readBytes(filePath: string): FileReadBytesResult {
+    const absolutePath = this.resolveFilePath(filePath);
+    const stat = fs.statSync(absolutePath);
+    if (!stat.isFile()) {
+      throw new Error(`Not a file: ${filePath}`);
+    }
+    const data = fs.readFileSync(absolutePath);
+    return {
+      data: new Uint8Array(
+        data.buffer,
+        data.byteOffset,
+        data.byteLength,
+      ),
     };
   }
 

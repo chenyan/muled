@@ -45,6 +45,7 @@ const EXT_TO_LANGUAGE: Record<string, SourceLanguageId> = {
   yml: 'yaml',
   html: 'html',
   htm: 'html',
+  xhtml: 'html',
   css: 'css',
   scss: 'sass',
   sass: 'sass',
@@ -118,7 +119,7 @@ export function isMarkdownPath(relativePath: string | null): boolean {
 export function isHtmlPath(relativePath: string | null): boolean {
   if (!relativePath) return false;
   const base = relativePath.replace(/\/$/, '');
-  return /\.(html|htm)$/i.test(base);
+  return /\.(x?html|htm)$/i.test(base);
 }
 
 export function isStrudelPath(relativePath: string | null): boolean {
@@ -167,6 +168,7 @@ const CODE_BLOCK_LANG: Record<string, SourceLanguageId> = {
   yml: 'yaml',
   html: 'html',
   htm: 'html',
+  xhtml: 'html',
   css: 'css',
   scss: 'sass',
   sass: 'sass',

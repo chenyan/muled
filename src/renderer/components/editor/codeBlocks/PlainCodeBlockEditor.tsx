@@ -7,6 +7,7 @@ import {
 import { $setSelection } from 'lexical';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useWysiwygTheme } from '../../../hooks/useWysiwygStyles';
+import { useEditorIndentSettings } from '../../../hooks/useEditorIndentSettings';
 import { codeBlockLanguageId } from '../../../lib/fileLanguage';
 import { buildWysiwygCodeBlockExtensions } from '../../../lib/wysiwygCodeMirrorSetup';
 import CodeBlockLanguageInput from './CodeBlockLanguageInput';
@@ -35,6 +36,7 @@ export default function PlainCodeBlockEditor({
   const onChangeRef = useRef(setCode);
   onChangeRef.current = setCode;
   const wysiwygTheme = useWysiwygTheme();
+  const indentSettings = useEditorIndentSettings();
 
   const languageId = codeBlockLanguageId(language);
 
@@ -102,7 +104,7 @@ export default function PlainCodeBlockEditor({
 
   const extensions = useMemo(
     () => [
-      ...buildWysiwygCodeBlockExtensions(languageId, wysiwygTheme),
+      ...buildWysiwygCodeBlockExtensions(languageId, wysiwygTheme, indentSettings),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           onChangeRef.current(update.state.doc.toString());
@@ -120,7 +122,7 @@ export default function PlainCodeBlockEditor({
         },
       }),
     ],
-    [languageId, parentEditor, wysiwygTheme],
+    [languageId, parentEditor, wysiwygTheme, indentSettings],
   );
 
   useEffect(() => {

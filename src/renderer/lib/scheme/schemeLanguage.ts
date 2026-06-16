@@ -1,13 +1,12 @@
 import {
   foldInside,
   foldNodeProp,
-  indentUnit,
   LRLanguage,
   LanguageSupport,
 } from '@codemirror/language';
 import { styleTags, tags as t } from '@lezer/highlight';
 import { parser } from './lezer-scheme/parser.js';
-import { schemeIndentNodeProp } from './schemeIndent';
+import { schemeIndentNodeProp, schemeIndentServiceExtension } from './schemeIndent';
 import schemeRainbowParens from './schemeRainbowParens';
 import './schemeRainbowParens.css';
 
@@ -56,8 +55,8 @@ const schemeLanguageDefinition = LRLanguage.define({
 
 export default function schemeLanguage(): LanguageSupport {
   return new LanguageSupport(schemeLanguageDefinition, [
-    indentUnit.of('  '),
     schemeRainbowParens(),
+    schemeIndentServiceExtension,
   ]);
 }
 

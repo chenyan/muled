@@ -7,6 +7,7 @@ import {
 import { $setSelection } from 'lexical';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWysiwygTheme } from '../../../hooks/useWysiwygStyles';
+import { useEditorIndentSettings } from '../../../hooks/useEditorIndentSettings';
 import { buildWysiwygCodeBlockExtensions } from '../../../lib/wysiwygCodeMirrorSetup';
 import { pushStatusToast } from '../../../lib/statusToast';
 import './PlainCodeBlockEditor.css';
@@ -32,6 +33,7 @@ export default function SchemeCodeBlockEditor({
   const onChangeRef = useRef(setCode);
   onChangeRef.current = setCode;
   const wysiwygTheme = useWysiwygTheme();
+  const indentSettings = useEditorIndentSettings();
   const [running, setRunning] = useState(false);
   const [output, setOutput] = useState<{
     stdout: string;
@@ -50,7 +52,7 @@ export default function SchemeCodeBlockEditor({
 
   const extensions = useMemo(
     () => [
-      ...buildWysiwygCodeBlockExtensions('scheme', wysiwygTheme),
+      ...buildWysiwygCodeBlockExtensions('scheme', wysiwygTheme, indentSettings),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           onChangeRef.current(update.state.doc.toString());
@@ -65,7 +67,7 @@ export default function SchemeCodeBlockEditor({
         },
       }),
     ],
-    [parentEditor, wysiwygTheme],
+    [parentEditor, wysiwygTheme, indentSettings],
   );
 
   useEffect(() => {

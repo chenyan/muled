@@ -9,7 +9,13 @@ export type PaletteCommandResult =
   | { ok: true; kind: 'cd'; path: string }
   | { ok: true; kind: 'substitute'; content: string }
   | { ok: true; kind: 'mode'; mode: EditorMode }
+  | { ok: true; kind: 'save' }
+  | { ok: true; kind: 'close' }
   | { ok: false; error: string };
+
+function parseExCommand(line: string): string {
+  return line.startsWith(':') ? line.slice(1).trim() : line;
+}
 
 function resolveSubstituteRange(
   content: string,
@@ -33,6 +39,14 @@ export function runPaletteCommand(
   const line = input.trim();
   if (!line) {
     return { ok: false, error: '请输入命令' };
+  }
+
+  const ex = parseExCommand(line);
+  if (ex === 'w' || ex === 'write') {
+    return { ok: true, kind: 'save' };
+  }
+  if (ex === 'q' || ex === 'quit') {
+    return { ok: true, kind: 'close' };
   }
 
   if (line === 'mode normal' || line === 'mode vim') {

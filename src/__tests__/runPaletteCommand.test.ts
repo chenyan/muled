@@ -27,6 +27,24 @@ describe('runPaletteCommand', () => {
     ).toEqual({ ok: true, kind: 'mode', mode: 'normal' });
   });
 
+  it('supports vim ex save and close', () => {
+    expect(
+      runPaletteCommand(':w', { tabContent: '', selection: null }),
+    ).toEqual({ ok: true, kind: 'save' });
+    expect(
+      runPaletteCommand('w', { tabContent: '', selection: null }),
+    ).toEqual({ ok: true, kind: 'save' });
+    expect(
+      runPaletteCommand(':write', { tabContent: '', selection: null }),
+    ).toEqual({ ok: true, kind: 'save' });
+    expect(
+      runPaletteCommand(':q', { tabContent: '', selection: null }),
+    ).toEqual({ ok: true, kind: 'close' });
+    expect(
+      runPaletteCommand('q', { tabContent: '', selection: null }),
+    ).toEqual({ ok: true, kind: 'close' });
+  });
+
   it('substitutes full document without selection', () => {
     expect(
       runPaletteCommand('s/a/b/g', {

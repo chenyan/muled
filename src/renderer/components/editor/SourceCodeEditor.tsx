@@ -20,6 +20,7 @@ import languageExtensionForId from '../../lib/codemirrorLanguage';
 import schemeStructuredEditing from '../../lib/scheme/schemeVimCoexist';
 import { buildCommonSourceUiExtensions } from '../../lib/codemirrorSetup';
 import { useSourceEditorTheme } from '../../hooks/useAppTheme';
+import { useEditorIndentSettings } from '../../hooks/useEditorIndentSettings';
 import { setActiveEditorSelection } from '../../lib/editorSelectionBridge';
 import {
   getSourceLanguageId,
@@ -109,6 +110,7 @@ const SourceCodeEditor = forwardRef<
   const languageId = getSourceLanguageId(relativePath);
   const languageLabel = getSourceLanguageLabel(languageId);
   const sourceTheme = useSourceEditorTheme();
+  const indentSettings = useEditorIndentSettings();
 
   useImperativeHandle(ref, () => ({
     getValue: () => viewRef.current?.state.doc.toString() ?? value,
@@ -175,7 +177,7 @@ const SourceCodeEditor = forwardRef<
     return [
       ...buildSourceCodeMirrorExtensions(keybindingMode),
       ...buildEditorRevealExtension(),
-      ...buildCommonSourceUiExtensions(sourceTheme),
+      ...buildCommonSourceUiExtensions(sourceTheme, indentSettings),
       EditorView.lineWrapping,
       EditorView.domEventHandlers({
         scroll(_event, view) {
@@ -208,7 +210,7 @@ const SourceCodeEditor = forwardRef<
         : []),
       ...(readOnly ? [EditorState.readOnly.of(true)] : []),
     ];
-  }, [languageId, keybindingMode, readOnly, sourceTheme, tabId]);
+  }, [languageId, keybindingMode, readOnly, sourceTheme, indentSettings, tabId]);
 
   useEffect(() => {
     const parent = containerRef.current;

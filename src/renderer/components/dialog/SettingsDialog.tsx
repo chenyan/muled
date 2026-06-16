@@ -212,6 +212,44 @@ export default function SettingsDialog({
                       }
                     />
                   </label>
+                  <label className="SettingsDialog__field">
+                    <span className="SettingsDialog__label">Tab 缩进宽度</span>
+                    <input
+                      className="SettingsDialog__input"
+                      type="number"
+                      min={1}
+                      max={8}
+                      value={form.editor.indent.tab_size}
+                      onChange={(e) =>
+                        patch('editor', {
+                          ...form.editor,
+                          indent: {
+                            ...form.editor.indent,
+                            tab_size: Number(e.target.value),
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="SettingsDialog__field">
+                    <span className="SettingsDialog__label">Tab 字符</span>
+                    <select
+                      className="SettingsDialog__select"
+                      value={form.editor.indent.insert_spaces ? 'spaces' : 'tab'}
+                      onChange={(e) =>
+                        patch('editor', {
+                          ...form.editor,
+                          indent: {
+                            ...form.editor.indent,
+                            insert_spaces: e.target.value === 'spaces',
+                          },
+                        })
+                      }
+                    >
+                      <option value="spaces">空格</option>
+                      <option value="tab">制表符</option>
+                    </select>
+                  </label>
                   <label className="SettingsDialog__field SettingsDialog__field--full">
                     <span className="SettingsDialog__label">富文本字体</span>
                     <input
