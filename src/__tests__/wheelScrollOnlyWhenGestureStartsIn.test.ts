@@ -5,6 +5,9 @@ import {
 } from '../renderer/lib/wheelScrollOnlyWhenGestureStartsIn';
 
 describe('createWheelGestureTracker', () => {
+  const boundaryA = Symbol('a');
+  const boundaryB = Symbol('b');
+
   beforeEach(() => {
     jest.useFakeTimers();
   });
@@ -15,32 +18,41 @@ describe('createWheelGestureTracker', () => {
 
   it('allows scroll when the gesture starts inside the boundary', () => {
     const tracker = createWheelGestureTracker();
-    tracker.noteWheel(true);
-    expect(tracker.shouldAllowBoundaryScroll()).toBe(true);
+    tracker.noteWheel(boundaryA);
+    expect(tracker.shouldAllowBoundaryScroll(boundaryA)).toBe(true);
     tracker.dispose();
   });
 
   it('blocks scroll when the gesture starts outside the boundary', () => {
     const tracker = createWheelGestureTracker();
-    tracker.noteWheel(false);
-    expect(tracker.shouldAllowBoundaryScroll()).toBe(false);
+    tracker.noteWheel(null);
+    expect(tracker.shouldAllowBoundaryScroll(boundaryA)).toBe(false);
     tracker.dispose();
   });
 
   it('keeps the origin for momentum events after pointer moves into the boundary', () => {
     const tracker = createWheelGestureTracker();
-    tracker.noteWheel(false);
-    tracker.noteWheel(true);
-    expect(tracker.shouldAllowBoundaryScroll()).toBe(false);
+    tracker.noteWheel(null);
+    tracker.noteWheel(boundaryA);
+    expect(tracker.shouldAllowBoundaryScroll(boundaryA)).toBe(false);
+    tracker.dispose();
+  });
+
+  it('ends the gesture when pointer leaves the origin boundary', () => {
+    const tracker = createWheelGestureTracker();
+    tracker.noteWheel(boundaryA);
+    tracker.noteWheel(boundaryB);
+    expect(tracker.shouldAllowBoundaryScroll(boundaryB)).toBe(false);
+    expect(tracker.shouldAllowBoundaryScroll(boundaryA)).toBe(false);
     tracker.dispose();
   });
 
   it('resets after the gesture goes idle', () => {
     const tracker = createWheelGestureTracker();
-    tracker.noteWheel(false);
+    tracker.noteWheel(null);
     jest.advanceTimersByTime(WHEEL_GESTURE_IDLE_MS + 1);
-    tracker.noteWheel(true);
-    expect(tracker.shouldAllowBoundaryScroll()).toBe(true);
+    tracker.noteWheel(boundaryA);
+    expect(tracker.shouldAllowBoundaryScroll(boundaryA)).toBe(true);
     tracker.dispose();
   });
 });

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { EditorTab } from '../../types/tab';
 import { tabLabel } from '../../types/tab';
+import { useWheelScrollOnlyWhenGestureStartsIn } from '../../lib/wheelScrollOnlyWhenGestureStartsIn';
 
 interface ImagePreviewProps {
   tab: EditorTab;
@@ -13,6 +14,8 @@ const MAX_SCALE = 4;
 export default function ImagePreview({ tab }: ImagePreviewProps) {
   const [scale, setScale] = useState(1);
   const imgRef = useRef<HTMLImageElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  useWheelScrollOnlyWhenGestureStartsIn(viewportRef);
 
   useEffect(() => {
     setScale(1);
@@ -69,7 +72,7 @@ export default function ImagePreview({ tab }: ImagePreviewProps) {
           </button>
         </div>
       </div>
-      <div className="ImagePreview__viewport">
+      <div ref={viewportRef} className="ImagePreview__viewport">
         <img
           ref={imgRef}
           src={tab.imageSrc}

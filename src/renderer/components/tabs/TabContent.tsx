@@ -107,6 +107,8 @@ interface TabContentProps {
   tabNavigation?: { canGoBack: boolean; canGoForward: boolean };
   onTabNavigateBack?: () => void;
   onTabNavigateForward?: () => void;
+  onHtmlPreviewNavigate?: (readPath: string, hash?: string) => void;
+  onClearHtmlPreviewHash?: (tabId: string) => void;
   /** 分屏时：将 PDF 选区复制到另一侧编辑器末尾 */
   onCopyPdfSelectionToOtherPane?: (text: string) => void;
   onAppendMnote?: (
@@ -144,6 +146,8 @@ export default function TabContent({
   tabNavigation,
   onTabNavigateBack,
   onTabNavigateForward,
+  onHtmlPreviewNavigate,
+  onClearHtmlPreviewHash,
   onCopyPdfSelectionToOtherPane,
   onAppendMnote,
   onOpenMnoteSplit,
@@ -378,22 +382,23 @@ export default function TabContent({
       getContentForViewSwitch,
       appendToEnd: appendToEditorEnd,
     });
-    registerEditorOutlineHandlers(tab.id, {
-      revealOutlineTarget: ({ line, title }) => {
-        if (
-          tab.kind !== 'markdown' ||
-          tab.viewMode === 'source'
-        ) {
-          return false;
-        }
-        return (
-          mdxRef.current?.revealOutlineTarget({
-            line,
-            title,
-          }) ?? false
-        );
-      },
-    });
+    if (tab.kind === 'markdown') {
+      registerEditorOutlineHandlers(tab.id, {
+        revealOutlineTarget: ({ line, title, hash: _hash }) => {
+          if (tab.viewMode === 'source') {
+            return false;
+          }
+          return (
+            mdxRef.current?.revealOutlineTarget({
+              line,
+              title,
+            }) ?? false
+          );
+        },
+      });
+    } else {
+      registerEditorOutlineHandlers(tab.id, null);
+    }
     return () => {
       registerEditorAiHandlers(tab.id, null);
       registerEditorViewHandlers(tab.id, null);
@@ -748,6 +753,13 @@ export default function TabContent({
   const showMarkdownPreview =
     tab.kind === 'markdown' && tab.viewMode === 'preview';
   const showHtmlPreview = tab.kind === 'html' && tab.viewMode === 'preview';
+  const showTabNavigation =
+    !isPane &&
+    tabNavigation &&
+    onTabNavigateBack &&
+    onTabNavigateForward &&
+    (tab.kind === 'markdown' ||
+      (tab.kind === 'html' && tab.viewMode === 'preview'));
   const showStrudelRepl = tab.kind === 'strudel' && tab.viewMode === 'preview';
   const showP5Preview = tab.kind === 'p5' && tab.viewMode === 'preview';
   const showCsvSpreadsheet = tab.kind === 'csv' && tab.viewMode === 'preview';
@@ -828,11 +840,7 @@ export default function TabContent({
       />
       <header className="TabContent__header">
         <div className="TabContent__headerLeft">
-          {!isPane &&
-          tab.kind === 'markdown' &&
-          tabNavigation &&
-          onTabNavigateBack &&
-          onTabNavigateForward ? (
+          {showTabNavigation ? (
             <MarkdownTabNavigation
               canGoBack={tabNavigation.canGoBack}
               canGoForward={tabNavigation.canGoForward}
@@ -1023,6 +1031,12 @@ export default function TabContent({
             onRecordNote={
               onAppendMnote ? handleHtmlPreviewRecordNote : undefined
             }
+            onNavigatePage={(target) => {
+              onHtmlPreviewNavigate?.(target.readPath, target.hash || undefined);
+            }}
+            onClearHtmlPreviewHash={() => {
+              onClearHtmlPreviewHash?.(tab.id);
+            }}
           />
         ) : showStrudelRepl ? (
           <StrudelReplPreview

@@ -920,6 +920,12 @@ export default function AppShell() {
               editor.navigateTabForward(tabId).catch(() => undefined);
             }
           }}
+          onHtmlPreviewNavigate={(readPath, hash) => {
+            editor.navigateHtmlPreviewToPath(readPath, hash).catch(() => undefined);
+          }}
+          onClearHtmlPreviewHash={(id) => {
+            editor.clearHtmlPreviewHash(id);
+          }}
           onOpenDirectoryGrid={(path) => {
             editor.openDirectoryGrid(path).catch(() => undefined);
           }}
@@ -1106,7 +1112,7 @@ export default function AppShell() {
           onRevealInEditor={(item) => {
             const activeTab = editor.activeTab;
             const relativePath = activeTab?.relativePath;
-            if (!relativePath || !item.line) {
+            if (!relativePath) {
               return;
             }
             const handlers = activeTab
@@ -1116,8 +1122,12 @@ export default function AppShell() {
               handlers?.revealOutlineTarget({
                 line: item.line,
                 title: item.title,
+                hash: item.hash ?? null,
               })
             ) {
+              return;
+            }
+            if (!item.line) {
               return;
             }
             editor

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import {
   GlobalPointerProvider,
@@ -11,6 +11,7 @@ import PdfContextMenuHost, {
   type PdfTranslateRequest,
 } from './PdfContextMenuHost';
 import PdfViewportContextMenuListener from './PdfViewportContextMenuListener';
+import { useWheelScrollOnlyWhenGestureStartsIn } from '../../../lib/wheelScrollOnlyWhenGestureStartsIn';
 
 interface PdfViewportShellProps {
   documentId: string;
@@ -64,6 +65,8 @@ export default function PdfViewportShell({
   onCopySelectionToOtherPane,
   children,
 }: PdfViewportShellProps) {
+  const viewportBoundaryRef = useRef<HTMLDivElement>(null);
+  useWheelScrollOnlyWhenGestureStartsIn(viewportBoundaryRef);
   const { isPanning } = usePan(documentId);
   const { provides: interaction } = useInteractionManager(documentId);
 
@@ -82,44 +85,48 @@ export default function PdfViewportShell({
 
   if (isPanning) {
     return (
-      <GlobalPointerProvider documentId={documentId}>
-        <Viewport
-          documentId={documentId}
-          className={viewportClassName}
-          style={{ backgroundColor: 'var(--pdf-viewport-bg, #f1f3f5)' }}
-        >
-          <PdfContextMenuHost
+      <div ref={viewportBoundaryRef} className="PdfPreview__viewportBoundary">
+        <GlobalPointerProvider documentId={documentId}>
+          <Viewport
             documentId={documentId}
-            hasApiKey={hasApiKey}
-            onTranslate={onTranslate}
-            onRecordNote={onRecordNote}
-            onCopySelectionToOtherPane={onCopySelectionToOtherPane}
+            className={viewportClassName}
+            style={{ backgroundColor: 'var(--pdf-viewport-bg, #f1f3f5)' }}
           >
-            <PdfViewportContextMenuListener />
-            {children}
-          </PdfContextMenuHost>
-        </Viewport>
-      </GlobalPointerProvider>
+            <PdfContextMenuHost
+              documentId={documentId}
+              hasApiKey={hasApiKey}
+              onTranslate={onTranslate}
+              onRecordNote={onRecordNote}
+              onCopySelectionToOtherPane={onCopySelectionToOtherPane}
+            >
+              <PdfViewportContextMenuListener />
+              {children}
+            </PdfContextMenuHost>
+          </Viewport>
+        </GlobalPointerProvider>
+      </div>
     );
   }
 
   return (
-    <Viewport
-      documentId={documentId}
-      className={viewportClassName}
-      style={{ backgroundColor: 'var(--pdf-viewport-bg, #f1f3f5)' }}
-    >
-      <PdfContextMenuHost
+    <div ref={viewportBoundaryRef} className="PdfPreview__viewportBoundary">
+      <Viewport
         documentId={documentId}
-        hasApiKey={hasApiKey}
-        onTranslate={onTranslate}
-        onRecordNote={onRecordNote}
-        onCopySelectionToOtherPane={onCopySelectionToOtherPane}
+        className={viewportClassName}
+        style={{ backgroundColor: 'var(--pdf-viewport-bg, #f1f3f5)' }}
       >
-        <PdfViewportContextMenuListener />
-        <PdfSelectViewportScrollGuard />
-        {children}
-      </PdfContextMenuHost>
-    </Viewport>
+        <PdfContextMenuHost
+          documentId={documentId}
+          hasApiKey={hasApiKey}
+          onTranslate={onTranslate}
+          onRecordNote={onRecordNote}
+          onCopySelectionToOtherPane={onCopySelectionToOtherPane}
+        >
+          <PdfViewportContextMenuListener />
+          <PdfSelectViewportScrollGuard />
+          {children}
+        </PdfContextMenuHost>
+      </Viewport>
+    </div>
   );
 }

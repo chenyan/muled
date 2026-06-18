@@ -66,6 +66,8 @@ export interface EditorTab {
   pdfReveal?: PdfRevealTarget;
   /** PDF 上次阅读页码（1-based），用于重挂载后恢复位置 */
   pdfLastPage?: number;
+  /** HTML 预览跨页导航后待滚动的页内锚点 */
+  htmlPreviewHash?: string;
 }
 
 /** 可在编辑器中修改并保存的文本类 Tab */

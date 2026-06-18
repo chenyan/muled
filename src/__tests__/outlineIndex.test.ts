@@ -94,4 +94,24 @@ describe('buildTabOutline', () => {
     expect(items.map((item) => item.title)).toEqual(['Chapter 1', 'Section']);
     expect(items.map((item) => item.page)).toEqual([3, 5]);
   });
+
+  it('decodes html entities in html outline titles', () => {
+    const tab = createTab({
+      kind: 'html',
+      relativePath: 'index.html',
+      content: '<h1>Chapter&nbsp;1 &amp; Intro</h1>',
+    });
+    const items = buildTabOutline(tab, []);
+    expect(items.map((item) => item.title)).toEqual(['Chapter 1 & Intro']);
+  });
+
+  it('extracts html heading id for outline hash navigation', () => {
+    const tab = createTab({
+      kind: 'html',
+      relativePath: 'index.html',
+      content: '<h2 id="sec-1">Section 1</h2>',
+    });
+    const items = buildTabOutline(tab, []);
+    expect(items[0]?.hash).toBe('sec-1');
+  });
 });

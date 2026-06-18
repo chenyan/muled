@@ -1,5 +1,9 @@
 export interface EditorOutlineHandlers {
-  revealOutlineTarget: (target: { line: number; title: string }) => boolean;
+  revealOutlineTarget: (target: {
+    line: number | null;
+    title: string;
+    hash?: string | null;
+  }) => boolean;
 }
 
 const handlers = new Map<string, EditorOutlineHandlers>();

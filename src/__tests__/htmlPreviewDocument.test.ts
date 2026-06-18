@@ -22,6 +22,7 @@ describe('htmlPreviewDocument', () => {
     );
     expect(doc).toContain('muled-html-preview-contextmenu');
     expect(doc).toContain('muled-html-preview-navigate');
+    expect(doc).toContain('muled-html-preview-wheel');
     expect(doc).toContain('e.preventDefault()');
   });
 

@@ -38,9 +38,12 @@ export function htmlPreviewFileUrl(
 export const HTML_PREVIEW_CONTEXT_MENU_MESSAGE =
   'muled-html-preview-contextmenu';
 
+/** iframe 内滚轮时 postMessage 给预览宿主，用于全局滚动手势追踪 */
+export const HTML_PREVIEW_WHEEL_MESSAGE = 'muled-html-preview-wheel';
+
 export { HTML_PREVIEW_NAVIGATE_MESSAGE };
 
-const HTML_PREVIEW_BRIDGE_SCRIPT = `<script>(function(){var CTX="${HTML_PREVIEW_CONTEXT_MENU_MESSAGE}";var NAV="${HTML_PREVIEW_NAVIGATE_MESSAGE}";function previewBaseHref(){var base=document.querySelector("base");return base&&base.getAttribute("href")?base.getAttribute("href"):"";}document.addEventListener("contextmenu",function(e){e.preventDefault();var sel=window.getSelection?window.getSelection().toString():"";window.parent.postMessage({type:CTX,x:e.clientX,y:e.clientY,selection:sel},"*");},true);document.addEventListener("click",function(e){var anchor=e.target&&e.target.closest?e.target.closest("a[href]"):null;if(!anchor)return;var raw=anchor.getAttribute("href");if(!raw||raw.charAt(0)==="#"||/^javascript:/i.test(raw))return;e.preventDefault();var base=previewBaseHref();window.parent.postMessage({type:NAV,href:raw,baseHref:base},"*");},true);})();</script>`;
+const HTML_PREVIEW_BRIDGE_SCRIPT = `<script>(function(){var CTX="${HTML_PREVIEW_CONTEXT_MENU_MESSAGE}";var NAV="${HTML_PREVIEW_NAVIGATE_MESSAGE}";var WHEEL="${HTML_PREVIEW_WHEEL_MESSAGE}";function previewBaseHref(){var base=document.querySelector("base");return base&&base.getAttribute("href")?base.getAttribute("href"):"";}document.addEventListener("contextmenu",function(e){e.preventDefault();var sel=window.getSelection?window.getSelection().toString():"";window.parent.postMessage({type:CTX,x:e.clientX,y:e.clientY,selection:sel},"*");},true);document.addEventListener("click",function(e){var anchor=e.target&&e.target.closest?e.target.closest("a[href]"):null;if(!anchor)return;var raw=anchor.getAttribute("href");if(!raw||raw.charAt(0)==="#"||/^javascript:/i.test(raw))return;e.preventDefault();var base=previewBaseHref();window.parent.postMessage({type:NAV,href:raw,baseHref:base},"*");},true);document.addEventListener("wheel",function(e){window.parent.postMessage({type:WHEEL,x:e.clientX,y:e.clientY},"*");},true);})();</script>`;
 
 function injectHtmlPreviewBridge(html: string): string {
   if (/<\/head>/i.test(html)) {

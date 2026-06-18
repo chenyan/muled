@@ -9,6 +9,7 @@ export interface SidebarOutlineItem {
   depth: number;
   line: number | null;
   page: number | null;
+  hash?: string | null;
 }
 
 export interface OutlineTreeNode {
@@ -220,23 +221,53 @@ function toPdfOutline(items: PdfOutlineItem[]): SidebarOutlineItem[] {
 }
 
 function parseHtmlOutline(content: string): SidebarOutlineItem[] {
+  const decodeHtmlEntities = (text: string): string =>
+    text
+      .replace(/&#(\d+);/g, (_, dec: string) =>
+        String.fromCodePoint(Number.parseInt(dec, 10)),
+      )
+      .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) =>
+        String.fromCodePoint(Number.parseInt(hex, 16)),
+      )
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/g, "'");
   const items: SidebarOutlineItem[] = [];
   const titleMatch = content.match(/<title[^>]*>([^<]*)<\/title>/i);
   if (titleMatch?.[1]?.trim()) {
     items.push({
       id: 'html-title',
-      title: titleMatch[1].trim(),
+      title: decodeHtmlEntities(titleMatch[1]).trim(),
       depth: 1,
       line: null,
       page: null,
+      hash: null,
     });
   }
-  const headingPattern = /<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/gi;
+  const headingPattern = /<h([1-6])([^>]*)>([\s\S]*?)<\/h\1>/gi;
   let match: RegExpExecArray | null;
   let index = 0;
   while ((match = headingPattern.exec(content)) !== null) {
-    const title = match[2].replace(/<[^>]+>/g, '').trim();
+    const attrs = match[2] ?? '';
+    const innerHtml = match[3] ?? '';
+    const title = decodeHtmlEntities(innerHtml.replace(/<[^>]+>/g, '')).trim();
     if (!title) continue;
+    const idMatch = attrs.match(/\bid\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s"'=<>`]+))/i);
+    const anchorNameMatch = innerHtml.match(
+      /<a[^>]*\bname\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s"'=<>`]+))[^>]*>/i,
+    );
+    const hash = decodeHtmlEntities(
+      idMatch?.[1] ??
+        idMatch?.[2] ??
+        idMatch?.[3] ??
+        anchorNameMatch?.[1] ??
+        anchorNameMatch?.[2] ??
+        anchorNameMatch?.[3] ??
+        '',
+    ).trim();
     index += 1;
     items.push({
       id: `html-${index}`,
@@ -244,6 +275,7 @@ function parseHtmlOutline(content: string): SidebarOutlineItem[] {
       depth: Number(match[1]),
       line: null,
       page: null,
+      hash: hash || null,
     });
   }
   return items;

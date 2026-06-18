@@ -4,6 +4,7 @@ import {
   buildHtmlPreviewDocument,
   HTML_PREVIEW_CONTEXT_MENU_MESSAGE,
   HTML_PREVIEW_NAVIGATE_MESSAGE,
+  HTML_PREVIEW_WHEEL_MESSAGE,
   htmlPreviewBaseHref,
 } from '../../lib/htmlPreviewDocument';
 import {
@@ -17,6 +18,11 @@ import {
   scrollHtmlPreviewToHash,
 } from '../../lib/htmlPreviewNavigate';
 import { workspaceAbsolutePath } from '../../lib/workspaceAbsolutePath';
+import {
+  noteIframeWheelScroll,
+  useWheelScrollOnlyWhenGestureStartsIn,
+} from '../../lib/wheelScrollOnlyWhenGestureStartsIn';
+import { registerEditorOutlineHandlers } from '../../lib/editorOutlineBridge';
 import type { EditorTab } from '../../types/tab';
 import HtmlPreviewContextMenu, {
   type HtmlPreviewContextMenuAction,
@@ -42,6 +48,8 @@ interface HtmlPreviewProps {
   showNote?: boolean;
   onTranslate?: (request: HtmlPreviewTranslateRequest) => void;
   onRecordNote?: (request: HtmlPreviewRecordNoteRequest) => void;
+  onNavigatePage?: (target: HtmlPreviewLoadTarget) => void;
+  onClearHtmlPreviewHash?: () => void;
 }
 
 function getIframeSelectionText(iframe: HTMLIFrameElement | null): string {
@@ -79,6 +87,24 @@ function previewTargetFromTab(
   };
 }
 
+function scrollHtmlPreviewToHeadingTitle(
+  doc: Document | null | undefined,
+  title: string,
+): boolean {
+  if (!doc) return false;
+  const normalize = (text: string) =>
+    text.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+  const targetTitle = normalize(title);
+  if (!targetTitle) return false;
+  const headingNodes = Array.from(doc.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+  const matched = headingNodes.find(
+    (node) => normalize(node.textContent ?? '') === targetTitle,
+  );
+  if (!(matched instanceof HTMLElement)) return false;
+  matched.scrollIntoView();
+  return true;
+}
+
 export default function HtmlPreview({
   tab,
   workspaceRoot,
@@ -86,8 +112,12 @@ export default function HtmlPreview({
   showNote = false,
   onTranslate,
   onRecordNote,
+  onNavigatePage,
+  onClearHtmlPreviewHash,
 }: HtmlPreviewProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const hostRef = useRef<HTMLDivElement>(null);
+  useWheelScrollOnlyWhenGestureStartsIn(hostRef);
   const pendingHashRef = useRef('');
   const [encoding, setEncoding] = useState(HTML_PREVIEW_DEFAULT_ENCODING);
   const [previewTarget, setPreviewTarget] = useState<HtmlPreviewLoadTarget | null>(
@@ -112,6 +142,25 @@ export default function HtmlPreview({
     setPreviewTarget(previewTargetFromTab(tab, workspaceRoot));
     setEncoding(HTML_PREVIEW_DEFAULT_ENCODING);
   }, [tab.id, tab.relativePath, workspaceRoot]);
+
+  useEffect(() => {
+    registerEditorOutlineHandlers(tab.id, {
+      revealOutlineTarget: ({ title, hash }) => {
+        if (tab.kind !== 'html' || tab.viewMode === 'source') {
+          return false;
+        }
+        const doc = iframeRef.current?.contentDocument;
+        if (!doc) return false;
+        if (hash && scrollHtmlPreviewToHash(doc, hash)) {
+          return true;
+        }
+        return scrollHtmlPreviewToHeadingTitle(doc, title);
+      },
+    });
+    return () => {
+      registerEditorOutlineHandlers(tab.id, null);
+    };
+  }, [tab.id, tab.kind, tab.viewMode]);
 
   useEffect(() => {
     if (!previewTarget || isInitialDirtyTab) {
@@ -199,10 +248,15 @@ export default function HtmlPreview({
       }
 
       setContextMenu(null);
+      if (onNavigatePage) {
+        onNavigatePage(target);
+        return;
+      }
+
       pendingHashRef.current = target.hash;
       setPreviewTarget(target);
     },
-    [previewTarget, workspaceRoot],
+    [onNavigatePage, previewTarget, workspaceRoot],
   );
 
   const openContextMenu = useCallback(
@@ -231,6 +285,16 @@ export default function HtmlPreview({
         }
         return;
       }
+      if (event.data?.type === HTML_PREVIEW_WHEEL_MESSAGE) {
+        const host = hostRef.current;
+        if (!host) return;
+        noteIframeWheelScroll(
+          host,
+          Number(event.data.x),
+          Number(event.data.y),
+        );
+        return;
+      }
       if (event.data?.type !== HTML_PREVIEW_CONTEXT_MENU_MESSAGE) {
         return;
       }
@@ -249,7 +313,7 @@ export default function HtmlPreview({
   }, [handleNavigate, openContextMenu]);
 
   useEffect(() => {
-    const hash = pendingHashRef.current;
+    const hash = tab.htmlPreviewHash ?? pendingHashRef.current;
     if (!hash || isInitialDirtyTab) {
       return undefined;
     }
@@ -267,10 +331,20 @@ export default function HtmlPreview({
         scrollHtmlPreviewToHash(iframe.contentDocument, hash)
       ) {
         pendingHashRef.current = '';
+        if (tab.htmlPreviewHash) {
+          onClearHtmlPreviewHash?.();
+        }
       }
     });
     return () => cancelAnimationFrame(frameId);
-  }, [diskHtml, diskLoadState, isInitialDirtyTab, srcDoc]);
+  }, [
+    diskHtml,
+    diskLoadState,
+    isInitialDirtyTab,
+    onClearHtmlPreviewHash,
+    srcDoc,
+    tab.htmlPreviewHash,
+  ]);
 
   useEffect(() => {
     if (!contextMenu) return undefined;
@@ -353,7 +427,11 @@ export default function HtmlPreview({
   );
 
   return (
-    <div className="HtmlPreviewHost" onContextMenu={handleWrapperContextMenu}>
+    <div
+      ref={hostRef}
+      className="HtmlPreviewHost"
+      onContextMenu={handleWrapperContextMenu}
+    >
       <iframe
         ref={iframeRef}
         className="HtmlPreview"

@@ -31,6 +31,7 @@ import { prepareMarkdownForWysiwyg } from '../../lib/prepareMarkdownForWysiwyg';
 import { recoverMarkdownForWysiwyg } from '../../lib/recoverMarkdownForWysiwyg';
 import type { WikiLinkPickerState } from '../../lib/openWysiwygLink';
 import { useWysiwygLinkNavigation } from '../../hooks/useWysiwygLinkNavigation';
+import { useWheelScrollOnlyWhenGestureStartsIn } from '../../lib/wheelScrollOnlyWhenGestureStartsIn';
 import {
   clearWikiImagePreviewCache,
   resolveWikiImagePreview,
@@ -124,6 +125,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
     const isMnote = variant === 'mnote';
     const innerRef = useRef<MDXEditorMethods>(null);
     const scrollHostRef = useRef<HTMLDivElement>(null);
+    useWheelScrollOnlyWhenGestureStartsIn(scrollHostRef);
     const documentRelativePathRef = useRef(relativePath);
     documentRelativePathRef.current = relativePath;
     const recoveryAttemptRef = useRef(0);
@@ -202,7 +204,11 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
           selection.removeAllRanges();
           selection.addRange(saved);
         },
-        revealOutlineTarget(target: { line: number; title: string }) {
+        revealOutlineTarget(target: {
+          line: number | null;
+          title: string;
+          hash?: string | null;
+        }) {
           const host = scrollHostRef.current;
           if (!host) return false;
           const root = getWysiwygContentRoot(host);
@@ -224,7 +230,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
           }
 
           const paragraphs = Array.from(root.querySelectorAll('p'));
-          const approxNode = paragraphs[Math.max(0, target.line - 1)];
+          const approxNode = paragraphs[Math.max(0, (target.line ?? 1) - 1)];
           if (approxNode) {
             approxNode.scrollIntoView({ block: 'center', behavior: 'smooth' });
             return true;

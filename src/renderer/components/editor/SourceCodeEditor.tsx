@@ -21,6 +21,7 @@ import schemeStructuredEditing from '../../lib/scheme/schemeVimCoexist';
 import { buildCommonSourceUiExtensions } from '../../lib/codemirrorSetup';
 import { useSourceEditorTheme } from '../../hooks/useAppTheme';
 import { useEditorIndentSettings } from '../../hooks/useEditorIndentSettings';
+import { useWheelScrollOnlyWhenGestureStartsIn } from '../../lib/wheelScrollOnlyWhenGestureStartsIn';
 import { setActiveEditorSelection } from '../../lib/editorSelectionBridge';
 import {
   getSourceLanguageId,
@@ -91,6 +92,7 @@ const SourceCodeEditor = forwardRef<
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
+  useWheelScrollOnlyWhenGestureStartsIn(containerRef);
   const viewRef = useRef<EditorView | null>(null);
   const contextMenuSelectionRef = useRef<{ from: number; to: number } | null>(
     null,

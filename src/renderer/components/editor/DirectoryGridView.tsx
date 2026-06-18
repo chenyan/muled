@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { isDirectoryPath, isImagePath } from '../../lib/mime';
+import { useWheelScrollOnlyWhenGestureStartsIn } from '../../lib/wheelScrollOnlyWhenGestureStartsIn';
 import type { EditorTab } from '../../types/tab';
 import { tabLabel } from '../../types/tab';
 
@@ -87,6 +88,8 @@ export default function DirectoryGridView({
   onOpenFile,
   onOpenDirectory,
 }: DirectoryGridViewProps) {
+  const gridRef = useRef<HTMLDivElement>(null);
+  useWheelScrollOnlyWhenGestureStartsIn(gridRef);
   const directoryPath = tab.relativePath ?? '';
   const [children, setChildren] = useState<string[]>([]);
 
@@ -121,7 +124,7 @@ export default function DirectoryGridView({
   );
 
   return (
-    <div className="DirectoryGrid">
+    <div ref={gridRef} className="DirectoryGrid">
       <div
         className="DirectoryGrid__grid"
         role="grid"

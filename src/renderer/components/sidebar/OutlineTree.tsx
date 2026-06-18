@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   buildOutlineTree,
   type OutlineTreeNode,
   type SidebarOutlineItem,
 } from '../../lib/outlineIndex';
+import { useWheelScrollOnlyWhenGestureStartsIn } from '../../lib/wheelScrollOnlyWhenGestureStartsIn';
 
 interface OutlineTreeProps {
   items: SidebarOutlineItem[];
@@ -69,9 +70,7 @@ function OutlineTreeNodeRow({
           type="button"
           className="OutlineTree__item"
           onClick={() => {
-            if (item.line) {
-              onRevealInEditor(item);
-            }
+            onRevealInEditor(item);
           }}
           title={item.page ? `第 ${item.page} 页` : undefined}
         >
@@ -105,6 +104,8 @@ export default function OutlineTree({
   items,
   onRevealInEditor,
 }: OutlineTreeProps) {
+  const treeRef = useRef<HTMLUListElement>(null);
+  useWheelScrollOnlyWhenGestureStartsIn(treeRef);
   const tree = useMemo(() => buildOutlineTree(items), [items]);
   const expandableIds = useMemo(() => collectExpandableIds(tree), [tree]);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
@@ -126,7 +127,7 @@ export default function OutlineTree({
   }, []);
 
   return (
-    <ul className="OutlineTree">
+    <ul ref={treeRef} className="OutlineTree">
       {tree.map((node) => (
         <OutlineTreeNodeRow
           key={node.item.id}

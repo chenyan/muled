@@ -1488,6 +1488,18 @@
   display: contents;
 }
 
+.PdfPreview__viewportBoundary {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.PdfPreview__viewportBoundary > * {
+  flex: 1;
+  min-height: 0;
+}
+
 .PdfPreview__viewportSurface {
   user-select: none;
   -webkit-user-select: none;

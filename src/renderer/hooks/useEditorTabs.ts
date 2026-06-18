@@ -382,7 +382,10 @@ export function useEditorTabs(
         return { canGoBack: false, canGoForward: false };
       }
       const tab = tabsRef.current.find((t) => t.id === tabId);
-      if (!tab || tab.kind !== 'markdown') {
+      const supportsNavigation =
+        tab?.kind === 'markdown' ||
+        (tab?.kind === 'html' && tab.viewMode === 'preview');
+      if (!tab || !supportsNavigation) {
         return { canGoBack: false, canGoForward: false };
       }
       const stacks = getTabNavigationStacks(tabId);
@@ -512,7 +515,11 @@ export function useEditorTabs(
   }, []);
 
   const replaceTabWithPath = useCallback(
-    async (tabId: string, relativePath: string) => {
+    async (
+      tabId: string,
+      relativePath: string,
+      options?: { htmlPreviewHash?: string },
+    ) => {
       const cfg = configRef.current;
       if (!cfg || isDirectoryPath(relativePath)) {
         return;
@@ -543,7 +550,11 @@ export function useEditorTabs(
           prev.map((t) => {
             if (t.id !== tabId) return t;
             releaseTabResources(t);
-            return { ...loaded, id: tabId };
+            return {
+              ...loaded,
+              id: tabId,
+              htmlPreviewHash: options?.htmlPreviewHash,
+            };
           }),
         );
       } catch (e) {
@@ -791,6 +802,40 @@ export function useEditorTabs(
     },
     [ensureCanProceed, openPathInNewTab],
   );
+
+  const navigateHtmlPreviewToPath = useCallback(
+    async (readPath: string, hash?: string) => {
+      const tabId = activeTabIdRef.current;
+      if (!tabId) return;
+
+      const tab = tabsRef.current.find((t) => t.id === tabId);
+      if (!tab || tab.kind !== 'html' || tab.viewMode !== 'preview') {
+        return;
+      }
+
+      if (tab.relativePath && tab.relativePath !== readPath) {
+        const stacks = getTabNavigationStacks(tabId);
+        tabNavStacksRef.current.set(
+          tabId,
+          pushTabNavigationBack(stacks, tab.relativePath),
+        );
+        bumpTabNav();
+      }
+
+      await replaceTabWithPath(tabId, readPath, {
+        htmlPreviewHash: hash || undefined,
+      });
+    },
+    [bumpTabNav, getTabNavigationStacks, replaceTabWithPath],
+  );
+
+  const clearHtmlPreviewHash = useCallback((tabId: string) => {
+    setTabs((prev) =>
+      prev.map((t) =>
+        t.id === tabId ? { ...t, htmlPreviewHash: undefined } : t,
+      ),
+    );
+  }, []);
 
   const openPathFromEditorLink = useCallback(
     async (relativePath: string) => {
@@ -1330,6 +1375,8 @@ export function useEditorTabs(
     tabNavigation,
     navigateTabBack,
     navigateTabForward,
+    navigateHtmlPreviewToPath,
+    clearHtmlPreviewHash,
     addTab,
     closeTab,
     closeTabsForDeletedPath,
