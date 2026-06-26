@@ -23,6 +23,7 @@
 [data-muled-ui-theme='acme'] .TabBar__add,
 [data-muled-ui-theme='acme'] .TabBar__settings,
 [data-muled-ui-theme='acme'] .TabContent__save,
+[data-muled-ui-theme='acme'] .TabContent__run,
 [data-muled-ui-theme='acme'] .EditorViewSwitch,
 [data-muled-ui-theme='acme'] .EditorViewSwitch__btn,
 [data-muled-ui-theme='acme'] .WorkspaceTree__rootSelect,
@@ -220,8 +221,10 @@
   font-weight: bold;
 }
 
-[data-muled-ui-theme='acme'] .TabContent__save {
-  padding: 1px 8px;
+[data-muled-ui-theme='acme'] .TabContent__save,
+[data-muled-ui-theme='acme'] .TabContent__run {
+  height: 22px;
+  padding: 0 7px;
   font-size: 11px;
   font-family: var(--muled-chrome-font);
   border: 1px solid #000;

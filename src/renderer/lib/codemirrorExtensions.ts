@@ -1,10 +1,37 @@
 import type { Extension } from '@codemirror/state';
 import { EditorSelection, EditorState, Prec } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
-import { vim } from '@replit/codemirror-vim';
+import { Vim, vim } from '@replit/codemirror-vim';
 import type { EditorMode } from '../../shared/types/config';
 import { requestOpenCommandPalette } from './commandPaletteBridge';
 import { isVimInsertMode } from './vimInsertMode';
+import {
+  requestVimEdit,
+  requestVimQuit,
+  requestVimSave,
+  requestVimWriteAndQuit,
+} from './vimExBridge';
+
+let vimExCommandsRegistered = false;
+
+function ensureVimExCommands(): void {
+  if (vimExCommandsRegistered) return;
+  vimExCommandsRegistered = true;
+
+  Vim.defineEx('write', 'w', () => {
+    requestVimSave();
+  });
+  Vim.defineEx('quit', 'q', () => {
+    requestVimQuit();
+  });
+  Vim.defineEx('wq', undefined, () => {
+    requestVimWriteAndQuit();
+  });
+  Vim.defineEx('edit', 'e', (_cm, params) => {
+    const path = params.argString.trim();
+    requestVimEdit(path || undefined);
+  });
+}
 
 /** 文档变短后钳制选区，避免 Vim BlockCursor 在 coordsForChar 时 IndexSizeError */
 function clampSelectionExtension(): Extension {
@@ -88,5 +115,6 @@ export default function buildSourceCodeMirrorExtensions(
   if (keybindingMode !== 'vim') {
     return SOURCE_BASE_EXTENSIONS;
   }
+  ensureVimExCommands();
   return [...SOURCE_BASE_EXTENSIONS, vim(), vimCommandPaletteKeymap()];
 }

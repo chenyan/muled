@@ -114,4 +114,15 @@ describe('buildTabOutline', () => {
     const items = buildTabOutline(tab, []);
     expect(items[0]?.hash).toBe('sec-1');
   });
+
+  it('extracts org headings with star depth', () => {
+    const tab = createTab({
+      kind: 'org',
+      relativePath: 'notes.org',
+      content: '* Chapter\n** TODO Section\n',
+    });
+    const items = buildTabOutline(tab, []);
+    expect(items.map((item) => item.title)).toEqual(['Chapter', 'Section']);
+    expect(items.map((item) => item.depth)).toEqual([1, 2]);
+  });
 });

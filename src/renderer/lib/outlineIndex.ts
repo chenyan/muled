@@ -1,6 +1,7 @@
 import type { PdfOutlineItem } from '../../shared/types/ipc';
 import { getSourceLanguageId, type SourceLanguageId } from './fileLanguage';
 import parseSchemeOutline from './scheme/schemeOutline';
+import { parseOrgOutline } from './orgOutline';
 import type { EditorTab } from '../types/tab';
 
 export interface SidebarOutlineItem {
@@ -291,6 +292,9 @@ export function buildTabOutline(
   }
   if (tab.kind === 'html') {
     return parseHtmlOutline(tab.content);
+  }
+  if (tab.kind === 'org') {
+    return parseOrgOutline(tab.content);
   }
   if (tab.kind === 'text') {
     return parseCodeSymbols(tab.content, tab.relativePath);

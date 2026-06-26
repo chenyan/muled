@@ -21,6 +21,7 @@ import { useEditorTabs } from '../../hooks/useEditorTabs';
 import { useUnsavedChangesDialog } from '../../hooks/useUnsavedChangesDialog';
 import { useWorkspace } from '../../hooks/useWorkspace';
 import { registerCommandPaletteOpen } from '../../lib/commandPaletteBridge';
+import { registerVimExHandlers } from '../../lib/vimExBridge';
 import {
   getEditorAiHandlers,
   type EditorAiSnapshot,
@@ -319,6 +320,60 @@ export default function AppShell() {
     [editor, notifySaveFailure],
   );
 
+  const handleVimEdit = useCallback(
+    (path?: string) => {
+      if (!path) {
+        const tab = editor.activeTab;
+        if (tab?.relativePath) {
+          editor.openPath(tab.relativePath).catch(() => undefined);
+          return;
+        }
+        pushStatusToast('用法: :e 相对路径', 'error');
+        return;
+      }
+      editor.openPath(path).catch(() => undefined);
+    },
+    [editor],
+  );
+
+  useEffect(() => {
+    registerVimExHandlers({
+      save: () => {
+        if (!editor.activeTabId) {
+          pushStatusToast('没有打开的标签页', 'error');
+          return;
+        }
+        void handleSave(editor.activeTabId).catch((err) => {
+          const message = err instanceof Error ? err.message : String(err);
+          pushStatusToast(`保存失败: ${message}`, 'error');
+        });
+      },
+      quit: () => {
+        if (!editor.activeTabId) {
+          pushStatusToast('没有打开的标签页', 'error');
+          return;
+        }
+        void editor.closeTab(editor.activeTabId).catch(() => undefined);
+      },
+      writeAndQuit: () => {
+        if (!editor.activeTabId) {
+          pushStatusToast('没有打开的标签页', 'error');
+          return;
+        }
+        void handleSave(editor.activeTabId)
+          .then((saved) => {
+            if (saved) {
+              return editor.closeTab(editor.activeTabId!);
+            }
+            return undefined;
+          })
+          .catch(() => undefined);
+      },
+      edit: handleVimEdit,
+    });
+    return () => registerVimExHandlers(null);
+  }, [editor, handleSave, handleVimEdit]);
+
   const handlePaletteSubmit = useCallback(
     (input: string) => {
       const tab = editor.activeTab;
@@ -372,6 +427,26 @@ export default function AppShell() {
         return { ok: true as const };
       }
 
+      if (result.kind === 'saveAndClose') {
+        if (!editor.activeTabId) {
+          return { ok: false as const, error: '没有打开的标签页' };
+        }
+        void handleSave(editor.activeTabId)
+          .then((saved) => {
+            if (saved) {
+              return editor.closeTab(editor.activeTabId!);
+            }
+            return undefined;
+          })
+          .catch(() => undefined);
+        return { ok: true as const };
+      }
+
+      if (result.kind === 'edit') {
+        handleVimEdit(result.path);
+        return { ok: true as const };
+      }
+
       if (!tab || !isEditableTextTab(tab)) {
         return { ok: false as const, error: '当前标签页不可编辑' };
       }
@@ -381,7 +456,7 @@ export default function AppShell() {
       editor.updateTabContent(tab.id, result.content);
       return { ok: true as const };
     },
-    [editor, handleSave, handleSwitchWorkspace],
+    [editor, handleSave, handleSwitchWorkspace, handleVimEdit],
   );
 
   useEffect(() => {
@@ -542,6 +617,7 @@ export default function AppShell() {
     if (
       tab.kind !== 'markdown' &&
       tab.kind !== 'html' &&
+      tab.kind !== 'org' &&
       tab.kind !== 'csv' &&
       tab.kind !== 'ipynb' &&
       tab.kind !== 'strudel' &&

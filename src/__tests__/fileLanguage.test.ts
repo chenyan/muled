@@ -4,6 +4,7 @@ import {
   getSourceLanguageLabel,
   isHtmlPath,
   isMarkdownPath,
+  isOrgPath,
   isP5Path,
   isStrudelPath,
 } from '../renderer/lib/fileLanguage';
@@ -22,6 +23,13 @@ describe('fileLanguage', () => {
     expect(isHtmlPath('page.xhtml')).toBe(true);
     expect(isHtmlPath('notes.md')).toBe(false);
     expect(isHtmlPath(null)).toBe(false);
+  });
+
+  it('detects org paths', () => {
+    expect(isOrgPath('notes.org')).toBe(true);
+    expect(isOrgPath('NOTES.ORG')).toBe(true);
+    expect(isOrgPath('notes.md')).toBe(false);
+    expect(isOrgPath(null)).toBe(false);
   });
 
   it('detects strudel paths', () => {

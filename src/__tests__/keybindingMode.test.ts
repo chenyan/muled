@@ -10,6 +10,7 @@ describe('editorViewMode', () => {
     expect(editorViewModeLabel('rich-text')).toBe('WYSIWYG');
     expect(editorViewModeLabel('source')).toBe('Source');
     expect(editorViewModeLabel('preview')).toBe('Preview');
+    expect(editorViewModeLabel('agenda')).toBe('Agenda');
   });
 
   it('cycles rich-text → source → preview → rich-text', () => {
@@ -42,6 +43,12 @@ describe('editorViewMode', () => {
     expect(nextViewModeForTab('mnote', 'rich-text')).toBe('source');
     expect(nextViewModeForTab('mnote', 'source')).toBe('rich-text');
   });
+
+  it('cycles org preview → agenda → source', () => {
+    expect(nextViewModeForTab('org', 'preview')).toBe('agenda');
+    expect(nextViewModeForTab('org', 'agenda')).toBe('source');
+    expect(nextViewModeForTab('org', 'source')).toBe('preview');
+  });
 });
 
 describe('keybindingModePatch', () => {
@@ -54,6 +61,13 @@ describe('keybindingModePatch', () => {
 
   it('switches to source when enabling vim from preview', () => {
     expect(keybindingModePatch('preview', 'vim')).toEqual({
+      keybindingMode: 'vim',
+      viewMode: 'source',
+    });
+  });
+
+  it('switches to source when enabling vim from agenda', () => {
+    expect(keybindingModePatch('agenda', 'vim')).toEqual({
       keybindingMode: 'vim',
       viewMode: 'source',
     });

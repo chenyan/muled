@@ -741,13 +741,36 @@
 }
 
 .TabContent__save,
-.TabContent__mnoteButton {
-  padding: 4px 10px;
+.TabContent__mnoteButton,
+.TabContent__run {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-sizing: border-box;
+  height: 24px;
+  padding: 0 8px;
   font-size: 12px;
+  line-height: 1;
   border: 1px solid var(--muled-border);
   border-radius: 6px;
   background: var(--muled-surface);
   cursor: pointer;
+}
+
+.TabContent__run {
+  margin-right: 6px;
+  font-weight: 500;
+  color: var(--muled-accent);
+}
+
+.TabContent__run:hover:not(:disabled) {
+  border-color: var(--muled-accent);
+  background: var(--muled-active-soft-bg);
+}
+
+.TabContent__run .RunIcon {
+  flex-shrink: 0;
 }
 
 .TabContent__mnoteButton,
@@ -771,7 +794,8 @@
   border-color: rgba(37, 99, 235, 0.75);
 }
 
-.TabContent__save:disabled {
+.TabContent__save:disabled,
+.TabContent__run:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
@@ -1088,6 +1112,515 @@
   height: 100%;
   border: 0;
   background: #fff;
+}
+
+.OrgPreviewHost {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.OrgPreview {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: var(--muled-bg);
+}
+
+.OrgAgenda {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--muled-bg);
+  color: var(--muled-fg);
+}
+
+.OrgAgenda__toolbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--muled-border);
+}
+
+.OrgAgenda__scopeSwitch {
+  flex-shrink: 0;
+}
+
+.OrgAgenda__nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.OrgAgenda__navBtn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--muled-border);
+  border-radius: 6px;
+  background: var(--muled-surface-muted);
+  color: var(--muled-fg);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.OrgAgenda__period {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.OrgAgenda__todayBtn {
+  padding: 4px 10px;
+  font-size: 11px;
+  border: 1px solid var(--muled-border);
+  border-radius: 6px;
+  background: var(--muled-surface-muted);
+  color: var(--muled-subtle-fg);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.OrgAgenda__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 14px 20px;
+}
+
+.OrgAgenda__content {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+.OrgAgenda__content--resizing .OrgAgenda__main {
+  pointer-events: none;
+}
+
+.OrgAgenda__main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.OrgAgenda__resize {
+  flex-shrink: 0;
+  width: 6px;
+  margin: 0;
+  cursor: col-resize;
+  touch-action: none;
+  background: transparent;
+  position: relative;
+  z-index: 1;
+}
+
+.OrgAgenda__resize::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  background: var(--muled-border);
+}
+
+.OrgAgenda__resize:hover::after,
+.OrgAgenda__resize:focus-visible::after,
+.OrgAgenda__resize--active::after {
+  width: 2px;
+  background: var(--muled-accent);
+}
+
+.OrgAgenda__todoPanel {
+  flex-shrink: 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-left: 1px solid var(--muled-border);
+  background: var(--muled-surface-muted);
+}
+
+.OrgAgenda__todoToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  border: 1px solid var(--muled-border);
+  border-radius: 6px;
+  background: var(--muled-surface-muted);
+  color: var(--muled-subtle-fg);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.OrgAgenda__todoToggle--active {
+  border-color: var(--muled-accent);
+  color: var(--muled-fg);
+  background: color-mix(in srgb, var(--muled-accent) 12%, var(--muled-surface-muted));
+}
+
+.OrgAgenda__todoToggleCount {
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+  background: var(--muled-accent);
+  color: var(--muled-bg);
+}
+
+.OrgAgendaTodoList {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.OrgAgendaTodoList__header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--muled-border);
+}
+
+.OrgAgendaTodoList__title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muled-fg);
+}
+
+.OrgAgendaTodoList__count {
+  font-size: 11px;
+  color: var(--muled-subtle-fg);
+}
+
+.OrgAgendaTodoList__empty {
+  margin: 0;
+  padding: 16px 12px;
+  font-size: 12px;
+  color: var(--muled-subtle-fg);
+}
+
+.OrgAgendaTodoList__entries {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 8px 0 12px;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.OrgAgendaTodoList__entry {
+  padding: 6px 12px 6px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.OrgAgendaTodoList__entry:hover {
+  background: color-mix(in srgb, var(--muled-fg) 4%, transparent);
+}
+
+.OrgAgendaTodoList__entryMain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.OrgAgendaTodoList__keyword {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muled-accent);
+}
+
+.OrgAgendaTodoList__priority {
+  font-size: 10px;
+  color: var(--muled-subtle-fg);
+}
+
+.OrgAgendaTodoList__itemTitle {
+  flex: 1;
+  min-width: 0;
+  color: var(--muled-fg);
+}
+
+.OrgAgendaTodoList__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+  padding-left: 2px;
+  font-size: 10px;
+  color: var(--muled-subtle-fg);
+}
+
+.OrgAgendaTodoList__timestamp--scheduled {
+  color: var(--muled-accent);
+}
+
+.OrgAgendaTodoList__timestamp--deadline {
+  color: var(--muled-error, #c0392b);
+}
+
+.OrgAgendaTodoList__tags {
+  opacity: 0.85;
+}
+
+.OrgAgenda__body--calendar {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px 14px;
+  background: var(--muled-bg);
+}
+
+.OrgAgendaCalendar {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--muled-border);
+}
+
+.OrgAgendaCalendar__weekdays,
+.OrgAgendaCalendar__week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.OrgAgendaCalendar__weekdays {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--muled-border);
+  background: var(--muled-surface-muted);
+}
+
+.OrgAgendaCalendar__week {
+  flex: 1;
+  min-height: 72px;
+}
+
+.OrgAgendaCalendar__week + .OrgAgendaCalendar__week {
+  border-top: 1px solid var(--muled-border);
+}
+
+.OrgAgendaCalendar__weekday {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muled-subtle-fg);
+  padding: 6px 0;
+  border-right: 1px solid var(--muled-border);
+}
+
+.OrgAgendaCalendar__weekday:last-child {
+  border-right: none;
+}
+
+.OrgAgendaCalendar__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 0;
+  padding: 4px 5px 5px;
+  border: none;
+  border-right: 1px solid var(--muled-border);
+  border-radius: 0;
+  background: var(--muled-calendar-cell-bg);
+  color: var(--muled-fg);
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.OrgAgendaCalendar__cell:last-child {
+  border-right: none;
+}
+
+.OrgAgendaCalendar__cell:hover {
+  background: color-mix(in srgb, var(--muled-accent) 8%, var(--muled-calendar-cell-bg));
+}
+
+.OrgAgendaCalendar__cell--outside {
+  background: var(--muled-calendar-cell-outside-bg);
+  opacity: 1;
+}
+
+.OrgAgendaCalendar__cell--outside:hover {
+  background: color-mix(in srgb, var(--muled-accent) 6%, var(--muled-calendar-cell-outside-bg));
+}
+
+.OrgAgendaCalendar__cell--today .OrgAgendaCalendar__dayNum {
+  background: var(--muled-accent);
+  color: var(--muled-accent-fg);
+}
+
+.OrgAgendaCalendar__dayNum {
+  align-self: flex-end;
+  min-width: 22px;
+  height: 22px;
+  margin-bottom: 4px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 22px;
+  text-align: center;
+}
+
+.OrgAgendaCalendar__entries {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.OrgAgendaCalendar__chip {
+  display: block;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.OrgAgendaCalendar__chip--scheduled {
+  background: rgba(46, 125, 50, 0.14);
+  color: #2e7d32;
+}
+
+.OrgAgendaCalendar__chip--deadline {
+  background: rgba(198, 40, 40, 0.12);
+  color: #c62828;
+}
+
+.OrgAgendaCalendar__chip--closed {
+  background: rgba(127, 127, 127, 0.12);
+  color: var(--muled-subtle-fg);
+}
+
+.OrgAgendaCalendar__more {
+  font-size: 10px;
+  color: var(--muled-subtle-fg);
+  padding-left: 2px;
+}
+
+.OrgAgenda__empty {
+  margin: 24px 0;
+  text-align: center;
+  color: var(--muled-subtle-fg);
+  font-size: 13px;
+}
+
+.OrgAgenda__day + .OrgAgenda__day {
+  margin-top: 18px;
+}
+
+.OrgAgenda__dayHeading {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muled-subtle-fg);
+  letter-spacing: 0.02em;
+}
+
+.OrgAgenda__entries {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.OrgAgenda__entry {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.OrgAgenda__entry + .OrgAgenda__entry {
+  margin-top: 2px;
+}
+
+.OrgAgenda__entry:hover {
+  background: var(--muled-surface-muted);
+}
+
+.OrgAgenda__time {
+  width: 44px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--muled-subtle-fg);
+  font-size: 12px;
+}
+
+.OrgAgenda__kind {
+  width: 32px;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.OrgAgenda__entry--scheduled .OrgAgenda__kind {
+  color: #2e7d32;
+}
+
+.OrgAgenda__entry--deadline .OrgAgenda__kind {
+  color: #c62828;
+}
+
+.OrgAgenda__entry--closed .OrgAgenda__kind {
+  color: var(--muled-subtle-fg);
+}
+
+.OrgAgenda__todo {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muled-accent);
+}
+
+.OrgAgenda__priority {
+  font-size: 11px;
+  color: #e65100;
+}
+
+.OrgAgenda__title {
+  flex: 1;
+  min-width: 120px;
+}
+
+.OrgAgenda__tags {
+  font-size: 11px;
+  color: var(--muled-subtle-fg);
 }
 
 .P5Preview {

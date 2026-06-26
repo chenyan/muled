@@ -11,7 +11,7 @@ import type {
   EditorViewMode,
   PublicConfig,
 } from '../../shared/types/config';
-import { isHtmlPath, isMarkdownPath, isP5Path, isStrudelPath } from '../lib/fileLanguage';
+import { isHtmlPath, isMarkdownPath, isOrgPath, isP5Path, isStrudelPath } from '../lib/fileLanguage';
 import { isMnotePath } from '../lib/mnotePath';
 import { arrayBufferToBase64, arrayBufferToDataUrl } from '../lib/dataUrl';
 import { getDocxEditorBuffer } from '../lib/editorDocxBridge';
@@ -247,6 +247,7 @@ async function loadFileIntoTab(
   const mnote = isMnotePath(relativePath);
   const markdown = isMarkdownPath(relativePath);
   const html = isHtmlPath(relativePath);
+  const org = isOrgPath(relativePath);
   const strudel = isStrudelPath(relativePath);
   const p5 = isP5Path(relativePath);
   const content = markdown
@@ -264,13 +265,15 @@ async function loadFileIntoTab(
             ? 'p5'
             : markdown
               ? 'markdown'
-              : html
-                ? 'html'
-                : 'text';
+              : org
+                ? 'org'
+                : html
+                  ? 'html'
+                  : 'text';
   const viewMode: EditorViewMode =
     mnote
       ? 'rich-text'
-      : csv || ipynb || html || strudel || p5
+      : csv || ipynb || html || strudel || p5 || org
         ? 'preview'
         : markdown
           ? 'rich-text'
@@ -539,7 +542,8 @@ export function useEditorTabs(
           target.kind === 'csv' ||
           target.kind === 'ipynb' ||
           target.kind === 'strudel' ||
-          target.kind === 'p5'
+          target.kind === 'p5' ||
+          target.kind === 'org'
             ? target.viewMode
             : cfg.editor.default_view,
       } as const;

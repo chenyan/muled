@@ -166,6 +166,7 @@ beforeEach(() => {
       close: async () => ({ ok: true }),
     },
     scheme: {
+      available: async () => ({ available: false }),
       run: async () => ({ ok: true as const, stdout: '', stderr: '', exitCode: 0 }),
     },
     menu: {

@@ -11,10 +11,19 @@ export type PaletteCommandResult =
   | { ok: true; kind: 'mode'; mode: EditorMode }
   | { ok: true; kind: 'save' }
   | { ok: true; kind: 'close' }
+  | { ok: true; kind: 'saveAndClose' }
+  | { ok: true; kind: 'edit'; path?: string }
   | { ok: false; error: string };
 
 function parseExCommand(line: string): string {
   return line.startsWith(':') ? line.slice(1).trim() : line;
+}
+
+function parseEditExCommand(ex: string): string | undefined | null {
+  const match = ex.match(/^(?:e|edit)(?:\s+(.*))?$/);
+  if (!match) return null;
+  const path = match[1]?.trim();
+  return path || undefined;
 }
 
 function resolveSubstituteRange(
@@ -47,6 +56,14 @@ export function runPaletteCommand(
   }
   if (ex === 'q' || ex === 'quit') {
     return { ok: true, kind: 'close' };
+  }
+  if (ex === 'wq' || ex === 'x') {
+    return { ok: true, kind: 'saveAndClose' };
+  }
+
+  const editPath = parseEditExCommand(ex);
+  if (editPath !== null) {
+    return { ok: true, kind: 'edit', path: editPath };
   }
 
   if (line === 'mode normal' || line === 'mode vim') {

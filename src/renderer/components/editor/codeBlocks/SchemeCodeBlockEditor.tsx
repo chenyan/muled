@@ -10,6 +10,10 @@ import { useWysiwygTheme } from '../../../hooks/useWysiwygStyles';
 import { useEditorIndentSettings } from '../../../hooks/useEditorIndentSettings';
 import { buildWysiwygCodeBlockExtensions } from '../../../lib/wysiwygCodeMirrorSetup';
 import { pushStatusToast } from '../../../lib/statusToast';
+import {
+  executeSchemeRun,
+  formatSchemeRunOutput,
+} from '../../../lib/scheme/schemeRunClient';
 import './PlainCodeBlockEditor.css';
 import './SchemeCodeBlockEditor.css';
 
@@ -100,30 +104,12 @@ export default function SchemeCodeBlockEditor({
   }, [code]);
 
   const handleRun = useCallback(async () => {
-    if (!window.muled?.scheme?.run) {
-      pushStatusToast('Scheme 运行接口不可用', 'error');
-      return;
-    }
     const source = viewRef.current?.state.doc.toString() ?? code;
     setRunning(true);
     setOutput(null);
     try {
-      const result = await window.muled.scheme.run({ code: source });
-      if ('error' in result) {
-        pushStatusToast(
-          '未配置 Chez Scheme 可执行文件。请在设置 → 命令行工具中填写路径或点击「自动检测」。',
-          'error',
-        );
-        return;
-      }
-      setOutput({
-        stdout: result.stdout,
-        stderr: result.stderr,
-        exitCode: result.exitCode,
-      });
-      if (result.exitCode !== 0) {
-        pushStatusToast(`Scheme 脚本退出码 ${result.exitCode}`, 'error');
-      }
+      const result = await executeSchemeRun({ code: source });
+      if (result) setOutput(result);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       pushStatusToast(`运行失败：${message}`, 'error');
@@ -132,9 +118,7 @@ export default function SchemeCodeBlockEditor({
     }
   }, [code]);
 
-  const combinedOutput = output
-    ? [output.stdout, output.stderr].filter(Boolean).join('\n').trim()
-    : '';
+  const combinedOutput = output ? formatSchemeRunOutput(output) : '';
 
   return (
     <div ref={rootRef} className="MuledPlainCodeBlock SchemeCodeBlockEditor">

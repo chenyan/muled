@@ -43,6 +43,21 @@ describe('runPaletteCommand', () => {
     expect(
       runPaletteCommand('q', { tabContent: '', selection: null }),
     ).toEqual({ ok: true, kind: 'close' });
+    expect(
+      runPaletteCommand(':wq', { tabContent: '', selection: null }),
+    ).toEqual({ ok: true, kind: 'saveAndClose' });
+  });
+
+  it('supports vim ex edit', () => {
+    expect(
+      runPaletteCommand(':e foo.scm', { tabContent: '', selection: null }),
+    ).toEqual({ ok: true, kind: 'edit', path: 'foo.scm' });
+    expect(
+      runPaletteCommand('edit notes.md', { tabContent: '', selection: null }),
+    ).toEqual({ ok: true, kind: 'edit', path: 'notes.md' });
+    expect(
+      runPaletteCommand(':e', { tabContent: '', selection: null }),
+    ).toEqual({ ok: true, kind: 'edit', path: undefined });
   });
 
   it('substitutes full document without selection', () => {

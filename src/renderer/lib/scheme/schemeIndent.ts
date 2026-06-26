@@ -34,6 +34,7 @@ const BODY_HEAD_FORMS = new Set([
 ]);
 
 const CLOSING_PARENS_AFTER = /^\s*\)+/;
+const TRAILING_CLOSES_ON_LINE = /\s*[\)\]\}]+(\s*[\)\]\}]+)*\s*$/;
 
 function closingPattern(close: string): RegExp {
   const escaped =
@@ -80,6 +81,145 @@ function textAfterPos(
   return cx.textAfterPos(pos);
 }
 
+function expressionChildrenOnLine(
+  coll: SyntaxNode,
+  state: TreeIndentContext['state'],
+  lineNum: number,
+): SyntaxNode[] {
+  return expressionChildren(coll).filter(
+    (child) =>
+      child.name !== '⚠' && lineNumberAt(state, child.from) === lineNum,
+  );
+}
+
+function programItemsOnLine(
+  program: SyntaxNode,
+  state: TreeIndentContext['state'],
+  lineNum: number,
+): SyntaxNode[] {
+  const items: SyntaxNode[] = [];
+  for (let cur = program.firstChild; cur; cur = cur.nextSibling) {
+    if (lineNumberAt(state, cur.from) === lineNum) {
+      items.push(cur);
+    }
+  }
+  return items;
+}
+
+function isIgnorableProgramItem(node: SyntaxNode, doc: string): boolean {
+  if (node.name === ')' || node.name === ']' || node.name === '}') return true;
+  if (node.name === '⚠') {
+    const text = doc.slice(node.from, node.to);
+    return text.length === 0 || /^[\)\]\}]+$/.test(text);
+  }
+  return false;
+}
+
+function meaningfulProgramItemsOnLine(
+  program: SyntaxNode,
+  state: TreeIndentContext['state'],
+  lineNum: number,
+  doc: string,
+): SyntaxNode[] {
+  return programItemsOnLine(program, state, lineNum).filter(
+    (item) => !isIgnorableProgramItem(item, doc),
+  );
+}
+
+/** 去掉行尾闭括号后，是否只剩单个 atom / 未完成的 form head */
+function lineHasSingleContentAtom(lineText: string): boolean {
+  const content = lineText.replace(TRAILING_CLOSES_ON_LINE, '').trim();
+  if (!content) return false;
+  const body = content.startsWith('(') ? content.slice(1) : content;
+  return !/\s/.test(body);
+}
+
+function preservedSingleElementLineIndent(
+  cx: IndentContext | TreeIndentContext,
+): number | undefined {
+  const simBreak = cx.simulatedBreak;
+  if (simBreak == null) return undefined;
+  return cx.lineIndent(simBreak, -1);
+}
+
+function listHasSpecialFormIndent(node: SyntaxNode, doc: string): boolean {
+  const head = listHeadSymbol(node, doc);
+  if (!head) return false;
+  return (
+    DEFINE_FORMS.has(head) ||
+    BINDING_FORMS.has(head) ||
+    BODY_HEAD_FORMS.has(head) ||
+    head === 'and' ||
+    head === 'or'
+  );
+}
+
+/** Enter 时若本行只有一个表达式元素，新行保持与本行相同缩进 */
+function schemeSingleElementLineIndent(
+  cx: IndentContext,
+  pos: number,
+): number | undefined {
+  const simBreak = cx.simulatedBreak;
+  if (simBreak == null) return undefined;
+
+  const { state } = cx;
+  const currentLine = cx.lineAt(simBreak, -1);
+  if (!/\S/.test(currentLine.text)) return undefined;
+
+  const lineNum = lineNumberAt(state, currentLine.from);
+  const doc = state.doc.toString();
+  const lineIndent = preservedSingleElementLineIndent(cx);
+  if (lineIndent === undefined) return undefined;
+
+  let node: SyntaxNode | null = syntaxTree(state).resolveInner(simBreak, -1);
+  while (node) {
+    if (isCollNodeName(node.name)) {
+      const onLine = expressionChildrenOnLine(node, state, lineNum);
+      if (onLine.length === 1) {
+        const openLine = lineNumberAt(state, node.from);
+        if (lineNum > openLine && !listHasSpecialFormIndent(node, doc)) {
+          return lineIndent;
+        }
+      }
+    }
+
+    if (node.name === 'Program') {
+      const onLine = meaningfulProgramItemsOnLine(node, state, lineNum, doc);
+      if (onLine.length === 1 && !isCollNodeName(onLine[0]!.name)) {
+        return lineIndent;
+      }
+    }
+
+    node = node.parent;
+  }
+
+  if (lineHasSingleContentAtom(currentLine.text)) {
+    return lineIndent;
+  }
+
+  return undefined;
+}
+
+function singleElementLineIndentBeforeClose(
+  context: TreeIndentContext,
+  node: SyntaxNode,
+): number | null {
+  const { state } = context;
+  const doc = state.doc.toString();
+  const line = state.doc.lineAt(context.pos);
+  const posLine = lineNumberAt(state, context.pos);
+  const openLine = lineNumberAt(state, node.from);
+  if (posLine <= openLine || listHasSpecialFormIndent(node, doc)) return null;
+  if (!lineHasSingleContentAtom(line.text)) return null;
+
+  if (context.simulatedBreak != null) {
+    const preserved = schemeSingleElementLineIndent(context, context.pos);
+    if (preserved !== undefined) return preserved;
+  }
+
+  return context.lineIndent(line.from, 1);
+}
+
 /** 闭括号已在下一行/同行末尾，但尚未写入函数体时，仍应缩进 body 而非 dedent */
 function shouldIndentBodyBeforeCloseList(
   cx: IndentContext | TreeIndentContext,
@@ -124,6 +264,11 @@ function schemeBodyIndentForList(
 
 /** 处理 ")" 节点：Enter 在 `(define (f x)|)` 处时 delimitedStrategy 会错误 dedent */
 function schemeClosingParenIndent(context: TreeIndentContext): number | null {
+  if (context.simulatedBreak != null) {
+    const preserved = schemeSingleElementLineIndent(context, context.pos);
+    if (preserved !== undefined) return preserved;
+  }
+
   for (let list = context.node.parent; list; list = list.parent) {
     if (list.name !== 'List') continue;
     if (shouldIndentBodyBeforeClose(context, list)) {
@@ -207,6 +352,8 @@ function schemeListIndent(context: TreeIndentContext): number | null {
 
   const closingOnLine = context.textAfter.match(closingPattern(')'));
   if (closingOnLine && !shouldIndentBodyBeforeClose(context, node)) {
+    const preserved = singleElementLineIndentBeforeClose(context, node);
+    if (preserved != null) return preserved;
     return context.continue();
   }
 
@@ -235,6 +382,11 @@ function schemeListIndent(context: TreeIndentContext): number | null {
     return base + unit;
   }
 
+  if (context.simulatedBreak != null) {
+    const preserved = schemeSingleElementLineIndent(context, context.pos);
+    if (preserved !== undefined) return preserved;
+  }
+
   return delimitedIndent({ closing: ')', align: true })(context);
 }
 
@@ -245,6 +397,8 @@ function schemeCollIndent(nodeName: string) {
   return (context: TreeIndentContext): number | null => {
     const closingOnLine = context.textAfter.match(closePattern);
     if (closingOnLine && !shouldIndentBodyBeforeClose(context, context.node)) {
+      const preserved = singleElementLineIndentBeforeClose(context, context.node);
+      if (preserved != null) return preserved;
       return context.continue();
     }
 
@@ -270,6 +424,9 @@ export function schemeEnterIndentService(
   cx: IndentContext,
   pos: number,
 ): number | undefined {
+  const singleElementLine = schemeSingleElementLineIndent(cx, pos);
+  if (singleElementLine !== undefined) return singleElementLine;
+
   const simBreak = cx.simulatedBreak;
   if (simBreak == null || !CLOSING_PARENS_AFTER.test(cx.textAfterPos(pos))) {
     return undefined;

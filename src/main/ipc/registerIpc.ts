@@ -36,7 +36,7 @@ import {
 import WorkspaceService from '../services/workspaceService';
 import WorkspaceWatcherService from '../services/workspaceWatcherService';
 import { detectToolPaths, resolveToolExecutable } from '../services/toolPathService';
-import { runSchemeScript } from '../services/schemeRunService';
+import { runSchemeFile, runSchemeScript } from '../services/schemeRunService';
 import DuckdbService from '../services/duckdbService';
 import DuckdbFileService from '../services/duckdbFileService';
 import SqliteService from '../services/sqliteService';
@@ -414,8 +414,19 @@ export function registerIpc(
       return { ok: true };
     },
 
+    'scheme:available': () => {
+      const chez = resolveToolExecutable(
+        'chez',
+        services.config.get().tools.chez,
+      );
+      return { available: chez !== null };
+    },
+
     'scheme:run': (arg) => {
-      const { code } = arg as { code: string };
+      const { code, path: relativePath } = arg as {
+        code?: string;
+        path?: string;
+      };
       const chez = resolveToolExecutable(
         'chez',
         services.config.get().tools.chez,
@@ -423,8 +434,16 @@ export function registerIpc(
       if (!chez) {
         return { error: 'not_configured' as const };
       }
-      const result = runSchemeScript(chez, code);
-      return { ok: true as const, ...result };
+      if (relativePath) {
+        const absolutePath = services.file.resolveFilePath(relativePath);
+        const result = runSchemeFile(chez, absolutePath);
+        return { ok: true as const, ...result };
+      }
+      if (typeof code === 'string') {
+        const result = runSchemeScript(chez, code);
+        return { ok: true as const, ...result };
+      }
+      return { error: 'not_configured' as const };
     },
   };
 

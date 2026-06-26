@@ -41,6 +41,9 @@ import IpynbPreview from '../editor/IpynbPreview';
 import IpynbViewSwitch from '../editor/IpynbViewSwitch';
 import HtmlPreview from '../editor/HtmlPreview';
 import HtmlViewSwitch from '../editor/HtmlViewSwitch';
+import OrgPreview from '../editor/OrgPreview';
+import OrgAgenda from '../editor/OrgAgenda';
+import OrgViewSwitch from '../editor/OrgViewSwitch';
 import StrudelReplPreview, {
   type StrudelReplPreviewHandle,
 } from '../editor/StrudelReplPreview';
@@ -60,6 +63,15 @@ import MarkdownEditor, {
 import SourceCodeEditor, {
   type SourceCodeEditorHandle,
 } from '../editor/SourceCodeEditor';
+import SchemeSourceLayout from '../editor/SchemeSourceLayout';
+import { getSourceLanguageId } from '../../lib/fileLanguage';
+import { useSchemeChezAvailable } from '../../hooks/useSchemeChezAvailable';
+import {
+  executeSchemeRun,
+  type SchemeRunOutput,
+} from '../../lib/scheme/schemeRunClient';
+import { pushStatusToast } from '../../lib/statusToast';
+import RunIcon from '../icons/RunIcon';
 import { DEFAULT_BUFFER_BYTES } from '../../../shared/constants';
 import { formatBytes } from '../../../shared/formatBytes';
 import { applyAiInEditor } from '../../lib/applyAiInEditor';
@@ -185,6 +197,9 @@ export default function TabContent({
   } | null>(null);
   const [noteSaving, setNoteSaving] = useState(false);
   const [mnoteExists, setMnoteExists] = useState(false);
+  const [schemeRunning, setSchemeRunning] = useState(false);
+  const [schemeOutput, setSchemeOutput] = useState<SchemeRunOutput | null>(null);
+  const chezAvailable = useSchemeChezAvailable();
   const { translationPopup, setTranslationPopup, runTranslate } =
     useTabTranslation();
 
@@ -222,6 +237,30 @@ export default function TabContent({
     };
   }, [mnotePath]);
 
+  useEffect(() => {
+    setSchemeOutput(null);
+    setSchemeRunning(false);
+  }, [tab?.id]);
+
+  const handleSchemeRun = useCallback(async () => {
+    if (!tab) return;
+    const code = sourceRef.current?.getValue() ?? tab.content;
+    const canRunFile = Boolean(tab.relativePath) && !tab.dirty;
+    setSchemeRunning(true);
+    setSchemeOutput(null);
+    try {
+      const output = await executeSchemeRun(
+        canRunFile && tab.relativePath ? { path: tab.relativePath } : { code },
+      );
+      if (output) setSchemeOutput(output);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      pushStatusToast(`运行失败：${message}`, 'error');
+    } finally {
+      setSchemeRunning(false);
+    }
+  }, [tab]);
+
   const getWysiwygContent = useCallback((): string => {
     return mdxRef.current?.getPersistedMarkdown() ?? tab?.content ?? '';
   }, [tab?.content]);
@@ -248,6 +287,9 @@ export default function TabContent({
       return tab.content;
     }
     if (tab.kind === 'html' && tab.viewMode === 'source') {
+      return sourceRef.current?.getValue() ?? tab.content;
+    }
+    if (tab.kind === 'org' && tab.viewMode === 'source') {
       return sourceRef.current?.getValue() ?? tab.content;
     }
     if (tab.kind === 'csv' && tab.viewMode === 'source') {
@@ -419,6 +461,7 @@ export default function TabContent({
       }
       if (
         tab.kind === 'html' ||
+        tab.kind === 'org' ||
         tab.kind === 'csv' ||
         tab.kind === 'ipynb' ||
         tab.kind === 'strudel' ||
@@ -753,6 +796,8 @@ export default function TabContent({
   const showMarkdownPreview =
     tab.kind === 'markdown' && tab.viewMode === 'preview';
   const showHtmlPreview = tab.kind === 'html' && tab.viewMode === 'preview';
+  const showOrgPreview = tab.kind === 'org' && tab.viewMode === 'preview';
+  const showOrgAgenda = tab.kind === 'org' && tab.viewMode === 'agenda';
   const showTabNavigation =
     !isPane &&
     tabNavigation &&
@@ -766,6 +811,7 @@ export default function TabContent({
   const showIpynbPreview = tab.kind === 'ipynb' && tab.viewMode === 'preview';
   const showSource =
     tab.kind === 'text' ||
+    (tab.kind === 'org' && tab.viewMode === 'source') ||
     (tab.kind === 'html' && tab.viewMode === 'source') ||
     (tab.kind === 'csv' && tab.viewMode === 'source') ||
     (tab.kind === 'ipynb' && tab.viewMode === 'source') ||
@@ -775,6 +821,9 @@ export default function TabContent({
 
   const canSave =
     isSavableTab(tab) && tab.relativePath && !tab.truncated && tab.dirty;
+  const isSchemeSourceTab =
+    tab.kind === 'text' &&
+    getSourceLanguageId(tab.relativePath) === 'scheme';
 
   const paneClass = isPane
     ? ` TabContent--pane${focused ? ' TabContent--pane-focused' : ''}`
@@ -887,6 +936,13 @@ export default function TabContent({
               onChange={handleViewModeChange}
             />
           )}
+          {tab.kind === 'org' && (
+            <OrgViewSwitch
+              viewMode={tab.viewMode}
+              disabled={tab.truncated}
+              onChange={handleViewModeChange}
+            />
+          )}
           {tab.kind === 'csv' && (
             <CsvViewSwitch
               viewMode={tab.viewMode}
@@ -921,6 +977,22 @@ export default function TabContent({
               disabled={tab.truncated}
               onChange={handleViewModeChange}
             />
+          )}
+          {!isPane && isSchemeSourceTab && chezAvailable && (
+            <button
+              type="button"
+              className="TabContent__run"
+              disabled={schemeRunning || tab.truncated}
+              title="运行当前文件 (Chez Scheme)"
+              aria-label="运行 Scheme 文件"
+              aria-busy={schemeRunning}
+              onClick={() => {
+                void handleSchemeRun();
+              }}
+            >
+              <RunIcon size={11} />
+              <span>{schemeRunning ? '运行中…' : '运行'}</span>
+            </button>
           )}
           {!isPane && isSavableTab(tab) && (
             <button
@@ -1038,6 +1110,10 @@ export default function TabContent({
               onClearHtmlPreviewHash?.(tab.id);
             }}
           />
+        ) : tab.kind === 'org' && showOrgAgenda ? (
+          <OrgAgenda tab={tab} />
+        ) : tab.kind === 'org' && showOrgPreview ? (
+          <OrgPreview tab={tab} />
         ) : showStrudelRepl ? (
           <StrudelReplPreview
             ref={strudelReplRef}
@@ -1116,22 +1192,40 @@ export default function TabContent({
                 onOpenFile={onOpenFileFromEditor}
               />
             )}
-            {showSource && tab.kind !== 'csv' && (
-              <SourceCodeEditor
-                ref={sourceRef}
-                tabId={tab.id}
-                tabKey={`${tab.id}:${tab.relativePath ?? 'untitled'}:source`}
-                value={tab.content}
-                relativePath={tab.relativePath}
-                keybindingMode={tab.keybindingMode}
-                readOnly={tab.truncated}
-                reveal={tab.reveal ?? null}
-                mnoteQuoteHighlight={mnoteQuoteEditorHighlight}
-                onRevealComplete={onClearMnoteReveal}
-                onChange={onContentChange}
-                onContextMenu={handleSourceEditorContextMenu}
-              />
-            )}
+            {showSource && tab.kind !== 'csv' &&
+              (isSchemeSourceTab ? (
+                <SchemeSourceLayout output={schemeOutput}>
+                  <SourceCodeEditor
+                    ref={sourceRef}
+                    tabId={tab.id}
+                    tabKey={`${tab.id}:${tab.relativePath ?? 'untitled'}:source`}
+                    value={tab.content}
+                    relativePath={tab.relativePath}
+                    keybindingMode={tab.keybindingMode}
+                    readOnly={tab.truncated}
+                    reveal={tab.reveal ?? null}
+                    mnoteQuoteHighlight={mnoteQuoteEditorHighlight}
+                    onRevealComplete={onClearMnoteReveal}
+                    onChange={onContentChange}
+                    onContextMenu={handleSourceEditorContextMenu}
+                  />
+                </SchemeSourceLayout>
+              ) : (
+                <SourceCodeEditor
+                  ref={sourceRef}
+                  tabId={tab.id}
+                  tabKey={`${tab.id}:${tab.relativePath ?? 'untitled'}:source`}
+                  value={tab.content}
+                  relativePath={tab.relativePath}
+                  keybindingMode={tab.keybindingMode}
+                  readOnly={tab.truncated}
+                  reveal={tab.reveal ?? null}
+                  mnoteQuoteHighlight={mnoteQuoteEditorHighlight}
+                  onRevealComplete={onClearMnoteReveal}
+                  onChange={onContentChange}
+                  onContextMenu={handleSourceEditorContextMenu}
+                />
+              ))}
           </div>
         )}
       </div>

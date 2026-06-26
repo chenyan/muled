@@ -1,7 +1,7 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { runSchemeScript } from '../main/services/schemeRunService';
+import { runSchemeFile, runSchemeScript } from '../main/services/schemeRunService';
 
 describe('runSchemeScript', () => {
   it('runs a script with chez when available', () => {
@@ -53,5 +53,31 @@ describe('runSchemeScript', () => {
     const result = runSchemeScript(fakeChez, '(display 1)');
     expect(result.exitCode).not.toBe(0);
     expect(result.stderr.length).toBeGreaterThan(0);
+  });
+
+  it('runs an on-disk script with cwd set to the script directory', () => {
+    const chez =
+      process.platform === 'win32'
+        ? null
+        : (() => {
+            const candidates = [
+              '/opt/homebrew/bin/chez',
+              '/usr/local/bin/chez',
+              '/usr/bin/chez',
+            ];
+            return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
+          })();
+
+    if (!chez) {
+      return;
+    }
+
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'muled-scheme-file-'));
+    const scriptPath = path.join(tmpDir, 'main.scm');
+    fs.writeFileSync(scriptPath, '(display "file-run-ok")', 'utf8');
+    const result = runSchemeFile(chez, scriptPath);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('file-run-ok');
   });
 });

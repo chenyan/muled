@@ -14,6 +14,8 @@ const IPYNB_VIEW_MODE_CYCLE: EditorViewMode[] = ['preview', 'source'];
 const DOCX_VIEW_MODE_CYCLE: EditorViewMode[] = ['rich-text', 'preview'];
 const MNOTE_VIEW_MODE_CYCLE: EditorViewMode[] = ['rich-text', 'source'];
 
+const ORG_VIEW_MODE_CYCLE: EditorViewMode[] = ['preview', 'agenda', 'source'];
+
 export function editorViewModeLabel(mode: EditorViewMode): string {
   switch (mode) {
     case 'rich-text':
@@ -22,6 +24,8 @@ export function editorViewModeLabel(mode: EditorViewMode): string {
       return 'Source';
     case 'preview':
       return 'Preview';
+    case 'agenda':
+      return 'Agenda';
   }
 }
 
@@ -68,6 +72,11 @@ export function nextViewModeForTab(
     const index = MNOTE_VIEW_MODE_CYCLE.indexOf(current);
     if (index < 0) return 'rich-text';
     return MNOTE_VIEW_MODE_CYCLE[(index + 1) % MNOTE_VIEW_MODE_CYCLE.length];
+  }
+  if (tabKind === 'org') {
+    const index = ORG_VIEW_MODE_CYCLE.indexOf(current);
+    if (index < 0) return 'preview';
+    return ORG_VIEW_MODE_CYCLE[(index + 1) % ORG_VIEW_MODE_CYCLE.length];
   }
   return current;
 }

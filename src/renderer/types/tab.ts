@@ -3,6 +3,7 @@ import type { EditorMode, EditorViewMode } from '../../shared/types/config';
 export type TabKind =
   | 'markdown'
   | 'mnote'
+  | 'org'
   | 'html'
   | 'docx'
   | 'pptx'
@@ -75,6 +76,7 @@ export function isEditableTextTab(tab: EditorTab): boolean {
   return (
     tab.kind === 'markdown' ||
     tab.kind === 'mnote' ||
+    tab.kind === 'org' ||
     tab.kind === 'html' ||
     tab.kind === 'text' ||
     tab.kind === 'csv' ||
@@ -92,6 +94,7 @@ export function tabUsesSourceCodeEditor(tab: EditorTab): boolean {
   return (
     tab.kind === 'markdown' ||
     tab.kind === 'mnote' ||
+    tab.kind === 'org' ||
     tab.kind === 'html' ||
     tab.kind === 'csv' ||
     tab.kind === 'ipynb' ||

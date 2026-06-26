@@ -104,6 +104,7 @@ export type IpcChannel =
   | 'duckdbFile:query'
   | 'duckdbFile:listTables'
   | 'duckdbFile:close'
+  | 'scheme:available'
   | 'scheme:run';
 
 export interface WysiwygCssResult {
@@ -271,8 +272,12 @@ export interface IpcInvokeMap {
     args: { sessionId: string };
     result: { ok: boolean };
   };
+  'scheme:available': {
+    args: void;
+    result: { available: boolean };
+  };
   'scheme:run': {
-    args: { code: string };
+    args: { code?: string; path?: string };
     result: SchemeRunResponse;
   };
 }

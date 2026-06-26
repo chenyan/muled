@@ -1,0 +1,90 @@
+.SchemeSourceLayout {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.SchemeSourceLayout__editor {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.SchemeSourceLayout__editor > * {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.SchemeSourceLayout__resize {
+  flex-shrink: 0;
+  height: 6px;
+  margin: 0;
+  cursor: row-resize;
+  touch-action: none;
+  background: transparent;
+  position: relative;
+  z-index: 1;
+}
+
+.SchemeSourceLayout__resize::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: var(--muled-border);
+}
+
+.SchemeSourceLayout__resize:hover::after,
+.SchemeSourceLayout__resize:focus-visible::after,
+.SchemeSourceLayout__resize--active::after {
+  height: 2px;
+  background: var(--muled-accent);
+}
+
+.SchemeSourceLayout__outputShell {
+  flex-shrink: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-top: 1px solid var(--muled-border);
+  background: var(--muled-surface-muted);
+}
+
+.SchemeSourceLayout__output {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 8px 12px;
+  overflow: auto;
+  font-family: var(
+    --muled-source-font-family,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    monospace
+  );
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--muled-fg);
+}
+
+.SchemeSourceLayout__output--error {
+  color: var(--muled-error, #c0392b);
+}
+
+.SchemeSourceLayout--resizing .SchemeSourceLayout__editor {
+  pointer-events: none;
+}

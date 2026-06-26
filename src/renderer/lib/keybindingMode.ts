@@ -6,7 +6,9 @@ export default function keybindingModePatch(
 ): { keybindingMode: EditorMode; viewMode?: EditorViewMode } {
   if (
     mode === 'vim' &&
-    (currentViewMode === 'rich-text' || currentViewMode === 'preview')
+    (currentViewMode === 'rich-text' ||
+      currentViewMode === 'preview' ||
+      currentViewMode === 'agenda')
   ) {
     return { keybindingMode: mode, viewMode: 'source' };
   }

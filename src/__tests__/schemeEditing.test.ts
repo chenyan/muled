@@ -177,6 +177,53 @@ describe('scheme indent', () => {
     const doc = '(define x\n  1)';
     expect(indentCol(doc, doc.length - 1)).toBe(0);
   });
+
+  it('keeps indent when Enter follows a line with one list body element', () => {
+    const doc = '(list\n  item';
+    const pos = doc.length;
+    const state = schemeState(doc, { anchor: pos });
+    const cx = new IndentContext(state, { simulateBreak: pos });
+    expect(getIndentation(cx, pos)).toBe(2);
+  });
+
+  it('keeps indent when Enter follows a top-level line with one element', () => {
+    const doc = '  x';
+    const pos = doc.length;
+    const state = schemeState(doc, { anchor: pos });
+    const cx = new IndentContext(state, { simulateBreak: pos });
+    expect(getIndentation(cx, pos)).toBe(2);
+  });
+
+  it('does not preserve indent when line has multiple list elements', () => {
+    const doc = '(+ 1 2';
+    const pos = doc.length;
+    const state = schemeState(doc, { anchor: pos });
+    const cx = new IndentContext(state, { simulateBreak: pos });
+    expect(getIndentation(cx, pos)).toBe(1);
+  });
+
+  it('keeps indent aligned with x when Enter follows x before close parens', () => {
+    const cases = [
+      { doc: '  x))', pos: 3 },
+      { doc: '(list\n  x))', pos: 9 },
+      { doc: '(foo\n  bar))', pos: 10 },
+    ];
+    for (const { doc, pos } of cases) {
+      const state = schemeState(doc, { anchor: pos });
+      const cx = new IndentContext(state, { simulateBreak: pos });
+      expect(getIndentation(cx, pos)).toBe(2);
+    }
+  });
+
+  it('keeps indent aligned with x when Enter follows lone x on line', () => {
+    const cases = ['(list\n  x', '(foo\n  x'];
+    for (const doc of cases) {
+      const pos = doc.length;
+      const state = schemeState(doc, { anchor: pos });
+      const cx = new IndentContext(state, { simulateBreak: pos });
+      expect(getIndentation(cx, pos)).toBe(2);
+    }
+  });
 });
 
 describe('scheme vim coexistence', () => {

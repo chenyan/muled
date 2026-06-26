@@ -122,6 +122,12 @@ export function isHtmlPath(relativePath: string | null): boolean {
   return /\.(x?html|htm)$/i.test(base);
 }
 
+export function isOrgPath(relativePath: string | null): boolean {
+  if (!relativePath) return false;
+  const base = relativePath.replace(/\/$/, '');
+  return /\.org$/i.test(base);
+}
+
 export function isStrudelPath(relativePath: string | null): boolean {
   if (!relativePath) return false;
   const base = relativePath.replace(/\/$/, '');

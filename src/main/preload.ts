@@ -144,7 +144,8 @@ const muled = {
     close: (sessionId: string) => invoke('duckdbFile:close', { sessionId }),
   },
   scheme: {
-    run: (args: { code: string }) => invoke('scheme:run', args),
+    available: () => invoke('scheme:available'),
+    run: (args: { code?: string; path?: string }) => invoke('scheme:run', args),
   },
   menu: {
     onOpenTranslationHistory: (listener: (path: string) => void) => {

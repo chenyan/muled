@@ -18,6 +18,8 @@ import 'prismjs/components/prism-python';
 import 'prismjs/components/prism-r';
 import 'prismjs/components/prism-rust';
 import 'prismjs/components/prism-sql';
+import 'prismjs/components/prism-scheme';
+import 'prismjs/components/prism-lisp';
 
 const LANG_ALIASES: Record<string, string> = {
   python3: 'python',
@@ -46,6 +48,12 @@ const LANG_ALIASES: Record<string, string> = {
   md: 'markdown',
   text: 'plain',
   plain: 'plain',
+  scm: 'scheme',
+  rkt: 'racket',
+  elisp: 'lisp',
+  'emacs-lisp': 'lisp',
+  commonlisp: 'lisp',
+  cl: 'lisp',
 };
 
 export function normalizeNotebookLanguage(lang?: string): string | null {
@@ -80,24 +88,45 @@ export function highlightNotebookCode(
   }
 }
 
+function highlightCodeElement(el: HTMLElement): void {
+  const langClass = [...el.classList].find((c) => c.startsWith('language-'));
+  const rawLang = langClass?.slice('language-'.length);
+  const language = normalizeNotebookLanguage(rawLang);
+  if (!language) return;
+
+  el.className = `language-${language}`;
+  try {
+    el.innerHTML = Prism.highlight(
+      el.textContent ?? '',
+      Prism.languages[language],
+      language,
+    );
+  } catch {
+    // 保留原文
+  }
+}
+
 /** Markdown 单元格中 marked 生成的 fenced code */
 export function highlightNotebookMarkdownCodeBlocks(root: HTMLElement): void {
   root.querySelectorAll('.nb-markdown-cell pre code').forEach((node) => {
-    const el = node as HTMLElement;
-    const langClass = [...el.classList].find((c) => c.startsWith('language-'));
-    const rawLang = langClass?.slice('language-'.length);
-    const language = normalizeNotebookLanguage(rawLang);
-    if (language) {
-      el.className = `language-${language}`;
-      try {
-        el.innerHTML = Prism.highlight(
-          el.textContent ?? '',
-          Prism.languages[language],
-          language,
-        );
-      } catch {
-        // 保留原文
-      }
-    }
+    highlightCodeElement(node as HTMLElement);
   });
+}
+
+/** 预览 HTML 片段中的代码块（Org / Markdown 等） */
+export function highlightHtmlCodeBlocks(html: string, selector = 'pre code'): string {
+  if (typeof DOMParser === 'undefined') return html;
+
+  const doc = new DOMParser().parseFromString(
+    `<div data-org-preview-root>${html}</div>`,
+    'text/html',
+  );
+  const root = doc.querySelector('[data-org-preview-root]');
+  if (!root) return html;
+
+  root.querySelectorAll(selector).forEach((node) => {
+    highlightCodeElement(node as HTMLElement);
+  });
+
+  return root.innerHTML;
 }
