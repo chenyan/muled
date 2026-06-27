@@ -146,6 +146,51 @@ const muled = {
   scheme: {
     available: () => invoke('scheme:available'),
     run: (args: { code?: string; path?: string }) => invoke('scheme:run', args),
+    pty: {
+      create: (args: {
+        path?: string;
+        code?: string;
+        cols: number;
+        rows: number;
+      }) => invoke('scheme:pty:create', args),
+      write: (args: { sessionId: string; data: string }) =>
+        invoke('scheme:pty:write', args),
+      resize: (args: { sessionId: string; cols: number; rows: number }) =>
+        invoke('scheme:pty:resize', args),
+      kill: (sessionId: string) => invoke('scheme:pty:kill', { sessionId }),
+      onData: (
+        listener: (
+          payload: import('../shared/types/tools').SchemePtyDataPayload,
+        ) => void,
+      ) => {
+        const handler = (
+          _event: Electron.IpcRendererEvent,
+          payload: import('../shared/types/tools').SchemePtyDataPayload,
+        ) => {
+          listener(payload);
+        };
+        ipcRenderer.on('scheme:pty:data', handler);
+        return () => {
+          ipcRenderer.removeListener('scheme:pty:data', handler);
+        };
+      },
+      onExit: (
+        listener: (
+          payload: import('../shared/types/tools').SchemePtyExitPayload,
+        ) => void,
+      ) => {
+        const handler = (
+          _event: Electron.IpcRendererEvent,
+          payload: import('../shared/types/tools').SchemePtyExitPayload,
+        ) => {
+          listener(payload);
+        };
+        ipcRenderer.on('scheme:pty:exit', handler);
+        return () => {
+          ipcRenderer.removeListener('scheme:pty:exit', handler);
+        };
+      },
+    },
   },
   menu: {
     onOpenTranslationHistory: (listener: (path: string) => void) => {

@@ -64,12 +64,18 @@ import SourceCodeEditor, {
   type SourceCodeEditorHandle,
 } from '../editor/SourceCodeEditor';
 import SchemeSourceLayout from '../editor/SchemeSourceLayout';
-import { getSourceLanguageId } from '../../lib/fileLanguage';
 import { useSchemeChezAvailable } from '../../hooks/useSchemeChezAvailable';
 import {
-  executeSchemeRun,
-  type SchemeRunOutput,
-} from '../../lib/scheme/schemeRunClient';
+  createSchemePtySession,
+  killSchemePtySession,
+} from '../../lib/scheme/schemePtyClient';
+import {
+  disposeSchemeTerminalSession,
+  isSchemeSourceTab,
+  shouldDisposeSchemeTerminalOnTabContextChange,
+  type SchemeTerminalTabContext,
+} from '../../lib/scheme/schemeTerminalSessionLifecycle';
+import { extractSchemeTopLevelSymbols } from '../../lib/scheme/schemeTerminalSymbolTracker';
 import { pushStatusToast } from '../../lib/statusToast';
 import RunIcon from '../icons/RunIcon';
 import { DEFAULT_BUFFER_BYTES } from '../../../shared/constants';
@@ -198,7 +204,18 @@ export default function TabContent({
   const [noteSaving, setNoteSaving] = useState(false);
   const [mnoteExists, setMnoteExists] = useState(false);
   const [schemeRunning, setSchemeRunning] = useState(false);
-  const [schemeOutput, setSchemeOutput] = useState<SchemeRunOutput | null>(null);
+  const [schemeTerminalSessionId, setSchemeTerminalSessionId] = useState<
+    string | null
+  >(null);
+  const [schemeTerminalInitialSymbols, setSchemeTerminalInitialSymbols] =
+    useState<string[]>([]);
+  const schemeTerminalSessionIdRef = useRef<string | null>(null);
+  schemeTerminalSessionIdRef.current = schemeTerminalSessionId;
+  const schemeTabContextRef = useRef<SchemeTerminalTabContext | null>(null);
+  const isSchemeSourceTabActive = isSchemeSourceTab(
+    tab?.kind,
+    tab?.relativePath ?? null,
+  );
   const chezAvailable = useSchemeChezAvailable();
   const { translationPopup, setTranslationPopup, runTranslate } =
     useTabTranslation();
@@ -238,28 +255,87 @@ export default function TabContent({
   }, [mnotePath]);
 
   useEffect(() => {
-    setSchemeOutput(null);
-    setSchemeRunning(false);
+    return () => {
+      disposeSchemeTerminalSession({
+        sessionIdRef: schemeTerminalSessionIdRef,
+        kill: killSchemePtySession,
+      });
+      setSchemeTerminalSessionId(null);
+      setSchemeTerminalInitialSymbols([]);
+      setSchemeRunning(false);
+    };
   }, [tab?.id]);
+
+  useEffect(() => {
+    const next: SchemeTerminalTabContext = {
+      relativePath: tab?.relativePath ?? null,
+      isSchemeSourceTab: isSchemeSourceTabActive,
+    };
+    const previous = schemeTabContextRef.current;
+    schemeTabContextRef.current = next;
+
+    if (
+      previous &&
+      shouldDisposeSchemeTerminalOnTabContextChange(previous, next) &&
+      schemeTerminalSessionIdRef.current
+    ) {
+      disposeSchemeTerminalSession({
+        sessionIdRef: schemeTerminalSessionIdRef,
+        kill: killSchemePtySession,
+      });
+      setSchemeTerminalSessionId(null);
+      setSchemeTerminalInitialSymbols([]);
+      setSchemeRunning(false);
+    }
+  }, [tab?.relativePath, isSchemeSourceTabActive]);
+
+  const handleCloseSchemeTerminal = useCallback(() => {
+    disposeSchemeTerminalSession({
+      sessionIdRef: schemeTerminalSessionIdRef,
+      sessionId: schemeTerminalSessionId,
+      kill: killSchemePtySession,
+    });
+    setSchemeTerminalSessionId(null);
+    setSchemeTerminalInitialSymbols([]);
+  }, [schemeTerminalSessionId]);
+
+  const handleSchemeTerminalExit = useCallback(() => {
+    setSchemeTerminalSessionId(null);
+    setSchemeTerminalInitialSymbols([]);
+  }, []);
 
   const handleSchemeRun = useCallback(async () => {
     if (!tab) return;
     const code = sourceRef.current?.getValue() ?? tab.content;
     const canRunFile = Boolean(tab.relativePath) && !tab.dirty;
+
+    if (schemeTerminalSessionId) {
+      await killSchemePtySession(schemeTerminalSessionId);
+      setSchemeTerminalSessionId(null);
+      setSchemeTerminalInitialSymbols([]);
+    }
+
     setSchemeRunning(true);
-    setSchemeOutput(null);
     try {
-      const output = await executeSchemeRun(
-        canRunFile && tab.relativePath ? { path: tab.relativePath } : { code },
+      setSchemeTerminalInitialSymbols(extractSchemeTopLevelSymbols(code));
+      const sessionId = await createSchemePtySession(
+        canRunFile && tab.relativePath
+          ? { path: tab.relativePath }
+          : { code },
       );
-      if (output) setSchemeOutput(output);
+      if (sessionId) {
+        if (!canRunFile && tab.relativePath) {
+          pushStatusToast('运行未保存内容', 'info');
+        }
+        setSchemeTerminalSessionId(sessionId);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       pushStatusToast(`运行失败：${message}`, 'error');
     } finally {
       setSchemeRunning(false);
     }
-  }, [tab]);
+  }, [tab, schemeTerminalSessionId]);
 
   const getWysiwygContent = useCallback((): string => {
     return mdxRef.current?.getPersistedMarkdown() ?? tab?.content ?? '';
@@ -821,9 +897,6 @@ export default function TabContent({
 
   const canSave =
     isSavableTab(tab) && tab.relativePath && !tab.truncated && tab.dirty;
-  const isSchemeSourceTab =
-    tab.kind === 'text' &&
-    getSourceLanguageId(tab.relativePath) === 'scheme';
 
   const paneClass = isPane
     ? ` TabContent--pane${focused ? ' TabContent--pane-focused' : ''}`
@@ -978,7 +1051,7 @@ export default function TabContent({
               onChange={handleViewModeChange}
             />
           )}
-          {!isPane && isSchemeSourceTab && chezAvailable && (
+          {!isPane && isSchemeSourceTabActive && chezAvailable && (
             <button
               type="button"
               className="TabContent__run"
@@ -1193,8 +1266,13 @@ export default function TabContent({
               />
             )}
             {showSource && tab.kind !== 'csv' &&
-              (isSchemeSourceTab ? (
-                <SchemeSourceLayout output={schemeOutput}>
+              (isSchemeSourceTabActive ? (
+                <SchemeSourceLayout
+                  terminalSessionId={schemeTerminalSessionId}
+                  terminalInitialSymbols={schemeTerminalInitialSymbols}
+                  onCloseTerminal={handleCloseSchemeTerminal}
+                  onTerminalExit={handleSchemeTerminalExit}
+                >
                   <SourceCodeEditor
                     ref={sourceRef}
                     tabId={tab.id}

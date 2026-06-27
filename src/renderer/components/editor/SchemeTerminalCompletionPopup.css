@@ -1,0 +1,60 @@
+.SchemeTerminalCompletionPopup {
+  position: absolute;
+  z-index: 20;
+  margin: 0;
+  padding: 2px 0;
+  min-width: 160px;
+  max-width: min(360px, 100%);
+  max-height: 180px;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--muled-border);
+  border-radius: 4px;
+  background: var(--muled-surface);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--muled-fg) 16%, transparent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+}
+
+.SchemeTerminalCompletionPopup__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  cursor: pointer;
+  color: var(--muled-fg);
+}
+
+.SchemeTerminalCompletionPopup__item--selected,
+.SchemeTerminalCompletionPopup__item:hover {
+  background: color-mix(in srgb, var(--muled-accent) 18%, transparent);
+}
+
+.SchemeTerminalCompletionPopup__kind {
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--muled-fg-muted, var(--muled-muted-fg));
+}
+
+.SchemeTerminalCompletionPopup__kind--keyword {
+  color: var(--term-color-12, #3498db);
+}
+
+.SchemeTerminalCompletionPopup__kind--symbol {
+  color: var(--term-color-2, #27ae60);
+}
+
+.SchemeTerminalCompletionPopup__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.SchemeTerminalCompletionPopup__matched {
+  font-weight: 600;
+}

@@ -1,0 +1,135 @@
+.SchemeTerminalPane__shell {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.SchemeTerminalPane__terminal {
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  max-height: 100%;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 8px;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--muled-fg) 28%, transparent)
+    transparent;
+  --term-font-size: 12px;
+  --term-row-height: 17px;
+  --term-fg: var(--muled-fg);
+  --term-bg: var(--muled-surface-muted);
+  --term-cursor: var(--muled-accent);
+  --term-selection-bg: color-mix(in srgb, var(--muled-accent) 28%, transparent);
+  --term-color-0: #212121;
+  --term-color-1: #c0392b;
+  --term-color-2: #27ae60;
+  --term-color-3: #d4a017;
+  --term-color-4: #2980b9;
+  --term-color-5: #8e44ad;
+  --term-color-6: #16a085;
+  --term-color-7: #bdc3c7;
+  --term-color-8: #757575;
+  --term-color-9: #e74c3c;
+  --term-color-10: #2ecc71;
+  --term-color-11: #f1c40f;
+  --term-color-12: #3498db;
+  --term-color-13: #9b59b6;
+  --term-color-14: #1abc9c;
+  --term-color-15: #ecf0f1;
+}
+
+.SchemeTerminalPane__hl-comment {
+  color: var(--term-color-8);
+  font-style: italic;
+}
+
+.SchemeTerminalPane__hl-boolean,
+.SchemeTerminalPane__hl-number {
+  color: var(--term-color-13);
+}
+
+.SchemeTerminalPane__hl-string {
+  color: var(--term-color-2);
+}
+
+.SchemeTerminalPane__hl-keyword {
+  color: var(--term-color-12);
+  font-weight: 600;
+}
+
+.SchemeTerminalPane__hl-symbol {
+  color: var(--term-fg);
+}
+
+.SchemeTerminalPane__terminal.wterm::-webkit-scrollbar {
+  width: 8px;
+}
+
+.SchemeTerminalPane__terminal.wterm::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.SchemeTerminalPane__terminal.wterm::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muled-fg) 28%, transparent);
+  border-radius: 4px;
+}
+
+.SchemeTerminalPane__terminal.wterm::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--muled-fg) 42%, transparent);
+}
+
+.SchemeSourceLayout__terminalHeader {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--muled-border);
+  background: var(--muled-surface);
+  color: var(--muled-fg-muted, var(--muled-fg));
+  font-size: 11px;
+}
+
+.SchemeSourceLayout__terminalTitle {
+  font-weight: 500;
+}
+
+.SchemeSourceLayout__terminalClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  padding: 0;
+  border: 1px solid var(--muled-border);
+  border-radius: 0;
+  background: var(--muled-surface);
+  color: var(--muled-muted-fg);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.SchemeSourceLayout__terminalClose:hover {
+  background: var(--muled-surface-muted);
+  color: var(--muled-fg);
+}
+
+.SchemeSourceLayout__terminalBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}

@@ -1,6 +1,10 @@
 import type { PublicConfig } from './config';
 import type { SettingsForm, SettingsGetResult } from './settings';
-import type { DetectToolsResult, SchemeRunResponse } from './tools';
+import type {
+  DetectToolsResult,
+  SchemePtyCreateResponse,
+  SchemeRunResponse,
+} from './tools';
 import type { ResolvedThemeConfig, ThemeConfig } from './theme';
 import type { SearchStartResult } from './search';
 import type { CsvQueryResponse, CsvRegisterResponse } from './csvQuery';
@@ -105,7 +109,11 @@ export type IpcChannel =
   | 'duckdbFile:listTables'
   | 'duckdbFile:close'
   | 'scheme:available'
-  | 'scheme:run';
+  | 'scheme:run'
+  | 'scheme:pty:create'
+  | 'scheme:pty:write'
+  | 'scheme:pty:resize'
+  | 'scheme:pty:kill';
 
 export interface WysiwygCssResult {
   css: string;
@@ -279,6 +287,27 @@ export interface IpcInvokeMap {
   'scheme:run': {
     args: { code?: string; path?: string };
     result: SchemeRunResponse;
+  };
+  'scheme:pty:create': {
+    args: {
+      path?: string;
+      code?: string;
+      cols: number;
+      rows: number;
+    };
+    result: SchemePtyCreateResponse;
+  };
+  'scheme:pty:write': {
+    args: { sessionId: string; data: string };
+    result: { ok: boolean };
+  };
+  'scheme:pty:resize': {
+    args: { sessionId: string; cols: number; rows: number };
+    result: { ok: boolean };
+  };
+  'scheme:pty:kill': {
+    args: { sessionId: string };
+    result: { ok: boolean };
   };
 }
 

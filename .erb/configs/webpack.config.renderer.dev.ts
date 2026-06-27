@@ -209,6 +209,14 @@ const configuration: webpack.Configuration = {
     port,
     compress: true,
     hot: true,
+    client: {
+      overlay: {
+        errors: true,
+        warnings: false,
+        runtimeErrors: (error: Error) =>
+          !/ResizeObserver loop/i.test(error?.message ?? ''),
+      },
+    },
     headers: { 'Access-Control-Allow-Origin': '*' },
     static: {
       publicPath: '/',

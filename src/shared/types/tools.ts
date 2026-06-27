@@ -62,3 +62,18 @@ export interface SchemeRunResult {
 export type SchemeRunResponse =
   | { error: 'not_configured' }
   | ({ ok: true } & SchemeRunResult);
+
+export type SchemePtyCreateResponse =
+  | { error: 'not_configured' }
+  | { error: 'spawn_failed'; message: string }
+  | { ok: true; sessionId: string };
+
+export interface SchemePtyDataPayload {
+  sessionId: string;
+  data: string;
+}
+
+export interface SchemePtyExitPayload {
+  sessionId: string;
+  exitCode: number;
+}

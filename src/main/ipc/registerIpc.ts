@@ -1,4 +1,4 @@
-import { ipcMain, nativeTheme, shell, type BrowserWindow, type WebContents } from 'electron';
+import { ipcMain, nativeTheme, shell, app, type BrowserWindow, type IpcMainInvokeEvent, type WebContents } from 'electron';
 import fs from 'fs';
 import type {
   ConfigChangedPayload,
@@ -37,6 +37,13 @@ import WorkspaceService from '../services/workspaceService';
 import WorkspaceWatcherService from '../services/workspaceWatcherService';
 import { detectToolPaths, resolveToolExecutable } from '../services/toolPathService';
 import { runSchemeFile, runSchemeScript } from '../services/schemeRunService';
+import {
+  createSchemePtySession,
+  killAllSchemePtySessions,
+  killSchemePtySession,
+  resizeSchemePtySession,
+  writeSchemePtySession,
+} from '../services/schemePtyService';
 import DuckdbService from '../services/duckdbService';
 import DuckdbFileService from '../services/duckdbFileService';
 import SqliteService from '../services/sqliteService';
@@ -445,15 +452,68 @@ export function registerIpc(
       }
       return { error: 'not_configured' as const };
     },
+
+    'scheme:pty:create': (arg, webContents) => {
+      const { code, path: relativePath, cols, rows } = arg as {
+        code?: string;
+        path?: string;
+        cols: number;
+        rows: number;
+      };
+      const chez = resolveToolExecutable(
+        'chez',
+        services.config.get().tools.chez,
+      );
+      if (!chez) {
+        return { error: 'not_configured' as const };
+      }
+      return createSchemePtySession(
+        chez,
+        {
+          path: relativePath,
+          code,
+          cols,
+          rows,
+        },
+        (relative) => services.file.resolveFilePath(relative),
+        webContents,
+      );
+    },
+
+    'scheme:pty:write': (arg) => {
+      const { sessionId, data } = arg as { sessionId: string; data: string };
+      return { ok: writeSchemePtySession(sessionId, data) };
+    },
+
+    'scheme:pty:resize': (arg) => {
+      const { sessionId, cols, rows } = arg as {
+        sessionId: string;
+        cols: number;
+        rows: number;
+      };
+      return { ok: resizeSchemePtySession(sessionId, cols, rows) };
+    },
+
+    'scheme:pty:kill': (arg) => {
+      const { sessionId } = arg as { sessionId: string };
+      return { ok: killSchemePtySession(sessionId) };
+    },
   };
 
   (Object.keys(handlers) as IpcChannel[]).forEach((channel) => {
-    ipcMain.handle(channel, async (event, arg) => {
+    ipcMain.handle(channel, async (event: IpcMainInvokeEvent, arg) => {
       if (channel === 'search:start') {
         return handlers[channel](arg, event);
       }
+      if (channel === 'scheme:pty:create') {
+        return handlers[channel](arg, event.sender);
+      }
       return handlers[channel](arg);
     });
+  });
+
+  app.on('before-quit', () => {
+    killAllSchemePtySessions();
   });
 }
 

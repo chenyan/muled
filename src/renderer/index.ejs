@@ -7,6 +7,21 @@
       content="script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data:; worker-src 'self' blob: data:; connect-src 'self' https: http: data: blob:"
     />
     <title>MulEd</title>
+    <script>
+      (function () {
+        var pattern = /ResizeObserver loop/i;
+        window.addEventListener(
+          'error',
+          function (event) {
+            if (pattern.test(event.message || '')) {
+              event.preventDefault();
+              event.stopImmediatePropagation();
+            }
+          },
+          true,
+        );
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

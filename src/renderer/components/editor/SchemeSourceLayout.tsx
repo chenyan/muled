@@ -5,24 +5,30 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { useVerticalDragSize } from '../../hooks/useVerticalDragSize';
 import {
-  formatSchemeRunOutput,
-  type SchemeRunOutput,
-} from '../../lib/scheme/schemeRunClient';
+  SCHEME_EDITOR_MIN_HEIGHT,
+  SCHEME_OUTPUT_DEFAULT_HEIGHT,
+  SCHEME_OUTPUT_MAX_HEIGHT,
+  SCHEME_OUTPUT_MIN_HEIGHT,
+} from '../../lib/scheme/schemeOutputConstants';
+import { useVerticalDragSize } from '../../hooks/useVerticalDragSize';
+import SchemeTerminalPane from './SchemeTerminalPane';
 import './SchemeSourceLayout.css';
+import './SchemeTerminalPane.css';
 
 /** 运行结果面板高度下限 */
-export const SCHEME_OUTPUT_MIN_HEIGHT = 80;
-/** 运行结果面板默认高度 */
-export const SCHEME_OUTPUT_DEFAULT_HEIGHT = 160;
-/** 运行结果面板高度上限（绝对值） */
-export const SCHEME_OUTPUT_MAX_HEIGHT = 480;
-/** 显示运行结果时编辑器区域保留高度下限 */
-export const SCHEME_EDITOR_MIN_HEIGHT = 120;
+export {
+  SCHEME_EDITOR_MIN_HEIGHT,
+  SCHEME_OUTPUT_DEFAULT_HEIGHT,
+  SCHEME_OUTPUT_MAX_HEIGHT,
+  SCHEME_OUTPUT_MIN_HEIGHT,
+} from '../../lib/scheme/schemeOutputConstants';
 
 interface SchemeSourceLayoutProps {
-  output: SchemeRunOutput | null;
+  terminalSessionId: string | null;
+  terminalInitialSymbols?: readonly string[];
+  onCloseTerminal?: () => void;
+  onTerminalExit?: (exitCode: number) => void;
   children: ReactNode;
 }
 
@@ -35,7 +41,10 @@ function getOutputMaxHeight(containerHeight: number): number {
 }
 
 export default function SchemeSourceLayout({
-  output,
+  terminalSessionId,
+  terminalInitialSymbols = [],
+  onCloseTerminal,
+  onTerminalExit,
   children,
 }: SchemeSourceLayoutProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -74,24 +83,31 @@ export default function SchemeSourceLayout({
       onChange: handlePanelHeightChange,
       liveTargetRef: outputShellRef,
       invertDelta: true,
-      ariaLabel: '调整 Scheme 运行结果面板高度',
+      ariaLabel: '调整 Scheme 终端面板高度',
     });
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || !output) return undefined;
+    if (!container || !terminalSessionId) return undefined;
 
+    let frameId: number | null = null;
     const syncMax = () => {
-      setPanelHeight((current) => clampPanelHeight(current));
+      if (frameId !== null) cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(() => {
+        frameId = null;
+        setPanelHeight((current) => clampPanelHeight(current));
+      });
     };
 
     const observer = new ResizeObserver(syncMax);
     observer.observe(container);
-    return () => observer.disconnect();
-  }, [clampPanelHeight, output]);
+    return () => {
+      observer.disconnect();
+      if (frameId !== null) cancelAnimationFrame(frameId);
+    };
+  }, [clampPanelHeight, terminalSessionId]);
 
-  const showOutput = output !== null;
-  const combinedOutput = output ? formatSchemeRunOutput(output) : '';
+  const showTerminal = terminalSessionId !== null;
 
   return (
     <div
@@ -99,7 +115,7 @@ export default function SchemeSourceLayout({
       className={`SchemeSourceLayout${resizingOutput ? ' SchemeSourceLayout--resizing' : ''}`}
     >
       <div className="SchemeSourceLayout__editor">{children}</div>
-      {showOutput ? (
+      {showTerminal && terminalSessionId ? (
         <>
           <div
             className={`SchemeSourceLayout__resize${resizingOutput ? ' SchemeSourceLayout__resize--active' : ''}`}
@@ -110,15 +126,28 @@ export default function SchemeSourceLayout({
             className="SchemeSourceLayout__outputShell"
             style={{ height: panelHeight }}
           >
-            <div
-              className={`SchemeSourceLayout__output${
-                output.exitCode !== 0
-                  ? ' SchemeSourceLayout__output--error'
-                  : ''
-              }`}
-              aria-live="polite"
-            >
-              {combinedOutput || `(exit ${output.exitCode})`}
+            <div className="SchemeSourceLayout__terminalHeader">
+              <span className="SchemeSourceLayout__terminalTitle">
+                Chez Scheme REPL
+              </span>
+              {onCloseTerminal ? (
+                <button
+                  type="button"
+                  className="SchemeSourceLayout__terminalClose"
+                  title="关闭"
+                  aria-label="关闭终端"
+                  onClick={onCloseTerminal}
+                >
+                  ×
+                </button>
+              ) : null}
+            </div>
+            <div className="SchemeSourceLayout__terminalBody">
+              <SchemeTerminalPane
+                sessionId={terminalSessionId}
+                initialSymbols={terminalInitialSymbols}
+                onExit={onTerminalExit}
+              />
             </div>
           </div>
         </>

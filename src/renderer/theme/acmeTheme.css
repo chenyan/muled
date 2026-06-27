@@ -245,6 +245,19 @@
   color: #000;
 }
 
+[data-muled-ui-theme='acme'] .SchemeSourceLayout__terminalClose {
+  border: 1px solid #000;
+  background: var(--muled-chrome-bg);
+  color: #000;
+  font-family: var(--muled-chrome-font);
+  font-size: 11px;
+}
+
+[data-muled-ui-theme='acme'] .SchemeSourceLayout__terminalClose:hover {
+  background: var(--muled-hover);
+  color: #000;
+}
+
 [data-muled-ui-theme='acme'] .MarkdownTabNavigation {
   border-color: #000;
 }

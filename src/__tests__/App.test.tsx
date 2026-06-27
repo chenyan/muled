@@ -168,6 +168,14 @@ beforeEach(() => {
     scheme: {
       available: async () => ({ available: false }),
       run: async () => ({ ok: true as const, stdout: '', stderr: '', exitCode: 0 }),
+      pty: {
+        create: async () => ({ ok: true as const, sessionId: 'test-session' }),
+        write: async () => ({ ok: true }),
+        resize: async () => ({ ok: true }),
+        kill: async () => ({ ok: true }),
+        onData: () => () => undefined,
+        onExit: () => () => undefined,
+      },
     },
     menu: {
       onOpenTranslationHistory: () => () => undefined,
