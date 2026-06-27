@@ -315,16 +315,6 @@
   background: var(--muled-editor-bg);
 }
 
-[data-muled-ui-theme='acme'] .MuledSourceEditor__lang {
-  padding: 2px 8px;
-  font-size: 11px;
-  font-family: var(--muled-chrome-font);
-  font-weight: bold;
-  color: #000;
-  background: var(--muled-chrome-bg);
-  border-bottom: 1px solid #000;
-}
-
 /* ── 状态栏（底部 tag bar） ── */
 [data-muled-ui-theme='acme'] .StatusBar {
   height: 22px;
@@ -461,16 +451,16 @@
   background: #c8b898;
 }
 
-/* ── 源码编辑器：左侧行号 gutter 仿 Acme 滚动槽 ── */
+/* ── 源码编辑器：行号与正文同色底，字色减淡 ── */
 [data-muled-ui-theme='acme'] .MuledSourceEditor__cm .cm-gutters {
   display: flex !important;
-  background: #c8b898 !important;
-  color: #000 !important;
-  border-right: 1px solid #000 !important;
+  background: var(--muled-editor-bg) !important;
+  color: color-mix(in srgb, #000 35%, transparent) !important;
+  border-right: none !important;
 }
 
 [data-muled-ui-theme='acme'] .MuledSourceEditor__cm .cm-activeLineGutter {
-  background: #e8d882 !important;
+  background: color-mix(in srgb, #e8d882 40%, var(--muled-editor-bg)) !important;
 }
 
 [data-muled-ui-theme='acme'] .MuledSourceEditor__cm .cm-editor {

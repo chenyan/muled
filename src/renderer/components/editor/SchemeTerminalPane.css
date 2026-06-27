@@ -6,6 +6,7 @@
   flex-direction: column;
   overflow: hidden;
   position: relative;
+  background: var(--muled-editor-bg);
 }
 
 .SchemeTerminalPane__terminal {
@@ -26,7 +27,7 @@
   --term-font-size: 12px;
   --term-row-height: 17px;
   --term-fg: var(--muled-fg);
-  --term-bg: var(--muled-surface-muted);
+  --term-bg: var(--muled-editor-bg);
   --term-cursor: var(--muled-accent);
   --term-selection-bg: color-mix(in srgb, var(--muled-accent) 28%, transparent);
   --term-color-0: #212121;
@@ -132,4 +133,5 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: var(--muled-editor-bg);
 }

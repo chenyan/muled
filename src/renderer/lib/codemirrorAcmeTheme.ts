@@ -34,9 +34,9 @@ const acmeTheme = EditorView.theme(
       backgroundColor: `${P.highlight}88`,
     },
     '.cm-gutters': {
-      borderRight: `1px solid ${P.border}`,
-      color: P.muted,
-      backgroundColor: P.scrollbarGutter,
+      borderRight: 'none',
+      color: '#999999',
+      backgroundColor: P.bg,
     },
     '.cm-activeLineGutter': {
       backgroundColor: `${P.selection}66`,

@@ -23,10 +23,7 @@ import { useSourceEditorTheme } from '../../hooks/useAppTheme';
 import { useEditorIndentSettings } from '../../hooks/useEditorIndentSettings';
 import { useWheelScrollOnlyWhenGestureStartsIn } from '../../lib/wheelScrollOnlyWhenGestureStartsIn';
 import { setActiveEditorSelection } from '../../lib/editorSelectionBridge';
-import {
-  getSourceLanguageId,
-  getSourceLanguageLabel,
-} from '../../lib/fileLanguage';
+import { getSourceLanguageId } from '../../lib/fileLanguage';
 
 function clampDocPos(view: EditorView, pos: number): number {
   return Math.max(0, Math.min(pos, view.state.doc.length));
@@ -110,7 +107,6 @@ const SourceCodeEditor = forwardRef<
   onContextMenuRef.current = onContextMenu;
 
   const languageId = getSourceLanguageId(relativePath);
-  const languageLabel = getSourceLanguageLabel(languageId);
   const sourceTheme = useSourceEditorTheme();
   const indentSettings = useEditorIndentSettings();
 
@@ -349,9 +345,6 @@ const SourceCodeEditor = forwardRef<
 
   return (
     <div className="MuledSourceEditor">
-      <div className="MuledSourceEditor__lang" aria-hidden>
-        {languageLabel}
-      </div>
       <div ref={containerRef} className="MuledSourceEditor__cm" />
     </div>
   );

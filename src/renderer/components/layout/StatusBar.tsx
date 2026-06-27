@@ -118,7 +118,9 @@ export default function StatusBar({
           </span>
         )}
         {viewMode && (
-          <span className="StatusBar__badge">{editorViewModeLabel(viewMode)}</span>
+          <span className="StatusBar__badge">
+            {editorViewModeLabel(viewMode, tab?.relativePath)}
+          </span>
         )}
         {keyMode && tab && isEditableTextTab(tab) && (
           <button

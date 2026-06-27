@@ -5,6 +5,7 @@ import path from 'path';
 import type { IPty } from 'node-pty';
 import * as pty from 'node-pty';
 import type { WebContents } from 'electron';
+import { describePtySpawnFailure, sanitizeSpawnEnv } from '../ptySpawn';
 import { getShellProcessEnv } from '../shellPath';
 
 interface PtySession {
@@ -174,7 +175,7 @@ export function createSchemePtySession(
       cols: Math.max(2, args.cols),
       rows: Math.max(1, args.rows),
       cwd,
-      env: getShellProcessEnv() as Record<string, string>,
+      env: sanitizeSpawnEnv(getShellProcessEnv()),
     });
 
     sessions.set(sessionId, {
@@ -211,7 +212,9 @@ export function createSchemePtySession(
         // ignore
       }
     }
-    const message = error instanceof Error ? error.message : String(error);
+    const message = describePtySpawnFailure(
+      error instanceof Error ? error.message : String(error),
+    );
     return { error: 'spawn_failed', message };
   }
 }

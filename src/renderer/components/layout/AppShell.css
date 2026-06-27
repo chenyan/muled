@@ -928,23 +928,11 @@
 
 .MuledSourceEditor {
   height: 100%;
-  display: flex;
-  flex-direction: column;
   min-height: 0;
 }
 
-.MuledSourceEditor__lang {
-  flex-shrink: 0;
-  padding: 4px 12px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--muled-muted-fg);
-  background: var(--muled-surface-muted);
-  border-bottom: 1px solid var(--muled-border);
-}
-
 .MuledSourceEditor__cm {
-  flex: 1;
+  height: 100%;
   min-height: 0;
   /* 滚动仅由 CodeMirror .cm-scroller 负责；外层 overflow 会导致坐标偏移 */
   overflow: hidden;
@@ -968,6 +956,26 @@
   font-size: var(--muled-source-font-size, 13px);
   font-variant-ligatures: none;
   font-feature-settings: 'liga' 0, 'calt' 0;
+}
+
+.MuledSourceEditor__cm .cm-gutters {
+  background-color: #ffffff !important;
+  color: var(--muled-placeholder) !important;
+  border-right: none !important;
+}
+
+.MuledSourceEditor__cm .cm-activeLineGutter {
+  background-color: #eceff4 !important;
+}
+
+[data-muled-ui-theme='dark'] .MuledSourceEditor__cm .cm-gutters {
+  background-color: #2e3235 !important;
+  color: color-mix(in srgb, #808080 65%, transparent) !important;
+  border-right: none !important;
+}
+
+[data-muled-ui-theme='dark'] .MuledSourceEditor__cm .cm-activeLineGutter {
+  background-color: color-mix(in srgb, #b9d2ff 19%, transparent) !important;
 }
 
 .MuledSourceEditor__cm .cm-searchMatch {

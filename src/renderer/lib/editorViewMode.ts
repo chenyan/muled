@@ -1,5 +1,9 @@
 import type { EditorViewMode } from '../../shared/types/config';
 import type { TabKind } from '../types/tab';
+import {
+  getSourceLanguageId,
+  getSourceLanguageLabel,
+} from './fileLanguage';
 
 const MARKDOWN_VIEW_MODE_CYCLE: EditorViewMode[] = [
   'rich-text',
@@ -16,12 +20,17 @@ const MNOTE_VIEW_MODE_CYCLE: EditorViewMode[] = ['rich-text', 'source'];
 
 const ORG_VIEW_MODE_CYCLE: EditorViewMode[] = ['preview', 'agenda', 'source'];
 
-export function editorViewModeLabel(mode: EditorViewMode): string {
+export function editorViewModeLabel(
+  mode: EditorViewMode,
+  relativePath?: string | null,
+): string {
   switch (mode) {
     case 'rich-text':
       return 'WYSIWYG';
     case 'source':
-      return 'Source';
+      return getSourceLanguageLabel(
+        getSourceLanguageId(relativePath ?? null),
+      );
     case 'preview':
       return 'Preview';
     case 'agenda':

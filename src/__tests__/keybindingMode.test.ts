@@ -8,7 +8,9 @@ import keybindingModePatch from '../renderer/lib/keybindingMode';
 describe('editorViewMode', () => {
   it('labels all view modes', () => {
     expect(editorViewModeLabel('rich-text')).toBe('WYSIWYG');
-    expect(editorViewModeLabel('source')).toBe('Source');
+    expect(editorViewModeLabel('source')).toBe('Markdown');
+    expect(editorViewModeLabel('source', 'app.ts')).toBe('TypeScript');
+    expect(editorViewModeLabel('source', 'main.py')).toBe('Python');
     expect(editorViewModeLabel('preview')).toBe('Preview');
     expect(editorViewModeLabel('agenda')).toBe('Agenda');
   });

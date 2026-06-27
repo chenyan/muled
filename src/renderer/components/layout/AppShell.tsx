@@ -611,7 +611,10 @@ export default function AppShell() {
     if (tab.kind === 'docx') {
       const next = nextViewModeForTab(tab.kind, tab.viewMode);
       editor.setViewMode(tab.id, next);
-      pushStatusToast(`视图: ${editorViewModeLabel(next)}`, 'info');
+      pushStatusToast(
+        `视图: ${editorViewModeLabel(next, tab.relativePath)}`,
+        'info',
+      );
       return;
     }
     if (
@@ -631,7 +634,10 @@ export default function AppShell() {
       tab.content;
     const next = nextViewModeForTab(tab.kind, tab.viewMode);
     editor.setViewMode(tab.id, next, content);
-    pushStatusToast(`视图: ${editorViewModeLabel(next)}`, 'info');
+    pushStatusToast(
+      `视图: ${editorViewModeLabel(next, tab.relativePath)}`,
+      'info',
+    );
   }, [editor]);
 
   useEffect(() => {

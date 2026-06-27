@@ -29,6 +29,7 @@
   --muled-active-soft-border: #a5b4fc;
   --muled-active-soft-fg: #3730a3;
   --muled-separator: #d4d4d8;
+  --muled-editor-bg: #ffffff;
   --muled-grid-dir-bg: color-mix(in srgb, var(--muled-accent) 8%, var(--muled-surface));
   --muled-grid-dir-border: color-mix(in srgb, var(--muled-accent) 18%, var(--muled-border));
   --muled-grid-dir-hover: color-mix(in srgb, var(--muled-accent) 14%, var(--muled-surface));
@@ -67,6 +68,7 @@
   --muled-active-soft-border: #4338ca;
   --muled-active-soft-fg: #c7d2fe;
   --muled-separator: #52525b;
+  --muled-editor-bg: #2e3235;
   --muled-grid-dir-bg: color-mix(in srgb, var(--muled-accent) 12%, var(--muled-surface));
   --muled-grid-dir-border: color-mix(in srgb, var(--muled-accent) 22%, var(--muled-border));
   --muled-grid-dir-hover: color-mix(in srgb, var(--muled-accent) 18%, var(--muled-surface));
@@ -105,6 +107,7 @@
   --muled-active-soft-border: #000000;
   --muled-active-soft-fg: #000000;
   --muled-separator: #000000;
+  --muled-editor-bg: #ffffea;
   --muled-grid-dir-bg: color-mix(in srgb, var(--muled-hover) 55%, var(--muled-surface));
   --muled-grid-dir-border: var(--muled-border);
   --muled-grid-dir-hover: var(--muled-hover);

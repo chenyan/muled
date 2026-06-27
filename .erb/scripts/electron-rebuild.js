@@ -1,4 +1,4 @@
-const { execSync } = require('child_process');
+const { execFileSync, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -42,4 +42,31 @@ if (
     cwd: appPath,
     stdio: 'inherit',
   });
+
+  if (process.platform === 'darwin') {
+    const spawnHelperPath = path.join(
+      appNodeModulesPath,
+      'node-pty',
+      'build',
+      'Release',
+      'spawn-helper',
+    );
+    if (fs.existsSync(spawnHelperPath)) {
+      const fileOutput = execFileSync('/usr/bin/file', ['-b', spawnHelperPath], {
+        encoding: 'utf8',
+      });
+      const helperArch = fileOutput.includes('arm64')
+        ? 'arm64'
+        : fileOutput.includes('x86_64')
+          ? 'x64'
+          : null;
+      const runtimeArch = process.arch === 'arm64' ? 'arm64' : 'x64';
+      if (helperArch && helperArch !== runtimeArch) {
+        throw new Error(
+          `node-pty spawn-helper is ${helperArch} but this machine is ${runtimeArch}. ` +
+            'Re-run npm install under the native architecture (avoid Rosetta npm), then npm run rebuild.',
+        );
+      }
+    }
+  }
 }

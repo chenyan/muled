@@ -146,6 +146,7 @@ export default function SchemeSourceLayout({
               <SchemeTerminalPane
                 sessionId={terminalSessionId}
                 initialSymbols={terminalInitialSymbols}
+                resizeFrozen={resizingOutput}
                 onExit={onTerminalExit}
               />
             </div>

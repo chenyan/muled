@@ -38,6 +38,8 @@ import './SchemeTerminalCompletionPopup.css';
 interface SchemeTerminalPaneProps {
   sessionId: string;
   initialSymbols?: readonly string[];
+  /** 面板拖拽调高度时冻结网格重算，避免终端内容跳动 */
+  resizeFrozen?: boolean;
   onExit?: (exitCode: number) => void;
 }
 
@@ -107,6 +109,7 @@ function lockTerminalViewport(element: HTMLElement): void {
 export default function SchemeTerminalPane({
   sessionId,
   initialSymbols = [],
+  resizeFrozen = false,
   onExit,
 }: SchemeTerminalPaneProps) {
   const shellRef = useRef<HTMLDivElement>(null);
@@ -123,6 +126,8 @@ export default function SchemeTerminalPane({
   const lastHighlightKeyRef = useRef('');
   const envSymbolsRef = useRef<string[]>([]);
   const completionRef = useRef<CompletionState | null>(null);
+  const resizeFrozenRef = useRef(resizeFrozen);
+  resizeFrozenRef.current = resizeFrozen;
 
   const [gridSize, setGridSize] = useState(() => {
     const shell = shellRef.current;
@@ -342,14 +347,31 @@ export default function SchemeTerminalPane({
     const last = lastSizeRef.current;
     if (last?.cols === cols && last?.rows === rows) return;
 
+    const wt = wtermRef.current;
+    const el = wt?.element;
+    const wasAtBottom =
+      el !== undefined &&
+      el.scrollHeight - el.scrollTop - el.clientHeight < 5;
+    const savedScrollTop = el?.scrollTop ?? 0;
+
     lastSizeRef.current = { cols, rows };
     setGridSize({ cols, rows });
     resize(cols, rows);
-    if (wtermRef.current) {
-      lockTerminalViewport(wtermRef.current.element);
+    if (wt) {
+      lockTerminalViewport(wt.element);
     }
     schedulePtyResize(sessionIdRef.current, cols, rows);
     scheduleInputLineHighlight();
+
+    if (el && !wasAtBottom) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (wtermRef.current?.element === el) {
+            el.scrollTop = savedScrollTop;
+          }
+        });
+      });
+    }
   }, [resize, scheduleInputLineHighlight]);
 
   const scheduleTerminalSize = useCallback(() => {
@@ -432,10 +454,13 @@ export default function SchemeTerminalPane({
     if (!shell) return undefined;
 
     const observer = new ResizeObserver(() => {
+      if (resizeFrozenRef.current) return;
       scheduleTerminalSize();
     });
     observer.observe(shell);
-    scheduleTerminalSize();
+    if (!resizeFrozenRef.current) {
+      scheduleTerminalSize();
+    }
 
     return () => {
       observer.disconnect();
@@ -450,6 +475,12 @@ export default function SchemeTerminalPane({
       clearCompletion();
     };
   }, [clearCompletion, initialSymbols, scheduleTerminalSize, sessionId]);
+
+  useEffect(() => {
+    if (!resizeFrozen) {
+      scheduleTerminalSize();
+    }
+  }, [resizeFrozen, scheduleTerminalSize]);
 
   const handleData = useCallback(
     (data: string) => {
