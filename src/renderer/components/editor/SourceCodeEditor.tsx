@@ -17,6 +17,7 @@ import {
   type EditorRevealRequest,
 } from '../../lib/editorReveal';
 import languageExtensionForId from '../../lib/codemirrorLanguage';
+import { buildSchemeEditorCompletionExtension } from '../../lib/scheme/schemeEditorCompletion';
 import schemeStructuredEditing from '../../lib/scheme/schemeVimCoexist';
 import { buildCommonSourceUiExtensions } from '../../lib/codemirrorSetup';
 import { useSourceEditorTheme } from '../../hooks/useAppTheme';
@@ -54,6 +55,8 @@ export interface SourceCodeEditorProps {
   onChange: (value: string) => void;
   onVisibleLineChange?: (line: number) => void;
   onContextMenu?: (event: MouseEvent) => void;
+  /** Scheme REPL / 运行上下文中的符号，与文档内 define 绑定合并后用于补全 */
+  schemeEnvSymbols?: readonly string[];
 }
 
 export interface SourceCodeEditorHandle {
@@ -85,6 +88,7 @@ const SourceCodeEditor = forwardRef<
     onChange,
     onVisibleLineChange,
     onContextMenu,
+    schemeEnvSymbols = [],
   },
   ref,
 ) {
@@ -105,6 +109,8 @@ const SourceCodeEditor = forwardRef<
   onVisibleLineChangeRef.current = onVisibleLineChange;
   const onContextMenuRef = useRef(onContextMenu);
   onContextMenuRef.current = onContextMenu;
+  const schemeEnvSymbolsRef = useRef(schemeEnvSymbols);
+  schemeEnvSymbolsRef.current = schemeEnvSymbols;
 
   const languageId = getSourceLanguageId(relativePath);
   const sourceTheme = useSourceEditorTheme();
@@ -204,7 +210,12 @@ const SourceCodeEditor = forwardRef<
       }),
       ...(lang ? [lang] : []),
       ...(languageId === 'scheme'
-        ? schemeStructuredEditing(keybindingMode)
+        ? [
+            schemeStructuredEditing(keybindingMode),
+            buildSchemeEditorCompletionExtension(
+              () => schemeEnvSymbolsRef.current,
+            ),
+          ]
         : []),
       ...(readOnly ? [EditorState.readOnly.of(true)] : []),
     ];

@@ -3,6 +3,10 @@ import {
   completionInsertSuffix,
 } from '../renderer/lib/scheme/schemeTerminalCompletion';
 import {
+  resolveSchemeEditorEnvSymbols,
+  buildSchemeEditorCompletionResult,
+} from '../renderer/lib/scheme/schemeEditorCompletion';
+import {
   extractSchemeCompletionPrefix,
   parseSchemeTerminalInputLine,
 } from '../renderer/lib/scheme/schemeTerminalInputLine';
@@ -57,6 +61,39 @@ describe('collectSchemeTerminalCompletions', () => {
 describe('completionInsertSuffix', () => {
   it('returns remaining characters after shared prefix', () => {
     expect(completionInsertSuffix('def', 'define')).toBe('ine');
+  });
+});
+
+describe('resolveSchemeEditorEnvSymbols', () => {
+  it('merges document defines with extra env symbols', () => {
+    const symbols = resolveSchemeEditorEnvSymbols(
+      '(define helper 1)\n(define-syntax kw (syntax-rules () ((kw x) x)))',
+      ['from-repl'],
+    );
+    expect(symbols).toEqual(
+      expect.arrayContaining(['helper', 'kw', 'from-repl']),
+    );
+  });
+});
+
+describe('buildSchemeEditorCompletionResult', () => {
+  it('returns keyword matches for identifier prefix', () => {
+    const doc = '(define helper 1)\n(def';
+    const result = buildSchemeEditorCompletionResult({
+      doc,
+      pos: doc.length,
+    });
+    expect(result?.from).toBe(doc.length - 3);
+    expect(result?.options.some((o) => o.label === 'define')).toBe(true);
+  });
+
+  it('includes document define bindings when prefix matches', () => {
+    const doc = '(define helper 1)\n(hel';
+    const result = buildSchemeEditorCompletionResult({
+      doc,
+      pos: doc.length,
+    });
+    expect(result?.options.some((o) => o.label === 'helper')).toBe(true);
   });
 });
 

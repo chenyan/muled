@@ -1286,6 +1286,7 @@ export default function TabContent({
                     onRevealComplete={onClearMnoteReveal}
                     onChange={onContentChange}
                     onContextMenu={handleSourceEditorContextMenu}
+                    schemeEnvSymbols={schemeTerminalInitialSymbols}
                   />
                 </SchemeSourceLayout>
               ) : (
