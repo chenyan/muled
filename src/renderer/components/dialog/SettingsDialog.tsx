@@ -74,6 +74,7 @@ export default function SettingsDialog({
       if (!result.found.fd) missing.push('fd');
       if (!result.found.rg) missing.push('ripgrep (rg)');
       if (!result.found.chez) missing.push('Chez Scheme (chez)');
+      if (!result.found.bun) missing.push('Bun');
       if (missing.length > 0) {
         setDetectHint(
           `未找到 ${missing.join('、')}，请手动输入可执行文件路径，或先安装后再检测。`,
@@ -400,8 +401,9 @@ export default function SettingsDialog({
                 <h3 className="SettingsDialog__sectionTitle">命令行工具</h3>
                 <p className="SettingsDialog__sectionHint">
                   命令面板中的 <code>fd</code>、<code>rg</code> 搜索，以及 WYSIWYG 中{' '}
-                  <code>scheme</code> 代码块运行，依赖本机可执行文件。路径留空时在
-                  PATH 中查找；从 Finder 启动的 release 包若找不到，可点「自动检测」或手动填写绝对路径。
+                  <code>scheme</code>、<code>javascript</code>、<code>typescript</code>{' '}
+                  代码块运行，依赖本机可执行文件。路径留空时在 PATH 中查找；从 Finder
+                  启动的 release 包若找不到，可点「自动检测」或手动填写绝对路径。
                 </p>
                 <div className="SettingsDialog__grid">
                   <label className="SettingsDialog__field SettingsDialog__field--full">
@@ -434,6 +436,17 @@ export default function SettingsDialog({
                       value={form.tools.chez}
                       onChange={(e) =>
                         patch('tools', { ...form.tools, chez: e.target.value })
+                      }
+                    />
+                  </label>
+                  <label className="SettingsDialog__field SettingsDialog__field--full">
+                    <span className="SettingsDialog__label">Bun</span>
+                    <input
+                      className="SettingsDialog__input"
+                      placeholder="~/.bun/bin/bun"
+                      value={form.tools.bun}
+                      onChange={(e) =>
+                        patch('tools', { ...form.tools, bun: e.target.value })
                       }
                     />
                   </label>

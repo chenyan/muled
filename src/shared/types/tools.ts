@@ -1,14 +1,16 @@
-/** 命令面板 fd / ripgrep / Chez Scheme 可执行文件路径；留空表示在 PATH 中自动查找 */
+/** 命令面板 fd / ripgrep / Chez Scheme / Bun 可执行文件路径；留空表示在 PATH 中自动查找 */
 export interface ToolPathsConfig {
   fd: string;
   rg: string;
   chez: string;
+  bun: string;
 }
 
 export const DEFAULT_TOOL_PATHS: ToolPathsConfig = {
   fd: '',
   rg: '',
   chez: '',
+  bun: '',
 };
 
 export type ShellToolId = keyof ToolPathsConfig;
@@ -22,6 +24,7 @@ export function parseToolPaths(raw: unknown): ToolPathsConfig {
     fd: typeof data.fd === 'string' ? data.fd.trim() : '',
     rg: typeof data.rg === 'string' ? data.rg.trim() : '',
     chez: typeof data.chez === 'string' ? data.chez.trim() : '',
+    bun: typeof data.bun === 'string' ? data.bun.trim() : '',
   };
 }
 
@@ -38,6 +41,9 @@ export function shellToolPathNames(
       return ['chez.exe', 'chez', 'scheme.exe', 'scheme', 'petite.exe', 'petite'];
     }
     return ['chez', 'scheme', 'petite'];
+  }
+  if (tool === 'bun') {
+    return platform === 'win32' ? ['bun.exe', 'bun'] : ['bun'];
   }
   if (platform === 'linux') {
     return ['fdfind', 'fd'];
@@ -74,6 +80,24 @@ export interface SchemePtyDataPayload {
 }
 
 export interface SchemePtyExitPayload {
+  sessionId: string;
+  exitCode: number;
+}
+
+export type BunRunResult = SchemeRunResult;
+
+export type BunRunResponse =
+  | { error: 'not_configured' }
+  | ({ ok: true } & BunRunResult);
+
+export type BunPtyCreateResponse = SchemePtyCreateResponse;
+
+export interface BunPtyDataPayload {
+  sessionId: string;
+  data: string;
+}
+
+export interface BunPtyExitPayload {
   sessionId: string;
   exitCode: number;
 }

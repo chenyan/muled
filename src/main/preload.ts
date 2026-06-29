@@ -192,6 +192,58 @@ const muled = {
       },
     },
   },
+  bun: {
+    available: () => invoke('bun:available'),
+    run: (args: { code?: string; path?: string; language?: string }) =>
+      invoke('bun:run', args),
+    abort: () => invoke('bun:run:abort'),
+    pty: {
+      create: (args: {
+        path?: string;
+        code?: string;
+        language?: string;
+        cols: number;
+        rows: number;
+      }) => invoke('bun:pty:create', args),
+      write: (args: { sessionId: string; data: string }) =>
+        invoke('bun:pty:write', args),
+      resize: (args: { sessionId: string; cols: number; rows: number }) =>
+        invoke('bun:pty:resize', args),
+      kill: (sessionId: string) => invoke('bun:pty:kill', { sessionId }),
+      onData: (
+        listener: (
+          payload: import('../shared/types/tools').BunPtyDataPayload,
+        ) => void,
+      ) => {
+        const handler = (
+          _event: Electron.IpcRendererEvent,
+          payload: import('../shared/types/tools').BunPtyDataPayload,
+        ) => {
+          listener(payload);
+        };
+        ipcRenderer.on('bun:pty:data', handler);
+        return () => {
+          ipcRenderer.removeListener('bun:pty:data', handler);
+        };
+      },
+      onExit: (
+        listener: (
+          payload: import('../shared/types/tools').BunPtyExitPayload,
+        ) => void,
+      ) => {
+        const handler = (
+          _event: Electron.IpcRendererEvent,
+          payload: import('../shared/types/tools').BunPtyExitPayload,
+        ) => {
+          listener(payload);
+        };
+        ipcRenderer.on('bun:pty:exit', handler);
+        return () => {
+          ipcRenderer.removeListener('bun:pty:exit', handler);
+        };
+      },
+    },
+  },
   menu: {
     onOpenTranslationHistory: (listener: (path: string) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, path: string) => {

@@ -64,17 +64,30 @@ import SourceCodeEditor, {
   type SourceCodeEditorHandle,
 } from '../editor/SourceCodeEditor';
 import SchemeSourceLayout from '../editor/SchemeSourceLayout';
+import BunSourceLayout from '../editor/BunSourceLayout';
 import { useSchemeChezAvailable } from '../../hooks/useSchemeChezAvailable';
+import { useBunAvailable } from '../../hooks/useBunAvailable';
 import {
   createSchemePtySession,
   killSchemePtySession,
 } from '../../lib/scheme/schemePtyClient';
+import {
+  createBunPtySession,
+  killBunPtySession,
+} from '../../lib/bun/bunPtyClient';
 import {
   disposeSchemeTerminalSession,
   isSchemeSourceTab,
   shouldDisposeSchemeTerminalOnTabContextChange,
   type SchemeTerminalTabContext,
 } from '../../lib/scheme/schemeTerminalSessionLifecycle';
+import {
+  disposeBunTerminalSession,
+  isBunSourceTab,
+  shouldDisposeBunTerminalOnTabContextChange,
+  type BunTerminalTabContext,
+} from '../../lib/bun/bunTerminalSessionLifecycle';
+import { getSourceLanguageId } from '../../lib/fileLanguage';
 import { extractSchemeTopLevelSymbols } from '../../lib/scheme/schemeTerminalSymbolTracker';
 import { pushStatusToast } from '../../lib/statusToast';
 import RunIcon from '../icons/RunIcon';
@@ -217,6 +230,21 @@ export default function TabContent({
     tab?.relativePath ?? null,
   );
   const chezAvailable = useSchemeChezAvailable();
+  const [bunRunning, setBunRunning] = useState(false);
+  const [bunTerminalSessionId, setBunTerminalSessionId] = useState<
+    string | null
+  >(null);
+  const [bunTerminalExitCode, setBunTerminalExitCode] = useState<number | null>(
+    null,
+  );
+  const bunTerminalSessionIdRef = useRef<string | null>(null);
+  bunTerminalSessionIdRef.current = bunTerminalSessionId;
+  const bunTabContextRef = useRef<BunTerminalTabContext | null>(null);
+  const isBunSourceTabActive = isBunSourceTab(
+    tab?.kind,
+    tab?.relativePath ?? null,
+  );
+  const bunAvailable = useBunAvailable();
   const { translationPopup, setTranslationPopup, runTranslate } =
     useTabTranslation();
 
@@ -260,9 +288,16 @@ export default function TabContent({
         sessionIdRef: schemeTerminalSessionIdRef,
         kill: killSchemePtySession,
       });
+      disposeBunTerminalSession({
+        sessionIdRef: bunTerminalSessionIdRef,
+        kill: killBunPtySession,
+      });
       setSchemeTerminalSessionId(null);
       setSchemeTerminalInitialSymbols([]);
       setSchemeRunning(false);
+      setBunTerminalSessionId(null);
+      setBunTerminalExitCode(null);
+      setBunRunning(false);
     };
   }, [tab?.id]);
 
@@ -288,6 +323,80 @@ export default function TabContent({
       setSchemeRunning(false);
     }
   }, [tab?.relativePath, isSchemeSourceTabActive]);
+
+  useEffect(() => {
+    const next: BunTerminalTabContext = {
+      relativePath: tab?.relativePath ?? null,
+      isBunSourceTab: isBunSourceTabActive,
+    };
+    const previous = bunTabContextRef.current;
+    bunTabContextRef.current = next;
+
+    if (
+      previous &&
+      shouldDisposeBunTerminalOnTabContextChange(previous, next) &&
+      bunTerminalSessionIdRef.current
+    ) {
+      disposeBunTerminalSession({
+        sessionIdRef: bunTerminalSessionIdRef,
+        kill: killBunPtySession,
+      });
+      setBunTerminalSessionId(null);
+      setBunTerminalExitCode(null);
+      setBunRunning(false);
+    }
+  }, [tab?.relativePath, isBunSourceTabActive]);
+
+  const handleCloseBunTerminal = useCallback(() => {
+    disposeBunTerminalSession({
+      sessionIdRef: bunTerminalSessionIdRef,
+      sessionId: bunTerminalSessionId,
+      kill: killBunPtySession,
+    });
+    setBunTerminalSessionId(null);
+    setBunTerminalExitCode(null);
+  }, [bunTerminalSessionId]);
+
+  const handleBunTerminalExit = useCallback((exitCode: number) => {
+    setBunTerminalExitCode(exitCode);
+    if (exitCode !== 0) {
+      pushStatusToast(`脚本退出码 ${exitCode}`, 'error');
+    }
+  }, []);
+
+  const handleBunRun = useCallback(async () => {
+    if (!tab) return;
+    const code = sourceRef.current?.getValue() ?? tab.content;
+    const canRunFile = Boolean(tab.relativePath) && !tab.dirty;
+    const language = getSourceLanguageId(tab.relativePath ?? null);
+
+    if (bunTerminalSessionId) {
+      await killBunPtySession(bunTerminalSessionId);
+      setBunTerminalSessionId(null);
+      setBunTerminalExitCode(null);
+    }
+
+    setBunRunning(true);
+    try {
+      const sessionId = await createBunPtySession(
+        canRunFile && tab.relativePath
+          ? { path: tab.relativePath, language }
+          : { code, language },
+      );
+      if (sessionId) {
+        if (!canRunFile && tab.relativePath) {
+          pushStatusToast('运行未保存内容', 'info');
+        }
+        setBunTerminalSessionId(sessionId);
+        setBunTerminalExitCode(null);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      pushStatusToast(`运行失败：${message}`, 'error');
+    } finally {
+      setBunRunning(false);
+    }
+  }, [tab, bunTerminalSessionId]);
 
   const handleCloseSchemeTerminal = useCallback(() => {
     disposeSchemeTerminalSession({
@@ -1051,6 +1160,22 @@ export default function TabContent({
               onChange={handleViewModeChange}
             />
           )}
+          {!isPane && isBunSourceTabActive && bunAvailable && (
+            <button
+              type="button"
+              className="TabContent__run"
+              disabled={bunRunning || tab.truncated}
+              title="运行当前文件 (Bun)"
+              aria-label="运行 JavaScript/TypeScript 文件"
+              aria-busy={bunRunning}
+              onClick={() => {
+                void handleBunRun();
+              }}
+            >
+              <RunIcon size={11} />
+              <span>{bunRunning ? '运行中…' : '运行'}</span>
+            </button>
+          )}
           {!isPane && isSchemeSourceTabActive && chezAvailable && (
             <button
               type="button"
@@ -1289,6 +1414,28 @@ export default function TabContent({
                     schemeEnvSymbols={schemeTerminalInitialSymbols}
                   />
                 </SchemeSourceLayout>
+              ) : isBunSourceTabActive ? (
+                <BunSourceLayout
+                  terminalSessionId={bunTerminalSessionId}
+                  terminalExitCode={bunTerminalExitCode}
+                  onCloseTerminal={handleCloseBunTerminal}
+                  onTerminalExit={handleBunTerminalExit}
+                >
+                  <SourceCodeEditor
+                    ref={sourceRef}
+                    tabId={tab.id}
+                    tabKey={`${tab.id}:${tab.relativePath ?? 'untitled'}:source`}
+                    value={tab.content}
+                    relativePath={tab.relativePath}
+                    keybindingMode={tab.keybindingMode}
+                    readOnly={tab.truncated}
+                    reveal={tab.reveal ?? null}
+                    mnoteQuoteHighlight={mnoteQuoteEditorHighlight}
+                    onRevealComplete={onClearMnoteReveal}
+                    onChange={onContentChange}
+                    onContextMenu={handleSourceEditorContextMenu}
+                  />
+                </BunSourceLayout>
               ) : (
                 <SourceCodeEditor
                   ref={sourceRef}

@@ -44,6 +44,18 @@ import {
   resizeSchemePtySession,
   writeSchemePtySession,
 } from '../services/schemePtyService';
+import {
+  abortBunRunForWebContents,
+  runBunFile,
+  runBunScript,
+} from '../services/bunRunService';
+import {
+  createBunPtySession,
+  killAllBunPtySessions,
+  killBunPtySession,
+  resizeBunPtySession,
+  writeBunPtySession,
+} from '../services/bunPtyService';
 import DuckdbService from '../services/duckdbService';
 import DuckdbFileService from '../services/duckdbFileService';
 import SqliteService from '../services/sqliteService';
@@ -498,6 +510,87 @@ export function registerIpc(
       const { sessionId } = arg as { sessionId: string };
       return { ok: killSchemePtySession(sessionId) };
     },
+
+    'bun:available': () => {
+      const bun = resolveToolExecutable('bun', services.config.get().tools.bun);
+      return { available: bun !== null };
+    },
+
+    'bun:run': async (arg, webContents) => {
+      const { code, path: relativePath, language } = arg as {
+        code?: string;
+        path?: string;
+        language?: string;
+      };
+      const bun = resolveToolExecutable('bun', services.config.get().tools.bun);
+      if (!bun) {
+        return { error: 'not_configured' as const };
+      }
+      if (relativePath) {
+        const absolutePath = services.file.resolveFilePath(relativePath);
+        const result = await runBunFile(bun, absolutePath, webContents.id);
+        return { ok: true as const, ...result };
+      }
+      if (typeof code === 'string') {
+        const result = await runBunScript(
+          bun,
+          code,
+          language,
+          webContents.id,
+        );
+        return { ok: true as const, ...result };
+      }
+      return { error: 'not_configured' as const };
+    },
+
+    'bun:run:abort': (_arg, webContents) => {
+      return { ok: abortBunRunForWebContents(webContents) };
+    },
+
+    'bun:pty:create': (arg, webContents) => {
+      const { code, path: relativePath, language, cols, rows } = arg as {
+        code?: string;
+        path?: string;
+        language?: string;
+        cols: number;
+        rows: number;
+      };
+      const bun = resolveToolExecutable('bun', services.config.get().tools.bun);
+      if (!bun) {
+        return { error: 'not_configured' as const };
+      }
+      return createBunPtySession(
+        bun,
+        {
+          path: relativePath,
+          code,
+          language,
+          cols,
+          rows,
+        },
+        (relative) => services.file.resolveFilePath(relative),
+        webContents,
+      );
+    },
+
+    'bun:pty:write': (arg) => {
+      const { sessionId, data } = arg as { sessionId: string; data: string };
+      return { ok: writeBunPtySession(sessionId, data) };
+    },
+
+    'bun:pty:resize': (arg) => {
+      const { sessionId, cols, rows } = arg as {
+        sessionId: string;
+        cols: number;
+        rows: number;
+      };
+      return { ok: resizeBunPtySession(sessionId, cols, rows) };
+    },
+
+    'bun:pty:kill': (arg) => {
+      const { sessionId } = arg as { sessionId: string };
+      return { ok: killBunPtySession(sessionId) };
+    },
   };
 
   (Object.keys(handlers) as IpcChannel[]).forEach((channel) => {
@@ -505,7 +598,10 @@ export function registerIpc(
       if (channel === 'search:start') {
         return handlers[channel](arg, event);
       }
-      if (channel === 'scheme:pty:create') {
+      if (channel === 'scheme:pty:create' || channel === 'bun:pty:create') {
+        return handlers[channel](arg, event.sender);
+      }
+      if (channel === 'bun:run' || channel === 'bun:run:abort') {
         return handlers[channel](arg, event.sender);
       }
       return handlers[channel](arg);
@@ -514,6 +610,7 @@ export function registerIpc(
 
   app.on('before-quit', () => {
     killAllSchemePtySessions();
+    killAllBunPtySessions();
   });
 }
 

@@ -87,6 +87,9 @@ function platformCandidatePaths(tool: ShellToolId): string[] {
   if (tool === 'chez') {
     dirs.push('/opt/homebrew/opt/chezscheme/bin', '/usr/local/opt/chezscheme/bin');
   }
+  if (tool === 'bun') {
+    dirs.push(path.join(home, '.bun', 'bin'));
+  }
   return dirs.flatMap((dir) => names.map((name) => path.join(dir, name)));
 }
 
@@ -114,16 +117,19 @@ export function detectToolPaths(
   const fd = detectToolPath('fd', env);
   const rg = detectToolPath('rg', env);
   const chez = detectToolPath('chez', env);
+  const bun = detectToolPath('bun', env);
   return {
     tools: {
       fd: fd ?? '',
       rg: rg ?? '',
       chez: chez ?? '',
+      bun: bun ?? '',
     },
     found: {
       fd: fd !== null,
       rg: rg !== null,
       chez: chez !== null,
+      bun: bun !== null,
     },
   };
 }
@@ -144,10 +150,11 @@ export function resolveToolExecutable(
 export function resolveToolPaths(
   config: ToolPathsConfig,
   env: NodeJS.ProcessEnv = getShellProcessEnv(),
-): { fd: string | null; rg: string | null; chez: string | null } {
+): { fd: string | null; rg: string | null; chez: string | null; bun: string | null } {
   return {
     fd: resolveToolExecutable('fd', config.fd, env),
     rg: resolveToolExecutable('rg', config.rg, env),
     chez: resolveToolExecutable('chez', config.chez, env),
+    bun: resolveToolExecutable('bun', config.bun, env),
   };
 }

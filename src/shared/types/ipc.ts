@@ -2,6 +2,8 @@ import type { PublicConfig } from './config';
 import type { SettingsForm, SettingsGetResult } from './settings';
 import type {
   DetectToolsResult,
+  BunPtyCreateResponse,
+  BunRunResponse,
   SchemePtyCreateResponse,
   SchemeRunResponse,
 } from './tools';
@@ -113,7 +115,14 @@ export type IpcChannel =
   | 'scheme:pty:create'
   | 'scheme:pty:write'
   | 'scheme:pty:resize'
-  | 'scheme:pty:kill';
+  | 'scheme:pty:kill'
+  | 'bun:available'
+  | 'bun:run'
+  | 'bun:run:abort'
+  | 'bun:pty:create'
+  | 'bun:pty:write'
+  | 'bun:pty:resize'
+  | 'bun:pty:kill';
 
 export interface WysiwygCssResult {
   css: string;
@@ -306,6 +315,40 @@ export interface IpcInvokeMap {
     result: { ok: boolean };
   };
   'scheme:pty:kill': {
+    args: { sessionId: string };
+    result: { ok: boolean };
+  };
+  'bun:available': {
+    args: void;
+    result: { available: boolean };
+  };
+  'bun:run': {
+    args: { code?: string; path?: string; language?: string };
+    result: BunRunResponse;
+  };
+  'bun:run:abort': {
+    args: void;
+    result: { ok: boolean };
+  };
+  'bun:pty:create': {
+    args: {
+      path?: string;
+      code?: string;
+      language?: string;
+      cols: number;
+      rows: number;
+    };
+    result: BunPtyCreateResponse;
+  };
+  'bun:pty:write': {
+    args: { sessionId: string; data: string };
+    result: { ok: boolean };
+  };
+  'bun:pty:resize': {
+    args: { sessionId: string; cols: number; rows: number };
+    result: { ok: boolean };
+  };
+  'bun:pty:kill': {
     args: { sessionId: string };
     result: { ok: boolean };
   };

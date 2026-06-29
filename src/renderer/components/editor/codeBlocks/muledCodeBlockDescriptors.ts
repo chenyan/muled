@@ -4,6 +4,7 @@ import MermaidCodeBlockEditor from './MermaidCodeBlockEditor';
 import MnoteEntryCodeBlockEditor from './MnoteEntryCodeBlockEditor';
 import PlainCodeBlockEditor from './PlainCodeBlockEditor';
 import SchemeCodeBlockEditor from './SchemeCodeBlockEditor';
+import JsTsCodeBlockEditor from './JsTsCodeBlockEditor';
 import StrudelCodeBlockEditor from './StrudelCodeBlockEditor';
 
 const MERMAID_DESCRIPTOR: CodeBlockEditorDescriptor = {
@@ -48,10 +49,27 @@ const SCHEME_DESCRIPTOR: CodeBlockEditorDescriptor = {
   Editor: SchemeCodeBlockEditor,
 };
 
+const JS_TS_DESCRIPTOR: CodeBlockEditorDescriptor = {
+  priority: 100,
+  match: (language) => {
+    const lang = (language ?? '').toLowerCase();
+    return (
+      lang === 'javascript' ||
+      lang === 'js' ||
+      lang === 'typescript' ||
+      lang === 'ts' ||
+      lang === 'jsx' ||
+      lang === 'tsx'
+    );
+  },
+  Editor: JsTsCodeBlockEditor,
+};
+
 const MULED_CODE_BLOCK_DESCRIPTORS: CodeBlockEditorDescriptor[] = [
   MNOTE_ENTRY_DESCRIPTOR,
   STRUDEL_DESCRIPTOR,
   SCHEME_DESCRIPTOR,
+  JS_TS_DESCRIPTOR,
   MERMAID_DESCRIPTOR,
   MATH_DESCRIPTOR,
   PLAIN_FALLBACK_DESCRIPTOR,

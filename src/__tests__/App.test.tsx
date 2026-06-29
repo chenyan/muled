@@ -64,12 +64,12 @@ beforeEach(() => {
             wysiwyg: 'system',
             source: 'system',
           },
-          tools: { fd: '', rg: '', chez: '' },
+          tools: { fd: '', rg: '', chez: '', bun: '' },
         },
       }),
       detectTools: async () => ({
-        tools: { fd: '', rg: '', chez: '' },
-        found: { fd: false, rg: false, chez: false },
+        tools: { fd: '', rg: '', chez: '', bun: '' },
+        found: { fd: false, rg: false, chez: false, bun: false },
       }),
       save: async () => ({ config: mockConfig, workspacePathChanged: false }),
       getWysiwygCss: async () => ({
@@ -170,6 +170,19 @@ beforeEach(() => {
       run: async () => ({ ok: true as const, stdout: '', stderr: '', exitCode: 0 }),
       pty: {
         create: async () => ({ ok: true as const, sessionId: 'test-session' }),
+        write: async () => ({ ok: true }),
+        resize: async () => ({ ok: true }),
+        kill: async () => ({ ok: true }),
+        onData: () => () => undefined,
+        onExit: () => () => undefined,
+      },
+    },
+    bun: {
+      available: async () => ({ available: false }),
+      run: async () => ({ ok: true as const, stdout: '', stderr: '', exitCode: 0 }),
+      abort: async () => ({ ok: true }),
+      pty: {
+        create: async () => ({ ok: true as const, sessionId: 'test-bun-session' }),
         write: async () => ({ ok: true }),
         resize: async () => ({ ok: true }),
         kill: async () => ({ ok: true }),

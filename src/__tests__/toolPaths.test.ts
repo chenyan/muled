@@ -6,22 +6,24 @@ import {
 import { resolveToolExecutable } from '../main/services/toolPathService';
 
 describe('parseToolPaths', () => {
-  it('parses fd, rg, and chez paths', () => {
+  it('parses fd, rg, chez, and bun paths', () => {
     expect(
       parseToolPaths({
         fd: ' /opt/homebrew/bin/fd ',
         rg: '~/bin/rg',
         chez: '/opt/homebrew/bin/chez',
+        bun: '~/.bun/bin/bun',
       }),
     ).toEqual({
       fd: '/opt/homebrew/bin/fd',
       rg: '~/bin/rg',
       chez: '/opt/homebrew/bin/chez',
+      bun: '~/.bun/bin/bun',
     });
   });
 
   it('defaults missing fields to empty strings', () => {
-    expect(parseToolPaths(null)).toEqual({ fd: '', rg: '', chez: '' });
+    expect(parseToolPaths(null)).toEqual({ fd: '', rg: '', chez: '', bun: '' });
   });
 });
 
@@ -36,6 +38,10 @@ describe('shellToolPathNames', () => {
       'scheme',
       'petite',
     ]);
+  });
+
+  it('includes bun', () => {
+    expect(shellToolPathNames('bun', 'darwin')).toEqual(['bun']);
   });
 });
 

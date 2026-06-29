@@ -155,6 +155,15 @@ export function getSourceLanguageLabel(id: SourceLanguageId): string {
   return LANGUAGE_LABELS[id];
 }
 
+export function isBunRunnableSourceLanguage(id: SourceLanguageId): boolean {
+  return (
+    id === 'javascript' ||
+    id === 'typescript' ||
+    id === 'jsx' ||
+    id === 'tsx'
+  );
+}
+
 const CODE_BLOCK_LANG: Record<string, SourceLanguageId> = {
   txt: 'plain',
   text: 'plain',
@@ -221,4 +230,8 @@ export function codeBlockLanguageLabel(language: string): string {
     return 'Strudel';
   }
   return getSourceLanguageLabel(codeBlockLanguageId(language));
+}
+
+export function isBunRunnableCodeBlockLanguage(language: string): boolean {
+  return isBunRunnableSourceLanguage(codeBlockLanguageId(language));
 }
