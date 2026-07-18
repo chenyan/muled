@@ -270,10 +270,11 @@ async function loadFileIntoTab(
                 : html
                   ? 'html'
                   : 'text';
-  const viewMode: EditorViewMode =
-    mnote
-      ? 'rich-text'
-      : csv || ipynb || html || strudel || p5 || org
+  const viewMode: EditorViewMode = mnote
+    ? 'rich-text'
+    : ipynb
+      ? 'preview'
+      : csv || html || strudel || p5 || org
         ? 'preview'
         : markdown
           ? 'rich-text'

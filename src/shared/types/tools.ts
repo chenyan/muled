@@ -1,9 +1,11 @@
-/** 命令面板 fd / ripgrep / Chez Scheme / Bun 可执行文件路径；留空表示在 PATH 中自动查找 */
+/** 命令面板 fd / ripgrep / Chez Scheme / Bun / Python 可执行文件路径；留空表示在 PATH 中自动查找 */
 export interface ToolPathsConfig {
   fd: string;
   rg: string;
   chez: string;
   bun: string;
+  python: string;
+  ipython: string;
 }
 
 export const DEFAULT_TOOL_PATHS: ToolPathsConfig = {
@@ -11,6 +13,8 @@ export const DEFAULT_TOOL_PATHS: ToolPathsConfig = {
   rg: '',
   chez: '',
   bun: '',
+  python: '',
+  ipython: '',
 };
 
 export type ShellToolId = keyof ToolPathsConfig;
@@ -25,6 +29,8 @@ export function parseToolPaths(raw: unknown): ToolPathsConfig {
     rg: typeof data.rg === 'string' ? data.rg.trim() : '',
     chez: typeof data.chez === 'string' ? data.chez.trim() : '',
     bun: typeof data.bun === 'string' ? data.bun.trim() : '',
+    python: typeof data.python === 'string' ? data.python.trim() : '',
+    ipython: typeof data.ipython === 'string' ? data.ipython.trim() : '',
   };
 }
 
@@ -44,6 +50,16 @@ export function shellToolPathNames(
   }
   if (tool === 'bun') {
     return platform === 'win32' ? ['bun.exe', 'bun'] : ['bun'];
+  }
+  if (tool === 'python') {
+    return platform === 'win32'
+      ? ['python.exe', 'python3.exe', 'python', 'python3']
+      : ['python3', 'python'];
+  }
+  if (tool === 'ipython') {
+    return platform === 'win32'
+      ? ['ipython.exe', 'ipython3.exe', 'ipython', 'ipython3']
+      : ['ipython3', 'ipython'];
   }
   if (platform === 'linux') {
     return ['fdfind', 'fd'];
@@ -98,6 +114,24 @@ export interface BunPtyDataPayload {
 }
 
 export interface BunPtyExitPayload {
+  sessionId: string;
+  exitCode: number;
+}
+
+export type PythonPtyMode = 'script' | 'repl';
+
+export type PythonPtyCreateResponse =
+  | { error: 'not_configured' }
+  | { error: 'ipython_not_available'; message: string }
+  | { error: 'spawn_failed'; message: string }
+  | { ok: true; sessionId: string };
+
+export interface PythonPtyDataPayload {
+  sessionId: string;
+  data: string;
+}
+
+export interface PythonPtyExitPayload {
   sessionId: string;
   exitCode: number;
 }

@@ -25,6 +25,7 @@ import { useEditorIndentSettings } from '../../hooks/useEditorIndentSettings';
 import { useWheelScrollOnlyWhenGestureStartsIn } from '../../lib/wheelScrollOnlyWhenGestureStartsIn';
 import { setActiveEditorSelection } from '../../lib/editorSelectionBridge';
 import { getSourceLanguageId } from '../../lib/fileLanguage';
+import { buildSymbolNavExtensions } from '../../lib/symbols/cm6SymbolNav';
 
 function clampDocPos(view: EditorView, pos: number): number {
   return Math.max(0, Math.min(pos, view.state.doc.length));
@@ -209,6 +210,7 @@ const SourceCodeEditor = forwardRef<
         }
       }),
       ...(lang ? [lang] : []),
+      ...buildSymbolNavExtensions(relativePath),
       ...(languageId === 'scheme'
         ? [
             schemeStructuredEditing(keybindingMode),
@@ -219,7 +221,15 @@ const SourceCodeEditor = forwardRef<
         : []),
       ...(readOnly ? [EditorState.readOnly.of(true)] : []),
     ];
-  }, [languageId, keybindingMode, readOnly, sourceTheme, indentSettings, tabId]);
+  }, [
+    languageId,
+    keybindingMode,
+    readOnly,
+    sourceTheme,
+    indentSettings,
+    tabId,
+    relativePath,
+  ]);
 
   useEffect(() => {
     const parent = containerRef.current;

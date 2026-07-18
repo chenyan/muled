@@ -17,10 +17,18 @@ import PromptDialog from '../ai/PromptDialog';
 import SettingsDialog from '../dialog/SettingsDialog';
 import UnsavedChangesDialog from '../dialog/UnsavedChangesDialog';
 import CommandPalette from '../command/CommandPalette';
+import SymbolPicker from '../command/SymbolPicker';
 import { useEditorTabs } from '../../hooks/useEditorTabs';
 import { useUnsavedChangesDialog } from '../../hooks/useUnsavedChangesDialog';
 import { useWorkspace } from '../../hooks/useWorkspace';
 import { registerCommandPaletteOpen } from '../../lib/commandPaletteBridge';
+import {
+  registerSymbolPickerOpen,
+  registerSymbolReveal,
+} from '../../lib/symbols/symbolNavBridge';
+import { openTabSymbolIndex } from '../../lib/symbols/openTabSymbolIndex';
+import type { SymbolPickerOpenOptions } from '../../lib/symbols/types';
+import { getSourceLanguageId } from '../../lib/fileLanguage';
 import { registerVimExHandlers } from '../../lib/vimExBridge';
 import {
   getEditorAiHandlers,
@@ -156,6 +164,11 @@ export default function AppShell() {
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteInitialValue, setPaletteInitialValue] = useState('');
+  const [symbolPicker, setSymbolPicker] = useState<{
+    mode: SymbolPickerOpenOptions['mode'];
+    query: string;
+    preferPath: string | null;
+  } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(
@@ -176,6 +189,74 @@ export default function AppShell() {
   const closeCommandPalette = useCallback(() => {
     setPaletteOpen(false);
   }, []);
+
+  const openSymbolPicker = useCallback((options: SymbolPickerOpenOptions) => {
+    setSymbolPicker({
+      mode: options.mode,
+      query: options.query ?? '',
+      preferPath: options.preferPath ?? null,
+    });
+  }, []);
+
+  const closeSymbolPicker = useCallback(() => {
+    setSymbolPicker(null);
+  }, []);
+
+  const handleSymbolReveal = useCallback(
+    (target: {
+      relativePath: string;
+      line: number;
+      column: number;
+      from?: number;
+      to?: number;
+    }) => {
+      const length =
+        target.from != null && target.to != null
+          ? Math.max(1, target.to - target.from)
+          : 1;
+      void editor
+        .openPathWithReveal(target.relativePath, {
+          id: newId(),
+          line: target.line,
+          column: target.column,
+          length,
+        })
+        .catch(() => {
+          /* toast in openPathWithReveal */
+        });
+    },
+    [editor],
+  );
+
+  useEffect(() => {
+    registerSymbolReveal(handleSymbolReveal);
+    return () => registerSymbolReveal(null);
+  }, [handleSymbolReveal]);
+
+  useEffect(() => {
+    registerSymbolPickerOpen(openSymbolPicker);
+    return () => registerSymbolPickerOpen(null);
+  }, [openSymbolPicker]);
+
+  useEffect(() => {
+    const inputs = editor.tabs
+      .filter(
+        (tab) =>
+          tab.kind === 'text' &&
+          tab.relativePath != null &&
+          typeof tab.content === 'string',
+      )
+      .map((tab) => ({
+        tabId: tab.id,
+        relativePath: tab.relativePath,
+        content: tab.content,
+        languageId: getSourceLanguageId(tab.relativePath),
+      }));
+    const timer = window.setTimeout(() => {
+      openTabSymbolIndex.syncTabs(inputs);
+    }, 200);
+    return () => window.clearTimeout(timer);
+  }, [editor.tabs]);
 
   const openAiDialog = useCallback(
     (mode: AiApplyMode, snapshot: EditorAiSnapshot) => {
@@ -647,6 +728,22 @@ export default function AppShell() {
         openCommandPalette();
         return;
       }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'o') {
+        e.preventDefault();
+        openSymbolPicker({
+          mode: 'goto-symbol',
+          preferPath: editor.activeTab?.relativePath ?? null,
+        });
+        return;
+      }
+      if (e.shiftKey && e.key === 'F12') {
+        e.preventDefault();
+        openSymbolPicker({
+          mode: 'references',
+          preferPath: editor.activeTab?.relativePath ?? null,
+        });
+        return;
+      }
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
         if (editor.activeTabId) {
@@ -669,9 +766,11 @@ export default function AppShell() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [
+    editor.activeTab?.relativePath,
     editor.activeTabId,
     handleSave,
     openCommandPalette,
+    openSymbolPicker,
     toggleTabViewMode,
   ]);
 
@@ -1129,6 +1228,23 @@ export default function AppShell() {
         onSubmit={handlePaletteSubmit}
         onOpenSearchResult={handleOpenSearchResult}
         resolveCompletion={resolvePaletteCompletion}
+      />
+      <SymbolPicker
+        open={symbolPicker !== null}
+        mode={symbolPicker?.mode ?? 'goto-symbol'}
+        initialQuery={symbolPicker?.query ?? ''}
+        preferPath={symbolPicker?.preferPath ?? null}
+        onClose={closeSymbolPicker}
+        onSelect={(target) => {
+          void editor
+            .openPathWithReveal(target.relativePath, {
+              id: newId(),
+              line: target.line,
+              column: target.column,
+              length: target.length,
+            })
+            .catch(() => undefined);
+        }}
       />
       <PromptDialog
         open={aiDialog !== null}

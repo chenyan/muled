@@ -118,6 +118,7 @@
       "/node_modules/(?!exceljs/)"
     ],
     "transform": {
+      "\\.py$": "<rootDir>/.erb/mocks/pythonFileTransformer.js",
       "\\.(ts|tsx|js|jsx)$": "ts-jest"
     }
   },
@@ -198,7 +199,8 @@
     "unified": "^11.0.5",
     "uniorg-parse": "^3.2.2",
     "uniorg-rehype": "^2.2.0",
-    "uuid": "^14.0.0"
+    "uuid": "^14.0.0",
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.4",
@@ -220,6 +222,7 @@
     "@types/react-test-renderer": "^19.0.0",
     "@types/uuid": "^10.0.0",
     "@types/webpack-bundle-analyzer": "^4.7.0",
+    "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.26.1",
     "@typescript-eslint/parser": "^8.26.1",
     "browserslist-config-erb": "^0.0.3",

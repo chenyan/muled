@@ -283,6 +283,7 @@ export default class ConfigService {
           rg: compressTilde(this.config.tools.rg),
           chez: compressTilde(this.config.tools.chez),
           bun: compressTilde(this.config.tools.bun),
+          python: compressTilde(this.config.tools.python),
         },
       },
     };
@@ -344,6 +345,7 @@ export default class ConfigService {
         rg: compressTilde(this.config.tools.rg),
         chez: compressTilde(this.config.tools.chez),
         bun: compressTilde(this.config.tools.bun),
+        python: compressTilde(this.config.tools.python),
       },
     };
     fs.writeFileSync(configPath, yaml.dump(doc), 'utf8');

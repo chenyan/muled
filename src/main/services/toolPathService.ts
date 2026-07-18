@@ -90,6 +90,20 @@ function platformCandidatePaths(tool: ShellToolId): string[] {
   if (tool === 'bun') {
     dirs.push(path.join(home, '.bun', 'bin'));
   }
+  if (tool === 'python') {
+    dirs.push(
+      path.join(home, '.pyenv', 'shims'),
+      '/opt/homebrew/bin',
+      '/usr/local/bin',
+    );
+  }
+  if (tool === 'ipython') {
+    dirs.push(
+      path.join(home, '.pyenv', 'shims'),
+      '/opt/homebrew/bin',
+      '/usr/local/bin',
+    );
+  }
   return dirs.flatMap((dir) => names.map((name) => path.join(dir, name)));
 }
 
@@ -118,18 +132,24 @@ export function detectToolPaths(
   const rg = detectToolPath('rg', env);
   const chez = detectToolPath('chez', env);
   const bun = detectToolPath('bun', env);
+  const python = detectToolPath('python', env);
+  const ipython = detectToolPath('ipython', env);
   return {
     tools: {
       fd: fd ?? '',
       rg: rg ?? '',
       chez: chez ?? '',
       bun: bun ?? '',
+      python: python ?? '',
+      ipython: ipython ?? '',
     },
     found: {
       fd: fd !== null,
       rg: rg !== null,
       chez: chez !== null,
       bun: bun !== null,
+      python: python !== null,
+      ipython: ipython !== null,
     },
   };
 }
@@ -150,11 +170,59 @@ export function resolveToolExecutable(
 export function resolveToolPaths(
   config: ToolPathsConfig,
   env: NodeJS.ProcessEnv = getShellProcessEnv(),
-): { fd: string | null; rg: string | null; chez: string | null; bun: string | null } {
+): {
+  fd: string | null;
+  rg: string | null;
+  chez: string | null;
+  bun: string | null;
+  python: string | null;
+  ipython: string | null;
+} {
   return {
     fd: resolveToolExecutable('fd', config.fd, env),
     rg: resolveToolExecutable('rg', config.rg, env),
     chez: resolveToolExecutable('chez', config.chez, env),
     bun: resolveToolExecutable('bun', config.bun, env),
+    python: resolveToolExecutable('python', config.python, env),
+    ipython: resolveToolExecutable('ipython', config.ipython, env),
   };
+}
+
+export interface IpythonLaunch {
+  executable: string;
+  args: string[];
+}
+
+function pythonHasIpythonModule(
+  pythonExecutable: string,
+  env: NodeJS.ProcessEnv = getShellProcessEnv(),
+): boolean {
+  const result = spawnSync(pythonExecutable, ['-c', 'import IPython'], {
+    encoding: 'utf8',
+    env,
+    timeout: 8000,
+  });
+  return result.status === 0;
+}
+
+/** 解析 IPython 启动命令：配置路径 → PATH 中的 ipython → python -m IPython */
+export function resolveIpythonLaunch(
+  config: ToolPathsConfig,
+  env: NodeJS.ProcessEnv = getShellProcessEnv(),
+): IpythonLaunch | null {
+  const configured = resolveToolExecutable('ipython', config.ipython, env);
+  if (configured) {
+    return { executable: configured, args: [] };
+  }
+
+  const detected = detectToolPath('ipython', env);
+  if (detected) {
+    return { executable: detected, args: [] };
+  }
+
+  const python = resolveToolExecutable('python', config.python, env);
+  if (!python || !pythonHasIpythonModule(python, env)) {
+    return null;
+  }
+  return { executable: python, args: ['-m', 'IPython'] };
 }

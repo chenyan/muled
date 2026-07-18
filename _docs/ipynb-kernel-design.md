@@ -1,8 +1,8 @@
 # Muled `.ipynb` Kernel 连接与编辑运行 — 实现方案
 
-> 文档版本：v0.1  
+> 文档版本：v0.2  
 > 日期：2026-06-30  
-> 状态：设计稿（未开始编码）
+> 状态：Phase 2 已完成，Phase 3 待开始
 
 ---
 
@@ -437,44 +437,65 @@ ipykernel?: { available: boolean; version?: string };
 
 **目标：** 可编辑 cell 内容、增删/移动 cell、保存为合法 `.ipynb`，不执行。
 
-| 任务 | 文件 |
-|------|------|
-| nbformat 解析/序列化 | `src/shared/ipynb/nbformat.ts` |
-| 共享类型 | `src/shared/types/ipynb.ts` |
-| `notebook` viewMode | `editorViewMode.ts`, `useEditorTabs.ts` |
-| IpynbNotebookView 及 cell 组件 | `src/renderer/components/editor/ipynb/*` |
-| 三态视图切换 | `IpynbViewSwitch.tsx` |
-| TabContent 路由 | `TabContent.tsx` |
+| 任务 | 文件 | 状态 |
+|------|------|------|
+| nbformat 解析/序列化 | `src/shared/ipynb/nbformat.ts` | ✅ |
+| 共享类型 | `src/shared/types/ipynb.ts` | ✅ |
+| `notebook` viewMode | `editorViewMode.ts`, `useEditorTabs.ts` | ✅ |
+| IpynbNotebookView 及 cell 组件 | `src/renderer/components/editor/ipynb/*` | ✅ |
+| 三态视图切换 | `IpynbViewSwitch.tsx` | ✅ |
+| TabContent 路由 | `TabContent.tsx` | ✅ |
+| 单元测试 | `src/__tests__/ipynbNbformat.test.ts` | ✅ |
 
 **验收：** 打开 `.ipynb` 进入 notebook 视图，可编辑 markdown/code cell，保存后文件可被 Jupyter / VS Code 正常打开。
+
+**已实现要点（2026-06-30）：**
+
+- 新增 `notebook` viewMode，打开 `.ipynb` 默认进入交互式编辑器
+- `IpynbNotebookView`：cell 列表、Code/Markdown/Raw 编辑、增删/移动/改类型
+- Markdown cell 双击或点「编辑」进入 CodeMirror；Shift+Enter 完成并跳转下一 cell
+- Code cell 显示 `In [n]:` 提示符，复用 `notebookjs` 渲染已有 outputs
+- 工具栏提示「Kernel 执行将在后续版本提供」
+- 视图切换 Notebook | Preview | Source 三态保留
 
 ### Phase 2 — 本地 Python Kernel 执行
 
 **目标：** 连接本地 ipykernel，单 cell 执行，流式 output。
 
-| 任务 | 文件 |
-|------|------|
-| Kernel 发现 | `src/main/services/ipynb/kernelFinder.ts` |
-| Kernel 会话管理 | `src/main/services/ipynb/ipynbKernelService.ts` |
-| Jupyter 协议执行 | `src/main/services/ipynb/cellExecutor.ts` |
-| IPC 注册 | `ipc.ts`, `registerIpc.ts`, `preload.ts` |
-| Renderer client | `src/renderer/lib/ipynb/ipynbClient.ts` |
-| Kernel 选择器 + 工具栏 | `IpynbKernelPicker.tsx`, `IpynbNotebookToolbar.tsx` |
-| 执行状态 + output 流 | `IpynbCodeCell.tsx`, `IpynbCellOutput.tsx` |
-| 设置/工具检测 | `SettingsDialog.tsx`, `toolPathService.ts` |
+| 任务 | 文件 | 状态 |
+|------|------|------|
+| Kernel 发现 | `src/main/services/ipynb/kernelFinder.ts` | ✅ |
+| Kernel 会话管理 | `src/main/services/ipynb/ipynbKernelService.ts` | ✅ |
+| Python kernel bridge | `src/main/services/ipynb/pythonKernelBridgeScript.ts` | ✅ |
+| IPC 注册 | `ipc.ts`, `registerIpc.ts`, `preload.ts` | ✅ |
+| Renderer client | `src/renderer/lib/ipynb/ipynbClient.ts` | ✅ |
+| Kernel 选择器 + 工具栏 | `IpynbKernelPicker.tsx`, `IpynbNotebookToolbar.tsx` | ✅ |
+| 执行状态 + output | `IpynbCodeCell.tsx`, `IpynbCellOutput.tsx` | ✅ |
+| 设置/工具检测 | `SettingsDialog.tsx`, `toolPathService.ts` | ✅ |
+| 单元测试 | `ipynbModel.test.ts`, `ipynbKernelSessionLifecycle.test.ts` | ✅ |
 
 **验收：** 选择 Python kernel，运行 `print("hello")` 看到输出；运行 matplotlib 看到图片 output；保存后 output 写入 `.ipynb`。
 
+**已实现要点（2026-06-30）：**
+
+- Main 进程启动 **Python kernel bridge** 子进程（IPython `run_cell` + stdlib fallback），JSON 行协议通信，避免 ZMQ 原生模块依赖
+- `ipynb:kernel:*` / `ipynb:cell:execute` IPC + 事件推送（`kernel:status`、`cell:status`、`cell:executeReply`）
+- 工具栏 Kernel 选择器、重启/中断/Run All；Code cell ▶ 与 Shift+Enter 执行
+- 设置页新增 **Python** 路径；自动检测 PATH 中的 python3
+- 执行结果写回 cell `outputs` / `execution_count`，保存即持久化
+
+**实现说明：** Phase 2 采用 embedded Python bridge 而非完整 Jupyter ZMQ 协议（见 §12 风险对策）。后续 Phase 3/4 可升级为 `@jupyterlab/services` + ipykernel 标准连接。
+
 ### Phase 3 — 体验完善
 
-| 任务 | 说明 |
-|------|------|
-| Run All / Run Above / Run Below | 批量执行 |
-| Kernel restart / interrupt | 完整生命周期 |
-| MRU kernel 列表 | 记住最近使用的 kernel |
-| 自动选择 kernel | 读取 `.ipynb` metadata `kernelspec` |
-| 执行超时 & 错误展示 | tracebacks 渲染 |
-| 未安装 ipykernel 引导 | 提示 `pip install ipykernel` |
+| 任务 | 说明 | 状态 |
+|------|------|------|
+| Run All / Run Above / Run Below | 批量执行 | ⬜ Run All ✅，其余待做 |
+| Kernel restart / interrupt | 完整生命周期 | ✅ |
+| MRU kernel 列表 | 记住最近使用的 kernel | ⬜ |
+| 自动选择 kernel | 读取 `.ipynb` metadata `kernelspec` | ⬜ |
+| 执行超时 & 错误展示 | tracebacks 渲染 | ✅（bridge 输出 error） |
+| 未安装 ipykernel 引导 | 提示 `pip install ipykernel` | ✅ |
 
 ### Phase 4 — 扩展（可选）
 
@@ -593,7 +614,7 @@ src/__tests__/
 
 ## 16. 开放问题
 
-1. **默认视图：** 是否将 `notebook` 设为默认（推荐），还是保留 `preview`？
+1. ~~**默认视图：** 是否将 `notebook` 设为默认（推荐），还是保留 `preview`？~~ → **已决定：`notebook` 为默认**
 2. **Kernel 共享：** 同一文件多 tab 打开时是否共享 kernel？
 3. **自动 kernel 选择：** 是否根据 `kernelspec` 自动启动，还是始终手动选择？
 4. **ipykernel 安装：** 是否提供一键 `pip install ipykernel`（需终端集成）？

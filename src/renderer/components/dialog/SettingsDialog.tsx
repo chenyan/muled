@@ -4,8 +4,38 @@ import {
   SIDEBAR_WIDTH_MIN,
 } from '../../../shared/constants';
 import type { SettingsForm } from '../../../shared/types/settings';
-import type { ThemePreference } from '../../../shared/types/theme';
+import type { ThemeConfig, ThemePreference } from '../../../shared/types/theme';
 import './SettingsDialog.css';
+
+type SettingsTab = 'editor' | 'theme' | 'workspace' | 'tools' | 'openai';
+
+const SETTINGS_TABS: { id: SettingsTab; label: string }[] = [
+  { id: 'editor', label: '编辑器' },
+  { id: 'theme', label: '主题' },
+  { id: 'workspace', label: '工作区' },
+  { id: 'tools', label: '工具' },
+  { id: 'openai', label: 'OpenAI' },
+];
+
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: 'system', label: '跟随系统' },
+  { value: 'light', label: '浅色' },
+  { value: 'dark', label: '深色' },
+  { value: 'acme', label: 'Acme' },
+];
+
+function getGlobalTheme(theme: ThemeConfig): ThemePreference | 'custom' {
+  const { ui, wysiwyg, source } = theme;
+  if (ui === wysiwyg && wysiwyg === source) return ui;
+  return 'custom';
+}
+
+function applyGlobalTheme(
+  theme: ThemeConfig,
+  value: ThemePreference,
+): ThemeConfig {
+  return { ui: value, wysiwyg: value, source: value };
+}
 
 export interface SettingsDialogProps {
   open: boolean;
@@ -26,6 +56,7 @@ export default function SettingsDialog({
   const [detecting, setDetecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detectHint, setDetectHint] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<SettingsTab>('editor');
 
   useEffect(() => {
     if (!open) return undefined;
@@ -38,6 +69,7 @@ export default function SettingsDialog({
 
   useEffect(() => {
     if (!open || !window.muled?.config?.getSettings) return;
+    setActiveTab('editor');
     setLoading(true);
     setError(null);
     setDetectHint(null);
@@ -75,6 +107,8 @@ export default function SettingsDialog({
       if (!result.found.rg) missing.push('ripgrep (rg)');
       if (!result.found.chez) missing.push('Chez Scheme (chez)');
       if (!result.found.bun) missing.push('Bun');
+      if (!result.found.python) missing.push('Python');
+      if (!result.found.ipython) missing.push('IPython');
       if (missing.length > 0) {
         setDetectHint(
           `未找到 ${missing.join('、')}，请手动输入可执行文件路径，或先安装后再检测。`,
@@ -127,6 +161,28 @@ export default function SettingsDialog({
           </button>
         </header>
 
+        <nav
+          className="SettingsDialog__tabs"
+          role="tablist"
+          aria-label="设置分类"
+        >
+          {SETTINGS_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              id={`settings-tab-${tab.id}`}
+              aria-selected={activeTab === tab.id}
+              aria-controls={`settings-panel-${tab.id}`}
+              className={`SettingsDialog__tab${activeTab === tab.id ? ' SettingsDialog__tab--active' : ''}`}
+              disabled={loading || !form}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+
         <div className="SettingsDialog__body">
           {configPath ? (
             <p className="SettingsDialog__pathHint">
@@ -140,7 +196,13 @@ export default function SettingsDialog({
 
           {form ? (
             <>
-              <section className="SettingsDialog__section">
+              {activeTab === 'editor' ? (
+              <section
+                className="SettingsDialog__section"
+                role="tabpanel"
+                id="settings-panel-editor"
+                aria-labelledby="settings-tab-editor"
+              >
                 <h3 className="SettingsDialog__sectionTitle">编辑器</h3>
                 <div className="SettingsDialog__grid">
                   <label className="SettingsDialog__field">
@@ -288,10 +350,44 @@ export default function SettingsDialog({
                   </label>
                 </div>
               </section>
+              ) : null}
 
-              <section className="SettingsDialog__section">
+              {activeTab === 'theme' ? (
+              <section
+                className="SettingsDialog__section"
+                role="tabpanel"
+                id="settings-panel-theme"
+                aria-labelledby="settings-tab-theme"
+              >
                 <h3 className="SettingsDialog__sectionTitle">主题</h3>
                 <div className="SettingsDialog__grid">
+                  <label className="SettingsDialog__field SettingsDialog__field--full">
+                    <span className="SettingsDialog__label">全局主题</span>
+                    <select
+                      className="SettingsDialog__select"
+                      value={getGlobalTheme(form.theme)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === 'custom') return;
+                        patch(
+                          'theme',
+                          applyGlobalTheme(
+                            form.theme,
+                            value as ThemePreference,
+                          ),
+                        );
+                      }}
+                    >
+                      {getGlobalTheme(form.theme) === 'custom' ? (
+                        <option value="custom">自定义（分项不一致）</option>
+                      ) : null}
+                      {THEME_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   <label className="SettingsDialog__field">
                     <span className="SettingsDialog__label">界面主题</span>
                     <select
@@ -304,10 +400,11 @@ export default function SettingsDialog({
                         })
                       }
                     >
-                      <option value="system">跟随系统</option>
-                      <option value="light">浅色</option>
-                      <option value="dark">深色</option>
-                      <option value="acme">Acme</option>
+                      {THEME_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
                   </label>
                   <label className="SettingsDialog__field">
@@ -322,10 +419,11 @@ export default function SettingsDialog({
                         })
                       }
                     >
-                      <option value="system">跟随系统</option>
-                      <option value="light">浅色</option>
-                      <option value="dark">深色</option>
-                      <option value="acme">Acme</option>
+                      {THEME_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
                   </label>
                   <label className="SettingsDialog__field">
@@ -340,16 +438,24 @@ export default function SettingsDialog({
                         })
                       }
                     >
-                      <option value="system">跟随系统</option>
-                      <option value="light">浅色</option>
-                      <option value="dark">深色</option>
-                      <option value="acme">Acme</option>
+                      {THEME_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
                   </label>
                 </div>
               </section>
+              ) : null}
 
-              <section className="SettingsDialog__section">
+              {activeTab === 'workspace' ? (
+              <section
+                className="SettingsDialog__section"
+                role="tabpanel"
+                id="settings-panel-workspace"
+                aria-labelledby="settings-tab-workspace"
+              >
                 <h3 className="SettingsDialog__sectionTitle">工作区与界面</h3>
                 <div className="SettingsDialog__grid">
                   <label className="SettingsDialog__field SettingsDialog__field--full">
@@ -396,14 +502,23 @@ export default function SettingsDialog({
                   </label>
                 </div>
               </section>
+              ) : null}
 
-              <section className="SettingsDialog__section">
+              {activeTab === 'tools' ? (
+              <section
+                className="SettingsDialog__section"
+                role="tabpanel"
+                id="settings-panel-tools"
+                aria-labelledby="settings-tab-tools"
+              >
                 <h3 className="SettingsDialog__sectionTitle">命令行工具</h3>
                 <p className="SettingsDialog__sectionHint">
                   命令面板中的 <code>fd</code>、<code>rg</code> 搜索，以及 WYSIWYG 中{' '}
                   <code>scheme</code>、<code>javascript</code>、<code>typescript</code>{' '}
                   代码块运行，依赖本机可执行文件。路径留空时在 PATH 中查找；从 Finder
                   启动的 release 包若找不到，可点「自动检测」或手动填写绝对路径。
+                  <code>.py</code> 文件运行与 Jupyter Notebook 需要 Python；IPython
+                  留空时尝试 <code>python -m IPython</code>。
                 </p>
                 <div className="SettingsDialog__grid">
                   <label className="SettingsDialog__field SettingsDialog__field--full">
@@ -450,6 +565,34 @@ export default function SettingsDialog({
                       }
                     />
                   </label>
+                  <label className="SettingsDialog__field SettingsDialog__field--full">
+                    <span className="SettingsDialog__label">Python</span>
+                    <input
+                      className="SettingsDialog__input"
+                      placeholder="/opt/homebrew/bin/python3"
+                      value={form.tools.python}
+                      onChange={(e) =>
+                        patch('tools', {
+                          ...form.tools,
+                          python: e.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="SettingsDialog__field SettingsDialog__field--full">
+                    <span className="SettingsDialog__label">IPython</span>
+                    <input
+                      className="SettingsDialog__input"
+                      placeholder="/opt/homebrew/bin/ipython"
+                      value={form.tools.ipython}
+                      onChange={(e) =>
+                        patch('tools', {
+                          ...form.tools,
+                          ipython: e.target.value,
+                        })
+                      }
+                    />
+                  </label>
                 </div>
                 <div className="SettingsDialog__toolActions">
                   <button
@@ -467,8 +610,15 @@ export default function SettingsDialog({
                   <p className="SettingsDialog__detectHint">{detectHint}</p>
                 ) : null}
               </section>
+              ) : null}
 
-              <section className="SettingsDialog__section">
+              {activeTab === 'openai' ? (
+              <section
+                className="SettingsDialog__section"
+                role="tabpanel"
+                id="settings-panel-openai"
+                aria-labelledby="settings-tab-openai"
+              >
                 <h3 className="SettingsDialog__sectionTitle">OpenAI</h3>
                 <div className="SettingsDialog__grid">
                   <label className="SettingsDialog__field SettingsDialog__field--full">
@@ -518,6 +668,7 @@ export default function SettingsDialog({
                   </label>
                 </div>
               </section>
+              ) : null}
             </>
           ) : null}
         </div>

@@ -35,7 +35,7 @@ import {
 } from '../services/shellSearchService';
 import WorkspaceService from '../services/workspaceService';
 import WorkspaceWatcherService from '../services/workspaceWatcherService';
-import { detectToolPaths, resolveToolExecutable } from '../services/toolPathService';
+import { detectToolPaths, resolveIpythonLaunch, resolveToolExecutable } from '../services/toolPathService';
 import { runSchemeFile, runSchemeScript } from '../services/schemeRunService';
 import {
   createSchemePtySession,
@@ -56,6 +56,28 @@ import {
   resizeBunPtySession,
   writeBunPtySession,
 } from '../services/bunPtyService';
+import {
+  createPythonPtySession,
+  killAllPythonPtySessions,
+  killPythonPtySession,
+  resizePythonPtySession,
+  writePythonPtySession,
+} from '../services/pythonPtyService';
+import {
+  findKernelSpecById,
+  listKernelSpecs,
+} from '../services/ipynb/kernelFinder';
+import {
+  buildJupyterServerKernelSpec,
+  disposeKernelSession,
+  executeCell,
+  inspectKernelSession,
+  interruptKernel,
+  killAllIpynbKernelSessions,
+  listRemoteJupyterKernels,
+  restartKernelSession,
+  startKernelSession,
+} from '../services/ipynb/ipynbKernelService';
 import DuckdbService from '../services/duckdbService';
 import DuckdbFileService from '../services/duckdbFileService';
 import SqliteService from '../services/sqliteService';
@@ -591,6 +613,198 @@ export function registerIpc(
       const { sessionId } = arg as { sessionId: string };
       return { ok: killBunPtySession(sessionId) };
     },
+
+    'python:available': () => {
+      const python = resolveToolExecutable(
+        'python',
+        services.config.get().tools.python,
+      );
+      return { available: python !== null };
+    },
+
+    'python:ipythonAvailable': () => {
+      const launch = resolveIpythonLaunch(services.config.get().tools);
+      return { available: launch !== null };
+    },
+
+    'python:pty:create': (arg, webContents) => {
+      const { mode, code, path: relativePath, cols, rows } = arg as {
+        mode: 'script' | 'repl';
+        code?: string;
+        path?: string;
+        cols: number;
+        rows: number;
+      };
+      const tools = services.config.get().tools;
+      const python = resolveToolExecutable('python', tools.python);
+      if (!python) {
+        return { error: 'not_configured' as const };
+      }
+      const ipythonLaunch =
+        mode === 'repl' ? resolveIpythonLaunch(tools) : null;
+      return createPythonPtySession(
+        mode,
+        python,
+        ipythonLaunch,
+        {
+          path: relativePath,
+          code,
+          cols,
+          rows,
+        },
+        (relative) => services.file.resolveFilePath(relative),
+        webContents,
+      );
+    },
+
+    'python:pty:write': (arg) => {
+      const { sessionId, data } = arg as { sessionId: string; data: string };
+      return { ok: writePythonPtySession(sessionId, data) };
+    },
+
+    'python:pty:resize': (arg) => {
+      const { sessionId, cols, rows } = arg as {
+        sessionId: string;
+        cols: number;
+        rows: number;
+      };
+      return { ok: resizePythonPtySession(sessionId, cols, rows) };
+    },
+
+    'python:pty:kill': (arg) => {
+      const { sessionId } = arg as { sessionId: string };
+      return { ok: killPythonPtySession(sessionId) };
+    },
+
+    'ipynb:kernel:list': () => {
+      const kernels = listKernelSpecs(services.config.get().tools.python);
+      if (kernels.length === 0) {
+        return {
+          error: 'python_not_found' as const,
+          message: '未找到 Python。请在设置中配置 python 路径。',
+        };
+      }
+      return { ok: true as const, kernels };
+    },
+
+    'ipynb:jupyter:listKernels': async (arg) => {
+      const { serverUrl } = arg as { serverUrl: string };
+      try {
+        const kernels = await listRemoteJupyterKernels({ serverUrl });
+        return {
+          ok: true as const,
+          kernels,
+          serverUrl,
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return { error: 'connection_failed' as const, message };
+      }
+    },
+
+    'ipynb:kernel:start': (arg, webContents) => {
+      const { notebookKey, specId, cwd, jupyterServer } = arg as {
+        notebookKey: string;
+        specId?: string;
+        cwd?: string;
+        jupyterServer?: {
+          serverUrl: string;
+          kernelId: string;
+          kernelName: string;
+        };
+      };
+      const root = cwd ?? services.workspace.getRoot();
+      let spec = null;
+      if (jupyterServer) {
+        spec = buildJupyterServerKernelSpec(
+          { serverUrl: jupyterServer.serverUrl },
+          {
+            id: jupyterServer.kernelId,
+            name: jupyterServer.kernelName,
+          },
+        );
+      } else if (specId) {
+        spec = findKernelSpecById(
+          services.config.get().tools.python,
+          specId,
+        );
+      }
+      if (!spec) {
+        return { error: 'not_configured' as const };
+      }
+      const started = startKernelSession({
+        notebookKey,
+        spec,
+        cwd: root,
+        webContents,
+      });
+      if ('error' in started) {
+        return started;
+      }
+      return {
+        ok: true as const,
+        sessionId: started.sessionId,
+        status: 'connecting' as const,
+      };
+    },
+
+    'ipynb:kernel:restart': (arg) => {
+      const { sessionId, cwd } = arg as { sessionId: string; cwd?: string };
+      const nextId = restartKernelSession(
+        sessionId,
+        cwd ?? services.workspace.getRoot(),
+      );
+      if (!nextId) {
+        return { error: 'not_found' as const };
+      }
+      return { ok: true as const, sessionId: nextId, status: 'connecting' as const };
+    },
+
+    'ipynb:kernel:interrupt': (arg) => {
+      const { sessionId } = arg as { sessionId: string };
+      return { ok: interruptKernel(sessionId) };
+    },
+
+    'ipynb:kernel:dispose': (arg) => {
+      const { sessionId } = arg as { sessionId: string };
+      return { ok: disposeKernelSession(sessionId) };
+    },
+
+    'ipynb:cell:execute': (arg) => {
+      const { sessionId, cellId, source } = arg as {
+        sessionId: string;
+        cellId: string;
+        source: string;
+      };
+      void executeCell({ sessionId, cellId, source }).catch(() => undefined);
+      return { ok: true as const };
+    },
+
+    'ipynb:kernel:inspect': async (arg) => {
+      const { sessionId } = arg as { sessionId: string };
+      try {
+        const result = await inspectKernelSession(sessionId);
+        return { ok: true as const, result };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message === 'Kernel session not found') {
+          return { error: 'not_found' as const };
+        }
+        if (message === 'Kernel not ready') {
+          return { error: 'not_ready' as const, message };
+        }
+        if (message === 'Inspect already in progress') {
+          return { error: 'busy' as const, message };
+        }
+        if (message === 'Inspect timeout') {
+          return { error: 'timeout' as const, message };
+        }
+        if (message === 'Inspect not supported for remote kernel') {
+          return { error: 'unsupported' as const, message };
+        }
+        return { error: 'failed' as const, message };
+      }
+    },
   };
 
   (Object.keys(handlers) as IpcChannel[]).forEach((channel) => {
@@ -598,7 +812,14 @@ export function registerIpc(
       if (channel === 'search:start') {
         return handlers[channel](arg, event);
       }
-      if (channel === 'scheme:pty:create' || channel === 'bun:pty:create') {
+      if (
+        channel === 'scheme:pty:create' ||
+        channel === 'bun:pty:create' ||
+        channel === 'python:pty:create'
+      ) {
+        return handlers[channel](arg, event.sender);
+      }
+      if (channel === 'ipynb:kernel:start') {
         return handlers[channel](arg, event.sender);
       }
       if (channel === 'bun:run' || channel === 'bun:run:abort') {
@@ -611,6 +832,8 @@ export function registerIpc(
   app.on('before-quit', () => {
     killAllSchemePtySessions();
     killAllBunPtySessions();
+    killAllPythonPtySessions();
+    killAllIpynbKernelSessions();
   });
 }
 

@@ -773,6 +773,40 @@
   flex-shrink: 0;
 }
 
+.TabContent__run--iconOnly {
+  width: 24px;
+  padding: 0;
+}
+
+.TabContent__runGroup {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 6px;
+}
+
+.TabContent__runGroup .TabContent__run {
+  margin-right: 0;
+}
+
+.TabContent__runGroup .TabContent__run + .TabContent__run {
+  margin-left: -1px;
+}
+
+.TabContent__runGroup .TabContent__run:first-child:not(:only-child) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.TabContent__runGroup .TabContent__run:last-child:not(:only-child) {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.TabContent__run--iconOnly .RunIcon,
+.TabContent__run--iconOnly .IpythonIcon {
+  flex-shrink: 0;
+}
+
 .TabContent__mnoteButton,
 .TabContent__mnoteSyncButton {
   margin-right: 6px;
@@ -986,6 +1020,7 @@
 .TabContent__body {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;

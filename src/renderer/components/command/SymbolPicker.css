@@ -1,0 +1,132 @@
+.SymbolPicker__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  background: var(--muled-backdrop);
+}
+
+.SymbolPicker {
+  width: min(560px, calc(100vw - 32px));
+  border-radius: 10px;
+  border: 1px solid var(--muled-input-border);
+  background: var(--muled-surface);
+  box-shadow:
+    0 16px 48px var(--muled-shadow),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.SymbolPicker__header {
+  padding: 10px 16px 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muled-muted, #71717a);
+}
+
+.SymbolPicker__input {
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  border-bottom: 1px solid var(--muled-input-border, #e4e4e7);
+  padding: 12px 16px;
+  font:
+    14px/1.4 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    monospace;
+  color: var(--muled-fg, #18181b);
+  background: transparent;
+  outline: none;
+}
+
+.SymbolPicker__input::placeholder {
+  color: #a1a1aa;
+}
+
+.SymbolPicker__results {
+  max-height: min(420px, 50vh);
+  overflow: auto;
+}
+
+.SymbolPicker__empty {
+  padding: 16px;
+  color: #71717a;
+  font-size: 13px;
+}
+
+.SymbolPicker__result {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: inherit;
+  padding: 10px 16px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.SymbolPicker__result--selected,
+.SymbolPicker__result:hover {
+  background: var(--muled-hover, rgba(0, 0, 0, 0.06));
+}
+
+.SymbolPicker__resultMain {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.SymbolPicker__kind {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.65;
+}
+
+.SymbolPicker__name {
+  font-weight: 600;
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    monospace;
+}
+
+.SymbolPicker__detail {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.SymbolPicker__preview {
+  font-size: 12px;
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    monospace;
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.SymbolPicker__hint {
+  padding: 8px 16px 10px;
+  font-size: 11px;
+  color: #71717a;
+  border-top: 1px solid var(--muled-input-border, #e4e4e7);
+}

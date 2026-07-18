@@ -38,18 +38,35 @@ export default function PdfContextMenu({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
-    const onPointerDown = (e: MouseEvent) => {
+    const onPointerDown = (e: PointerEvent) => {
       const el = menuRef.current;
       if (el && !el.contains(e.target as Node)) {
         onClose();
       }
     };
+    const onFocusIn = (event: FocusEvent) => {
+      const el = menuRef.current;
+      if (
+        el &&
+        event.target instanceof Node &&
+        !el.contains(event.target)
+      ) {
+        onClose();
+      }
+    };
+    const onWindowBlur = () => {
+      onClose();
+    };
 
     window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('pointerdown', onPointerDown, true);
+    document.addEventListener('focusin', onFocusIn, true);
+    window.addEventListener('blur', onWindowBlur);
     return () => {
       window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('focusin', onFocusIn, true);
+      window.removeEventListener('blur', onWindowBlur);
     };
   }, [onClose]);
 

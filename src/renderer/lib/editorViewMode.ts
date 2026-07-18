@@ -14,7 +14,7 @@ const HTML_VIEW_MODE_CYCLE: EditorViewMode[] = ['preview', 'source'];
 const STRUDEL_VIEW_MODE_CYCLE: EditorViewMode[] = ['preview', 'source'];
 const P5_VIEW_MODE_CYCLE: EditorViewMode[] = ['preview', 'source'];
 const CSV_VIEW_MODE_CYCLE: EditorViewMode[] = ['preview', 'source'];
-const IPYNB_VIEW_MODE_CYCLE: EditorViewMode[] = ['preview', 'source'];
+const IPYNB_VIEW_MODE_CYCLE: EditorViewMode[] = ['notebook', 'preview', 'source'];
 const DOCX_VIEW_MODE_CYCLE: EditorViewMode[] = ['rich-text', 'preview'];
 const MNOTE_VIEW_MODE_CYCLE: EditorViewMode[] = ['rich-text', 'source'];
 
@@ -33,6 +33,8 @@ export function editorViewModeLabel(
       );
     case 'preview':
       return 'Preview';
+    case 'notebook':
+      return 'Notebook';
     case 'agenda':
       return 'Agenda';
   }

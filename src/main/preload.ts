@@ -244,6 +244,145 @@ const muled = {
       },
     },
   },
+  python: {
+    available: () => invoke('python:available'),
+    ipythonAvailable: () => invoke('python:ipythonAvailable'),
+    pty: {
+      create: (args: {
+        mode: 'script' | 'repl';
+        path?: string;
+        code?: string;
+        cols: number;
+        rows: number;
+      }) => invoke('python:pty:create', args),
+      write: (args: { sessionId: string; data: string }) =>
+        invoke('python:pty:write', args),
+      resize: (args: { sessionId: string; cols: number; rows: number }) =>
+        invoke('python:pty:resize', args),
+      kill: (sessionId: string) => invoke('python:pty:kill', { sessionId }),
+      onData: (
+        listener: (
+          payload: import('../shared/types/tools').PythonPtyDataPayload,
+        ) => void,
+      ) => {
+        const handler = (
+          _event: Electron.IpcRendererEvent,
+          payload: import('../shared/types/tools').PythonPtyDataPayload,
+        ) => {
+          listener(payload);
+        };
+        ipcRenderer.on('python:pty:data', handler);
+        return () => {
+          ipcRenderer.removeListener('python:pty:data', handler);
+        };
+      },
+      onExit: (
+        listener: (
+          payload: import('../shared/types/tools').PythonPtyExitPayload,
+        ) => void,
+      ) => {
+        const handler = (
+          _event: Electron.IpcRendererEvent,
+          payload: import('../shared/types/tools').PythonPtyExitPayload,
+        ) => {
+          listener(payload);
+        };
+        ipcRenderer.on('python:pty:exit', handler);
+        return () => {
+          ipcRenderer.removeListener('python:pty:exit', handler);
+        };
+      },
+    },
+  },
+  ipynb: {
+    listKernels: () => invoke('ipynb:kernel:list'),
+    listJupyterKernels: (args: { serverUrl: string }) =>
+      invoke('ipynb:jupyter:listKernels', args),
+    startKernel: (args: {
+      notebookKey: string;
+      specId?: string;
+      cwd?: string;
+      jupyterServer?: {
+        serverUrl: string;
+        kernelId: string;
+        kernelName: string;
+      };
+    }) => invoke('ipynb:kernel:start', args),
+    restartKernel: (args: { sessionId: string; cwd?: string }) =>
+      invoke('ipynb:kernel:restart', args),
+    interruptKernel: (sessionId: string) =>
+      invoke('ipynb:kernel:interrupt', { sessionId }),
+    disposeKernel: (sessionId: string) =>
+      invoke('ipynb:kernel:dispose', { sessionId }),
+    executeCell: (args: { sessionId: string; cellId: string; source: string }) =>
+      invoke('ipynb:cell:execute', args),
+    inspectKernel: (sessionId: string) =>
+      invoke('ipynb:kernel:inspect', { sessionId }),
+    onKernelStatus: (
+      listener: (
+        payload: import('../shared/types/ipynbKernel').IpynbKernelStatusPayload,
+      ) => void,
+    ) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        payload: import('../shared/types/ipynbKernel').IpynbKernelStatusPayload,
+      ) => {
+        listener(payload);
+      };
+      ipcRenderer.on('ipynb:kernel:status', handler);
+      return () => {
+        ipcRenderer.removeListener('ipynb:kernel:status', handler);
+      };
+    },
+    onCellStatus: (
+      listener: (
+        payload: import('../shared/types/ipynbKernel').IpynbCellStatusPayload,
+      ) => void,
+    ) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        payload: import('../shared/types/ipynbKernel').IpynbCellStatusPayload,
+      ) => {
+        listener(payload);
+      };
+      ipcRenderer.on('ipynb:cell:status', handler);
+      return () => {
+        ipcRenderer.removeListener('ipynb:cell:status', handler);
+      };
+    },
+    onCellExecuteReply: (
+      listener: (
+        payload: import('../shared/types/ipynbKernel').IpynbCellExecuteReplyPayload,
+      ) => void,
+    ) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        payload: import('../shared/types/ipynbKernel').IpynbCellExecuteReplyPayload,
+      ) => {
+        listener(payload);
+      };
+      ipcRenderer.on('ipynb:cell:executeReply', handler);
+      return () => {
+        ipcRenderer.removeListener('ipynb:cell:executeReply', handler);
+      };
+    },
+    onCellOutput: (
+      listener: (
+        payload: import('../shared/types/ipynbKernel').IpynbCellOutputPayload,
+      ) => void,
+    ) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        payload: import('../shared/types/ipynbKernel').IpynbCellOutputPayload,
+      ) => {
+        listener(payload);
+      };
+      ipcRenderer.on('ipynb:cell:output', handler);
+      return () => {
+        ipcRenderer.removeListener('ipynb:cell:output', handler);
+      };
+    },
+  },
   menu: {
     onOpenTranslationHistory: (listener: (path: string) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, path: string) => {

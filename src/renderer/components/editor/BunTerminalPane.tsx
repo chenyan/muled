@@ -15,6 +15,7 @@ import {
   SCHEME_TERMINAL_PADDING_X,
   SCHEME_TERMINAL_PADDING_Y,
 } from '../../lib/scheme/schemeTerminalSize';
+import { patchWtermHiddenInputA11y } from '../../lib/wtermInputA11y';
 import './SchemeTerminalPane.css';
 
 interface BunTerminalPaneProps {
@@ -193,6 +194,7 @@ export default function BunTerminalPane({
   const handleReady = useCallback(
     (wt: WTerm) => {
       wtermRef.current = wt;
+      patchWtermHiddenInputA11y(wt.element);
       const measured = measureTerminalMetrics(wt.element);
       if (measured) {
         metricsRef.current = measured;

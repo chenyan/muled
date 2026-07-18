@@ -9,7 +9,11 @@
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: 14px;
   line-height: 1.5;
-  --ipynb-code-bg: var(--muled-surface-muted);
+  --ipynb-code-bg: #f4f5f7;
+}
+
+[data-muled-ui-theme='dark'] .IpynbPreview {
+  --ipynb-code-bg: #eceef1;
 }
 
 .IpynbPreview__inner {

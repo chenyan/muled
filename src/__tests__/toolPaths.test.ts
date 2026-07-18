@@ -6,24 +6,35 @@ import {
 import { resolveToolExecutable } from '../main/services/toolPathService';
 
 describe('parseToolPaths', () => {
-  it('parses fd, rg, chez, and bun paths', () => {
+  it('parses fd, rg, chez, bun, python, and ipython paths', () => {
     expect(
       parseToolPaths({
         fd: ' /opt/homebrew/bin/fd ',
         rg: '~/bin/rg',
         chez: '/opt/homebrew/bin/chez',
         bun: '~/.bun/bin/bun',
+        python: '/usr/bin/python3',
+        ipython: '/opt/homebrew/bin/ipython',
       }),
     ).toEqual({
       fd: '/opt/homebrew/bin/fd',
       rg: '~/bin/rg',
       chez: '/opt/homebrew/bin/chez',
       bun: '~/.bun/bin/bun',
+      python: '/usr/bin/python3',
+      ipython: '/opt/homebrew/bin/ipython',
     });
   });
 
   it('defaults missing fields to empty strings', () => {
-    expect(parseToolPaths(null)).toEqual({ fd: '', rg: '', chez: '', bun: '' });
+    expect(parseToolPaths(null)).toEqual({
+      fd: '',
+      rg: '',
+      chez: '',
+      bun: '',
+      python: '',
+      ipython: '',
+    });
   });
 });
 
@@ -42,6 +53,13 @@ describe('shellToolPathNames', () => {
 
   it('includes bun', () => {
     expect(shellToolPathNames('bun', 'darwin')).toEqual(['bun']);
+  });
+
+  it('includes ipython aliases', () => {
+    expect(shellToolPathNames('ipython', 'darwin')).toEqual([
+      'ipython3',
+      'ipython',
+    ]);
   });
 });
 

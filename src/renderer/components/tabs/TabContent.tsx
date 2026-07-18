@@ -38,6 +38,9 @@ import CsvTabView from '../editor/CsvTabView';
 import CsvViewSwitch from '../editor/CsvViewSwitch';
 import DatabaseView from '../editor/DatabaseView';
 import IpynbPreview from '../editor/IpynbPreview';
+import IpynbNotebookView, {
+  type IpynbNotebookViewHandle,
+} from '../editor/ipynb/IpynbNotebookView';
 import IpynbViewSwitch from '../editor/IpynbViewSwitch';
 import HtmlPreview from '../editor/HtmlPreview';
 import HtmlViewSwitch from '../editor/HtmlViewSwitch';
@@ -65,8 +68,11 @@ import SourceCodeEditor, {
 } from '../editor/SourceCodeEditor';
 import SchemeSourceLayout from '../editor/SchemeSourceLayout';
 import BunSourceLayout from '../editor/BunSourceLayout';
+import PythonSourceLayout from '../editor/PythonSourceLayout';
 import { useSchemeChezAvailable } from '../../hooks/useSchemeChezAvailable';
 import { useBunAvailable } from '../../hooks/useBunAvailable';
+import { usePythonAvailable } from '../../hooks/usePythonAvailable';
+import { useIpythonAvailable } from '../../hooks/useIpythonAvailable';
 import {
   createSchemePtySession,
   killSchemePtySession,
@@ -87,10 +93,22 @@ import {
   shouldDisposeBunTerminalOnTabContextChange,
   type BunTerminalTabContext,
 } from '../../lib/bun/bunTerminalSessionLifecycle';
+import {
+  createPythonPtySession,
+  killPythonPtySession,
+} from '../../lib/python/pythonPtyClient';
+import {
+  disposePythonTerminalSession,
+  isPythonSourceTab,
+  shouldDisposePythonTerminalOnTabContextChange,
+  type PythonTerminalTabContext,
+} from '../../lib/python/pythonTerminalSessionLifecycle';
+import type { PythonPtyMode } from '../../../shared/types/tools';
 import { getSourceLanguageId } from '../../lib/fileLanguage';
 import { extractSchemeTopLevelSymbols } from '../../lib/scheme/schemeTerminalSymbolTracker';
 import { pushStatusToast } from '../../lib/statusToast';
 import RunIcon from '../icons/RunIcon';
+import IpythonIcon from '../icons/IpythonIcon';
 import { DEFAULT_BUFFER_BYTES } from '../../../shared/constants';
 import { formatBytes } from '../../../shared/formatBytes';
 import { applyAiInEditor } from '../../lib/applyAiInEditor';
@@ -193,6 +211,7 @@ export default function TabContent({
   const mdxRef = useRef<MarkdownEditorHandle>(null);
   const sourceRef = useRef<SourceCodeEditorHandle>(null);
   const strudelReplRef = useRef<StrudelReplPreviewHandle>(null);
+  const ipynbNotebookRef = useRef<IpynbNotebookViewHandle>(null);
   const editorPaneRef = useRef<HTMLDivElement>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -245,6 +264,24 @@ export default function TabContent({
     tab?.relativePath ?? null,
   );
   const bunAvailable = useBunAvailable();
+  const [pythonRunning, setPythonRunning] = useState(false);
+  const [pythonTerminalSessionId, setPythonTerminalSessionId] = useState<
+    string | null
+  >(null);
+  const [pythonTerminalMode, setPythonTerminalMode] =
+    useState<PythonPtyMode | null>(null);
+  const [pythonTerminalExitCode, setPythonTerminalExitCode] = useState<
+    number | null
+  >(null);
+  const pythonTerminalSessionIdRef = useRef<string | null>(null);
+  pythonTerminalSessionIdRef.current = pythonTerminalSessionId;
+  const pythonTabContextRef = useRef<PythonTerminalTabContext | null>(null);
+  const isPythonSourceTabActive = isPythonSourceTab(
+    tab?.kind,
+    tab?.relativePath ?? null,
+  );
+  const pythonAvailable = usePythonAvailable();
+  const ipythonAvailable = useIpythonAvailable();
   const { translationPopup, setTranslationPopup, runTranslate } =
     useTabTranslation();
 
@@ -292,12 +329,20 @@ export default function TabContent({
         sessionIdRef: bunTerminalSessionIdRef,
         kill: killBunPtySession,
       });
+      disposePythonTerminalSession({
+        sessionIdRef: pythonTerminalSessionIdRef,
+        kill: killPythonPtySession,
+      });
       setSchemeTerminalSessionId(null);
       setSchemeTerminalInitialSymbols([]);
       setSchemeRunning(false);
       setBunTerminalSessionId(null);
       setBunTerminalExitCode(null);
       setBunRunning(false);
+      setPythonTerminalSessionId(null);
+      setPythonTerminalMode(null);
+      setPythonTerminalExitCode(null);
+      setPythonRunning(false);
     };
   }, [tab?.id]);
 
@@ -346,6 +391,94 @@ export default function TabContent({
       setBunRunning(false);
     }
   }, [tab?.relativePath, isBunSourceTabActive]);
+
+  useEffect(() => {
+    const next: PythonTerminalTabContext = {
+      relativePath: tab?.relativePath ?? null,
+      isPythonSourceTab: isPythonSourceTabActive,
+    };
+    const previous = pythonTabContextRef.current;
+    pythonTabContextRef.current = next;
+
+    if (
+      previous &&
+      shouldDisposePythonTerminalOnTabContextChange(previous, next) &&
+      pythonTerminalSessionIdRef.current
+    ) {
+      disposePythonTerminalSession({
+        sessionIdRef: pythonTerminalSessionIdRef,
+        kill: killPythonPtySession,
+      });
+      setPythonTerminalSessionId(null);
+      setPythonTerminalMode(null);
+      setPythonTerminalExitCode(null);
+      setPythonRunning(false);
+    }
+  }, [tab?.relativePath, isPythonSourceTabActive]);
+
+  const handleClosePythonTerminal = useCallback(() => {
+    disposePythonTerminalSession({
+      sessionIdRef: pythonTerminalSessionIdRef,
+      sessionId: pythonTerminalSessionId,
+      kill: killPythonPtySession,
+    });
+    setPythonTerminalSessionId(null);
+    setPythonTerminalMode(null);
+    setPythonTerminalExitCode(null);
+  }, [pythonTerminalSessionId]);
+
+  const handlePythonTerminalExit = useCallback((exitCode: number) => {
+    setPythonTerminalExitCode(exitCode);
+    if (exitCode !== 0) {
+      pushStatusToast(`脚本退出码 ${exitCode}`, 'error');
+    }
+  }, []);
+
+  const runPythonSession = useCallback(
+    async (mode: PythonPtyMode) => {
+      if (!tab) return;
+      const code = sourceRef.current?.getValue() ?? tab.content;
+      const canRunFile = Boolean(tab.relativePath) && !tab.dirty;
+
+      if (pythonTerminalSessionId) {
+        await killPythonPtySession(pythonTerminalSessionId);
+        setPythonTerminalSessionId(null);
+        setPythonTerminalMode(null);
+        setPythonTerminalExitCode(null);
+      }
+
+      setPythonRunning(true);
+      try {
+        const sessionId = await createPythonPtySession(
+          canRunFile && tab.relativePath
+            ? { mode, path: tab.relativePath }
+            : { mode, code },
+        );
+        if (sessionId) {
+          if (!canRunFile && tab.relativePath) {
+            pushStatusToast('运行未保存内容', 'info');
+          }
+          setPythonTerminalSessionId(sessionId);
+          setPythonTerminalMode(mode);
+          setPythonTerminalExitCode(null);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        pushStatusToast(`运行失败：${message}`, 'error');
+      } finally {
+        setPythonRunning(false);
+      }
+    },
+    [tab, pythonTerminalSessionId],
+  );
+
+  const handlePythonRunFile = useCallback(() => {
+    void runPythonSession('script');
+  }, [runPythonSession]);
+
+  const handlePythonRunRepl = useCallback(() => {
+    void runPythonSession('repl');
+  }, [runPythonSession]);
 
   const handleCloseBunTerminal = useCallback(() => {
     disposeBunTerminalSession({
@@ -482,6 +615,9 @@ export default function TabContent({
     }
     if (tab.kind === 'ipynb' && tab.viewMode === 'source') {
       return sourceRef.current?.getValue() ?? tab.content;
+    }
+    if (tab.kind === 'ipynb' && tab.viewMode === 'notebook') {
+      return ipynbNotebookRef.current?.getContent() ?? tab.content;
     }
     if (tab.kind === 'strudel' && tab.viewMode === 'source') {
       return sourceRef.current?.getValue() ?? tab.content;
@@ -655,6 +791,8 @@ export default function TabContent({
         let content = tab.content;
         if (tab.viewMode === 'source') {
           content = sourceRef.current?.getValue() ?? tab.content;
+        } else if (tab.kind === 'ipynb' && tab.viewMode === 'notebook') {
+          content = ipynbNotebookRef.current?.getContent() ?? tab.content;
         } else if (tab.kind === 'strudel' && tab.viewMode === 'preview') {
           content = strudelReplRef.current?.getCode() ?? tab.content;
         }
@@ -994,6 +1132,7 @@ export default function TabContent({
   const showP5Preview = tab.kind === 'p5' && tab.viewMode === 'preview';
   const showCsvSpreadsheet = tab.kind === 'csv' && tab.viewMode === 'preview';
   const showIpynbPreview = tab.kind === 'ipynb' && tab.viewMode === 'preview';
+  const showIpynbNotebook = tab.kind === 'ipynb' && tab.viewMode === 'notebook';
   const showSource =
     tab.kind === 'text' ||
     (tab.kind === 'org' && tab.viewMode === 'source') ||
@@ -1192,6 +1331,42 @@ export default function TabContent({
               <span>{schemeRunning ? '运行中…' : '运行'}</span>
             </button>
           )}
+          {!isPane &&
+            isPythonSourceTabActive &&
+            (pythonAvailable || ipythonAvailable) && (
+              <div className="TabContent__runGroup">
+                {pythonAvailable && (
+                  <button
+                    type="button"
+                    className="TabContent__run TabContent__run--iconOnly"
+                    disabled={pythonRunning || tab.truncated}
+                    title="运行 Python 文件"
+                    aria-label="运行 Python 文件"
+                    aria-busy={pythonRunning}
+                    onClick={() => {
+                      handlePythonRunFile();
+                    }}
+                  >
+                    <RunIcon size={11} />
+                  </button>
+                )}
+                {ipythonAvailable && (
+                  <button
+                    type="button"
+                    className="TabContent__run TabContent__run--iconOnly"
+                    disabled={pythonRunning || tab.truncated}
+                    title="在 IPython 中运行"
+                    aria-label="在 IPython 中运行"
+                    aria-busy={pythonRunning}
+                    onClick={() => {
+                      handlePythonRunRepl();
+                    }}
+                  >
+                    <IpythonIcon size={11} />
+                  </button>
+                )}
+              </div>
+            )}
           {!isPane && isSavableTab(tab) && (
             <button
               type="button"
@@ -1345,6 +1520,19 @@ export default function TabContent({
               />
             </div>
           </CsvTabView>
+        ) : showIpynbNotebook ? (
+          <div className="TabContent__editorPane">
+            <IpynbNotebookView
+              ref={ipynbNotebookRef}
+              notebookKey={tab.id}
+              workspaceRoot={workspaceRoot}
+              content={tab.content}
+              readOnly={tab.truncated}
+              keybindingMode={tab.keybindingMode}
+              sourceFont={sourceFont}
+              onChange={onContentChange}
+            />
+          </div>
         ) : showIpynbPreview ? (
           <IpynbPreview tab={tab} sourceFont={sourceFont} />
         ) : tab.kind === 'sqlite3' ? (
@@ -1436,6 +1624,29 @@ export default function TabContent({
                     onContextMenu={handleSourceEditorContextMenu}
                   />
                 </BunSourceLayout>
+              ) : isPythonSourceTabActive ? (
+                <PythonSourceLayout
+                  terminalSessionId={pythonTerminalSessionId}
+                  terminalMode={pythonTerminalMode}
+                  terminalExitCode={pythonTerminalExitCode}
+                  onCloseTerminal={handleClosePythonTerminal}
+                  onTerminalExit={handlePythonTerminalExit}
+                >
+                  <SourceCodeEditor
+                    ref={sourceRef}
+                    tabId={tab.id}
+                    tabKey={`${tab.id}:${tab.relativePath ?? 'untitled'}:source`}
+                    value={tab.content}
+                    relativePath={tab.relativePath}
+                    keybindingMode={tab.keybindingMode}
+                    readOnly={tab.truncated}
+                    reveal={tab.reveal ?? null}
+                    mnoteQuoteHighlight={mnoteQuoteEditorHighlight}
+                    onRevealComplete={onClearMnoteReveal}
+                    onChange={onContentChange}
+                    onContextMenu={handleSourceEditorContextMenu}
+                  />
+                </PythonSourceLayout>
               ) : (
                 <SourceCodeEditor
                   ref={sourceRef}

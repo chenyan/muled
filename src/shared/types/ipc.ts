@@ -4,9 +4,18 @@ import type {
   DetectToolsResult,
   BunPtyCreateResponse,
   BunRunResponse,
+  PythonPtyCreateResponse,
   SchemePtyCreateResponse,
   SchemeRunResponse,
 } from './tools';
+import type {
+  IpynbJupyterKernelListResponse,
+  IpynbKernelExecuteRequest,
+  IpynbKernelInspectResponse,
+  IpynbKernelListResponse,
+  IpynbKernelSimpleResponse,
+  IpynbKernelStartResponse,
+} from './ipynbKernel';
 import type { ResolvedThemeConfig, ThemeConfig } from './theme';
 import type { SearchStartResult } from './search';
 import type { CsvQueryResponse, CsvRegisterResponse } from './csvQuery';
@@ -122,7 +131,21 @@ export type IpcChannel =
   | 'bun:pty:create'
   | 'bun:pty:write'
   | 'bun:pty:resize'
-  | 'bun:pty:kill';
+  | 'bun:pty:kill'
+  | 'python:available'
+  | 'python:ipythonAvailable'
+  | 'python:pty:create'
+  | 'python:pty:write'
+  | 'python:pty:resize'
+  | 'python:pty:kill'
+  | 'ipynb:kernel:list'
+  | 'ipynb:jupyter:listKernels'
+  | 'ipynb:kernel:start'
+  | 'ipynb:kernel:restart'
+  | 'ipynb:kernel:interrupt'
+  | 'ipynb:kernel:dispose'
+  | 'ipynb:cell:execute'
+  | 'ipynb:kernel:inspect';
 
 export interface WysiwygCssResult {
   css: string;
@@ -351,6 +374,77 @@ export interface IpcInvokeMap {
   'bun:pty:kill': {
     args: { sessionId: string };
     result: { ok: boolean };
+  };
+  'python:available': {
+    args: void;
+    result: { available: boolean };
+  };
+  'python:ipythonAvailable': {
+    args: void;
+    result: { available: boolean };
+  };
+  'python:pty:create': {
+    args: {
+      mode: 'script' | 'repl';
+      path?: string;
+      code?: string;
+      cols: number;
+      rows: number;
+    };
+    result: PythonPtyCreateResponse;
+  };
+  'python:pty:write': {
+    args: { sessionId: string; data: string };
+    result: { ok: boolean };
+  };
+  'python:pty:resize': {
+    args: { sessionId: string; cols: number; rows: number };
+    result: { ok: boolean };
+  };
+  'python:pty:kill': {
+    args: { sessionId: string };
+    result: { ok: boolean };
+  };
+  'ipynb:kernel:list': {
+    args: void;
+    result: IpynbKernelListResponse;
+  };
+  'ipynb:jupyter:listKernels': {
+    args: { serverUrl: string };
+    result: IpynbJupyterKernelListResponse;
+  };
+  'ipynb:kernel:start': {
+    args: {
+      notebookKey: string;
+      specId?: string;
+      cwd?: string;
+      jupyterServer?: {
+        serverUrl: string;
+        kernelId: string;
+        kernelName: string;
+      };
+    };
+    result: IpynbKernelStartResponse;
+  };
+  'ipynb:kernel:restart': {
+    args: { sessionId: string; cwd?: string };
+    result: IpynbKernelSimpleResponse & { sessionId?: string };
+  };
+  'ipynb:kernel:interrupt': {
+    args: { sessionId: string };
+    result: { ok: boolean };
+  };
+  'ipynb:kernel:dispose': {
+    args: { sessionId: string };
+    result: { ok: boolean };
+  };
+  'ipynb:cell:execute': {
+    args: IpynbKernelExecuteRequest;
+    result: { ok: true };
+  };
+  'ipynb:kernel:inspect': {
+    args: { sessionId: string };
+    result: IpynbKernelInspectResponse;
   };
 }
 

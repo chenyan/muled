@@ -4,6 +4,8 @@ import {
   IpynbRenderError,
   renderIpynbToElement,
 } from '../../lib/renderIpynb';
+import { renderNotebookMermaidInElement } from '../../lib/notebookMarkdownPreview';
+import { useWysiwygTheme } from '../../hooks/useAppTheme';
 import type { EditorFontSettings } from '../../../shared/types/config';
 import { sourceEditorFontVars } from '../../lib/editorFontStyle';
 import type { EditorTab } from '../../types/tab';
@@ -16,6 +18,7 @@ interface IpynbPreviewProps {
 
 export default function IpynbPreview({ tab, sourceFont }: IpynbPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const wysiwygTheme = useWysiwygTheme();
   const renderResult = useMemo(() => {
     try {
       return {
@@ -40,10 +43,11 @@ export default function IpynbPreview({ tab, sourceFont }: IpynbPreviewProps) {
     }
 
     container.replaceChildren(renderResult.node);
+    void renderNotebookMermaidInElement(renderResult.node, wysiwygTheme);
     return () => {
       container.replaceChildren();
     };
-  }, [renderResult]);
+  }, [renderResult, wysiwygTheme]);
 
   if (renderResult.error) {
     return (

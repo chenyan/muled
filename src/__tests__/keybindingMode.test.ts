@@ -26,9 +26,18 @@ describe('editorViewMode', () => {
     expect(nextViewModeForTab('html', 'source')).toBe('preview');
   });
 
-  it('cycles ipynb preview ↔ source', () => {
+  it('cycles ipynb notebook → preview → source', () => {
+    expect(nextViewModeForTab('ipynb', 'notebook')).toBe('preview');
     expect(nextViewModeForTab('ipynb', 'preview')).toBe('source');
-    expect(nextViewModeForTab('ipynb', 'source')).toBe('preview');
+    expect(nextViewModeForTab('ipynb', 'source')).toBe('notebook');
+  });
+
+  it('defaults ipynb unknown view mode to preview', () => {
+    expect(nextViewModeForTab('ipynb', 'rich-text')).toBe('preview');
+  });
+
+  it('labels notebook view mode', () => {
+    expect(editorViewModeLabel('notebook')).toBe('Notebook');
   });
 
   it('cycles p5 preview ↔ source', () => {

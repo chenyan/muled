@@ -1,4 +1,7 @@
-import { buildOutlineTree, buildTabOutline } from '../renderer/lib/outlineIndex';
+import {
+  buildOutlineTree,
+  buildTabOutline,
+} from '../renderer/lib/outlineIndex';
 import type { EditorTab } from '../renderer/types/tab';
 
 function createTab(partial: Partial<EditorTab>): EditorTab {
@@ -34,13 +37,14 @@ describe('buildTabOutline', () => {
       content:
         'export class Service {}\n' +
         'function inner() {}\n' +
-        '  function nested() {}\n' +
+        'function nested() {}\n' +
         'const userName = "a";',
     });
     const items = buildTabOutline(tab, []);
     expect(items.map((item) => item.title)).toEqual([
       'Service',
       'inner',
+      'nested',
       'userName',
     ]);
   });
@@ -52,7 +56,7 @@ describe('buildTabOutline', () => {
       content: [
         'export class Service {',
         '  method() {',
-        '    helper() {}',
+        '    function helper() {}',
         '  }',
         '}',
       ].join('\n'),
@@ -62,6 +66,41 @@ describe('buildTabOutline', () => {
       ['Service', 1],
       ['method', 2],
       ['helper', 3],
+    ]);
+  });
+
+  it('keeps navigation-only parameter symbols out of the outline', () => {
+    const tab = createTab({
+      kind: 'text',
+      relativePath: 'src/a.ts',
+      content: [
+        'function outer(parameter: string) {',
+        '  const local = parameter;',
+        '}',
+      ].join('\n'),
+    });
+    const items = buildTabOutline(tab, []);
+    expect(items.map((item) => [item.title, item.depth])).toEqual([
+      ['outer', 1],
+      ['local', 2],
+    ]);
+  });
+
+  it('keeps Python variable symbols out of the existing outline hierarchy', () => {
+    const tab = createTab({
+      kind: 'text',
+      relativePath: 'src/a.py',
+      content: [
+        'def outer(parameter):',
+        '    local = parameter',
+        '    def nested():',
+        '        return local',
+      ].join('\n'),
+    });
+    const items = buildTabOutline(tab, []);
+    expect(items.map((item) => [item.title, item.depth])).toEqual([
+      ['outer', 1],
+      ['nested', 2],
     ]);
   });
 
@@ -77,9 +116,9 @@ describe('buildTabOutline', () => {
       'H2',
       'H2b',
     ]);
-    expect(tree[0]!.children[0]!.children.map((node) => node.item.title)).toEqual([
-      'H3',
-    ]);
+    expect(
+      tree[0]!.children[0]!.children.map((node) => node.item.title),
+    ).toEqual(['H3']);
   });
 
   it('uses provided pdf outline', () => {

@@ -15,6 +15,14 @@ export default function IpynbViewSwitch({
     <div className="EditorViewSwitch" role="group" aria-label="Notebook 视图">
       <button
         type="button"
+        className={`EditorViewSwitch__btn${viewMode === 'notebook' ? ' EditorViewSwitch__btn--active' : ''}`}
+        disabled={disabled}
+        onClick={() => onChange('notebook')}
+      >
+        Notebook
+      </button>
+      <button
+        type="button"
         className={`EditorViewSwitch__btn${viewMode === 'preview' ? ' EditorViewSwitch__btn--active' : ''}`}
         disabled={disabled}
         onClick={() => onChange('preview')}

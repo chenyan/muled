@@ -80,7 +80,7 @@ export default function PdfViewer({
       }),
       createPluginRegistration(PanPluginPackage, { defaultMode: 'never' }),
       createPluginRegistration(ZoomPluginPackage, {
-        defaultZoomLevel: ZoomMode.FitWidth,
+        defaultZoomLevel: ZoomMode.FitPage,
       }),
     ];
   }, [pdfBuffer, name]);

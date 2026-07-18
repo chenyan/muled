@@ -1,0 +1,851 @@
+/* 交互式 Notebook 编辑器（Phase 1） */
+
+.IpynbNotebookView {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--muled-bg);
+  color: var(--muled-fg);
+  --ipynb-cell-bg-base: var(--muled-bg);
+  --ipynb-cell-toolbar-bg-base: var(--muled-bg);
+  --ipynb-code-bg-base: #f4f5f7;
+  --ipynb-cell-bg: var(--muled-bg);
+  --ipynb-cell-toolbar-bg: var(--muled-bg);
+  --ipynb-code-bg: var(--ipynb-code-bg-base);
+  --ipynb-cell-border: var(--muled-border);
+}
+
+[data-muled-ui-theme='dark'] .IpynbNotebookView {
+  --ipynb-code-bg-base: #eceef1;
+  --ipynb-code-bg: var(--ipynb-code-bg-base);
+}
+
+[data-muled-ui-theme='acme'] .IpynbNotebookView {
+  --ipynb-code-bg-base: color-mix(in srgb, var(--muled-bg) 38%, white);
+  --ipynb-code-bg: var(--ipynb-code-bg-base);
+}
+
+.IpynbNotebookView__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  flex-direction: row;
+  container-type: inline-size;
+}
+
+.IpynbNotebookView__main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 20px 32px;
+}
+
+.IpynbNotebookView__inner {
+  max-width: 900px;
+  margin: 0;
+}
+
+.IpynbNotebookView__body--resizing .IpynbNotebookSidebar__shell {
+  transition: none;
+}
+
+.IpynbNotebookView__resize {
+  flex: 0 0 1px;
+  width: 1px;
+  align-self: stretch;
+  touch-action: none;
+  cursor: col-resize;
+  background: var(--muled-border);
+  position: relative;
+  z-index: 1;
+}
+
+.IpynbNotebookView__resize::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -5px;
+  width: 11px;
+  cursor: col-resize;
+}
+
+.IpynbNotebookView__resize:hover,
+.IpynbNotebookView__resize:focus-visible,
+.IpynbNotebookView__resize--active {
+  background: var(--muled-accent);
+}
+
+.IpynbNotebookSidebar__shell {
+  flex: 0 0 auto;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.IpynbNotebookSidebar {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 10px 20px;
+  background: var(--muled-surface);
+}
+
+.IpynbNotebookSidebar__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.IpynbNotebookSidebar__section--grow {
+  flex: 1;
+  min-height: 0;
+}
+
+.IpynbNotebookSidebar__sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.IpynbNotebookSidebar__title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muled-fg);
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.IpynbNotebookSidebar__refresh {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--muled-border);
+  border-radius: 4px;
+  background: var(--muled-bg);
+  color: var(--muled-fg);
+  cursor: pointer;
+}
+
+.IpynbNotebookSidebar__refresh .RefreshIcon {
+  display: block;
+}
+
+.IpynbNotebookSidebar__refresh:hover:not(:disabled) {
+  background: var(--muled-surface-muted);
+}
+
+.IpynbNotebookSidebar__refresh:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.IpynbNotebookSidebar__refresh--spinning .RefreshIcon {
+  animation: IpynbNotebookSidebar__refreshSpin 0.8s linear infinite;
+}
+
+@keyframes IpynbNotebookSidebar__refreshSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.IpynbNotebookSidebar__meta {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.IpynbNotebookSidebar__metaRow {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+  font-size: 12px;
+}
+
+.IpynbNotebookSidebar__metaRow dt {
+  margin: 0;
+  color: var(--muled-fg-muted);
+}
+
+.IpynbNotebookSidebar__metaRow dd {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.IpynbNotebookSidebar__status {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: var(--muled-surface-muted);
+  color: var(--muled-fg-muted);
+  white-space: nowrap;
+}
+
+.IpynbNotebookSidebar__status[data-status='idle'] {
+  color: var(--muled-success, #2d8a4e);
+}
+
+.IpynbNotebookSidebar__status[data-status='busy'] {
+  color: var(--muled-warning-fg, #b8860b);
+}
+
+.IpynbNotebookSidebar__status[data-status='error'],
+.IpynbNotebookSidebar__status[data-status='disconnected'] {
+  color: var(--muled-fg-muted);
+}
+
+.IpynbNotebookSidebar__error {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--muled-error-fg, #c0392b);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.IpynbNotebookSidebar__empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muled-fg-muted);
+}
+
+.IpynbNotebookSidebar__tableWrap {
+  overflow: auto;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--muled-border);
+  border-radius: 6px;
+  background: var(--muled-bg);
+}
+
+.IpynbNotebookSidebar__table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 11px;
+  font-family: var(--muled-source-font-family, monospace);
+}
+
+.IpynbNotebookSidebar__table th,
+.IpynbNotebookSidebar__table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--muled-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.IpynbNotebookSidebar__table th {
+  position: sticky;
+  top: 0;
+  background: var(--muled-surface-muted);
+  color: var(--muled-fg-muted);
+  font-weight: 600;
+}
+
+.IpynbNotebookSidebar__table tr:last-child td {
+  border-bottom: none;
+}
+
+.IpynbNotebookSidebar__name {
+  white-space: nowrap;
+  color: var(--muled-fg);
+}
+
+.IpynbNotebookSidebar__type {
+  white-space: nowrap;
+  color: var(--muled-fg-muted);
+}
+
+.IpynbNotebookSidebar__value {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muled-fg);
+}
+
+@container (max-width: 700px) {
+  .IpynbNotebookView__body {
+    flex-direction: column;
+  }
+
+  .IpynbNotebookView__resize {
+    display: none;
+  }
+
+  .IpynbNotebookSidebar__shell {
+    width: auto !important;
+    max-height: 40vh;
+  }
+
+  .IpynbNotebookSidebar {
+    border-top: 1px solid var(--muled-border);
+  }
+}
+
+.IpynbNotebookView__error {
+  margin: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--muled-danger-border);
+  border-radius: 6px;
+  background: var(--muled-danger-bg);
+  color: var(--muled-danger);
+  font-size: 13px;
+}
+
+.IpynbNotebookToolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px 12px;
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--muled-border);
+  background: var(--muled-surface);
+  min-width: 0;
+}
+
+.IpynbNotebookToolbar__kernel {
+  min-width: 0;
+}
+
+.IpynbNotebookToolbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .IpynbNotebookToolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .IpynbNotebookToolbar__actions {
+    justify-content: flex-start;
+  }
+}
+
+.IpynbNotebookToolbar__btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  border: 1px solid var(--muled-border);
+  border-radius: 4px;
+  background: var(--muled-bg);
+  color: var(--muled-fg);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.IpynbNotebookToolbar__btn:hover:not(:disabled) {
+  background: var(--muled-surface-muted);
+}
+
+.IpynbNotebookToolbar__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.IpynbNotebookToolbar__hint {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muled-fg-muted);
+}
+
+.IpynbCell {
+  margin-bottom: 10px;
+  background: var(--muled-bg);
+}
+
+/* 本次打开后的运行次数色阶：标题栏与内容区同色阶由浅到微深（最多 5 次后归 1） */
+.IpynbCell[data-session-runs]:not([data-session-runs='0']) {
+  --ipynb-cell-bg: color-mix(
+    in srgb,
+    var(--muled-bg) calc(100% - var(--ipynb-cell-session-tint, 0%)),
+    var(--muled-fg) var(--ipynb-cell-session-tint, 0%)
+  );
+  --ipynb-cell-toolbar-bg: color-mix(
+    in srgb,
+    var(--muled-bg) calc(100% - var(--ipynb-cell-session-tint, 0%)),
+    var(--muled-fg) var(--ipynb-cell-session-tint, 0%)
+  );
+  --ipynb-code-bg: color-mix(
+    in srgb,
+    var(--ipynb-code-bg-base) calc(100% - var(--ipynb-cell-session-tint, 0%)),
+    var(--muled-fg) var(--ipynb-cell-session-tint, 0%)
+  );
+  background: var(--ipynb-cell-bg);
+}
+
+.IpynbCellHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  background: var(--muled-bg);
+  font-size: 11px;
+  min-height: 26px;
+}
+
+.IpynbCell[data-session-runs]:not([data-session-runs='0']) .IpynbCellHeader {
+  background: var(--ipynb-cell-toolbar-bg);
+}
+
+.IpynbCellHeader__index {
+  color: var(--muled-fg-muted);
+  flex-shrink: 0;
+}
+
+.IpynbCellHeader__type {
+  font-size: 11px;
+  padding: 1px 4px;
+  border: 1px solid var(--muled-border);
+  border-radius: 3px;
+  background: var(--muled-bg);
+  color: var(--muled-fg);
+  flex-shrink: 0;
+}
+
+.IpynbCellHeader__leading {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+}
+
+.IpynbCellHeader__actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.IpynbCell:hover .IpynbCellHeader__actions,
+.IpynbCell:focus-within .IpynbCellHeader__actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.IpynbCellHeader__btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--muled-fg-muted);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.IpynbCellHeader__btn:hover:not(:disabled) {
+  background: var(--ipynb-code-bg);
+  color: var(--muled-fg);
+}
+
+.IpynbCellHeader__btn--danger:hover:not(:disabled) {
+  color: var(--muled-danger);
+}
+
+.IpynbCellHeader__btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.IpynbCellHeader__run,
+.IpynbCellHeader__action {
+  margin-left: 2px;
+  padding: 1px 7px;
+  font-size: 11px;
+  border: 1px solid var(--muled-border);
+  border-radius: 3px;
+  background: var(--muled-bg);
+  color: var(--muled-fg);
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.IpynbCellHeader__run:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.IpynbCodeCell {
+  display: block;
+}
+
+.IpynbNotebookToolbar__sep {
+  width: 1px;
+  height: 18px;
+  background: var(--muled-border);
+  margin: 0 4px;
+}
+
+.IpynbKernelPicker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
+}
+
+.IpynbKernelPicker__row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  min-width: 0;
+}
+
+.IpynbKernelPicker__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 160px;
+}
+
+.IpynbKernelPicker__status {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: var(--muled-surface-muted);
+  color: var(--muled-fg-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.IpynbKernelPicker__status[data-status='idle'] {
+  color: var(--muled-success, #2d8a4e);
+}
+
+.IpynbKernelPicker__status[data-status='busy'] {
+  color: var(--muled-warning-fg, #b8860b);
+}
+
+.IpynbKernelPicker__status[data-status='error'],
+.IpynbKernelPicker__status[data-status='disconnected'] {
+  color: var(--muled-fg-muted);
+}
+
+.IpynbKernelPicker__select {
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid var(--muled-border);
+  border-radius: 4px;
+  background: var(--muled-bg);
+  color: var(--muled-fg);
+  min-width: 0;
+  flex: 1 1 120px;
+  max-width: 100%;
+}
+
+.IpynbKernelPicker__hint {
+  font-size: 11px;
+  color: var(--muled-fg-muted);
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+@media (max-width: 720px) {
+  .IpynbKernelPicker__hint {
+    display: none;
+  }
+}
+
+.IpynbKernelPicker__error {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--muled-error-fg, #c0392b);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.IpynbKernelPicker__jupyterBtn,
+.IpynbKernelPicker__jupyterRefresh {
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid var(--muled-border);
+  border-radius: 4px;
+  background: var(--muled-surface-muted);
+  color: var(--muled-fg);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.IpynbKernelPicker__jupyterBtn:disabled,
+.IpynbKernelPicker__jupyterRefresh:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.IpynbKernelPicker__jupyterPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--muled-border);
+  border-radius: 6px;
+  background: var(--muled-surface-muted);
+}
+
+.IpynbKernelPicker__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muled-fg-muted);
+}
+
+.IpynbKernelPicker__field input {
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid var(--muled-border);
+  border-radius: 4px;
+  background: var(--muled-bg);
+  color: var(--muled-fg);
+}
+
+.IpynbKernelPicker__jupyterActions {
+  display: flex;
+  gap: 8px;
+}
+
+.IpynbKernelPicker__remoteList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 160px;
+  overflow: auto;
+}
+
+.IpynbKernelPicker__remoteItem {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 6px 8px;
+  border: 1px solid var(--muled-border);
+  border-radius: 4px;
+  background: var(--muled-bg);
+  color: var(--muled-fg);
+  cursor: pointer;
+  text-align: left;
+}
+
+.IpynbKernelPicker__remoteItem:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.IpynbKernelPicker__remoteName {
+  font-size: 12px;
+}
+
+.IpynbKernelPicker__remoteId {
+  font-size: 10px;
+  color: var(--muled-fg-muted);
+  font-family: var(--muled-mono-font, ui-monospace, monospace);
+}
+
+.IpynbCodeCell--running .IpynbCodeCell__editor {
+  outline: 1px solid var(--muled-warning-fg, #b8860b);
+}
+
+.IpynbCodeCell__editor {
+  padding: 4px 8px 8px;
+}
+
+.IpynbCellEditor {
+  border: 1px solid var(--muled-border);
+  border-radius: 4px;
+  background: var(--ipynb-code-bg);
+  overflow: hidden;
+}
+
+.IpynbCellEditor .cm-editor {
+  background: transparent;
+}
+
+.IpynbCellEditor .cm-scroller,
+.IpynbCellEditor .cm-gutters {
+  font-family: var(
+    --muled-source-font-family,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    monospace
+  );
+  font-size: var(--muled-source-font-size, 13px);
+  font-variant-ligatures: none;
+  font-feature-settings: 'liga' 0, 'calt' 0;
+}
+
+.IpynbCellOutput {
+  padding: 0 8px 8px;
+  background: var(--muled-bg);
+  font-family: var(--muled-source-font-family, monospace);
+  font-size: var(--muled-source-font-size, 13px);
+}
+
+.IpynbCellOutput img,
+.IpynbCellOutput .nb-image-output {
+  max-width: 100%;
+  height: auto;
+}
+
+.IpynbCellOutput .nb-stdout,
+.IpynbCellOutput .nb-text-output {
+  white-space: pre-wrap;
+  margin: 0.35em 0;
+  padding: 0.2em 0.45em;
+  background: transparent;
+  border-radius: 4px;
+  font-family: var(--muled-source-font-family, monospace);
+  font-size: var(--muled-source-font-size, 13px);
+  overflow-x: auto;
+}
+
+.IpynbCellOutput .nb-stderr {
+  white-space: pre-wrap;
+  margin: 0.35em 0;
+  padding: 0.2em 0.45em;
+  background: var(--muled-danger-bg);
+  color: var(--muled-danger);
+  border-radius: 4px;
+  font-family: var(--muled-source-font-family, monospace);
+  font-size: var(--muled-source-font-size, 13px);
+  overflow-x: auto;
+}
+
+.IpynbMarkdownCell {
+  position: relative;
+}
+
+.IpynbMarkdownCell__body {
+  padding: 6px 10px 8px;
+  min-height: 1.5em;
+}
+
+.IpynbMarkdownCell__preview {
+  line-height: 1.55;
+}
+
+.IpynbMarkdownCell__preview .katex {
+  color: var(--muled-fg);
+}
+
+.IpynbMarkdownCell__preview .katex-display {
+  margin: 0.75em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.IpynbMarkdownMermaid {
+  margin: 0.75em 0;
+  overflow-x: auto;
+}
+
+.IpynbMarkdownMermaid svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.IpynbMarkdownMermaid__error {
+  margin: 0;
+  padding: 0.5em 0.75em;
+  border-radius: 4px;
+  background: var(--muled-danger-bg);
+  color: var(--muled-danger);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.IpynbPreview .IpynbMarkdownMermaid {
+  margin: 0.75em 0;
+  overflow-x: auto;
+}
+
+.IpynbPreview .IpynbMarkdownMermaid svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.IpynbPreview .IpynbMarkdownMermaid__error {
+  margin: 0;
+  padding: 0.5em 0.75em;
+  border-radius: 4px;
+  background: var(--muled-danger-bg);
+  color: var(--muled-danger);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.IpynbMarkdownCell__preview pre {
+  background: var(--ipynb-code-bg);
+  padding: 6px;
+  border-radius: 4px;
+  overflow: auto;
+}
+
+.IpynbMarkdownCell--editing .IpynbMarkdownCell__body {
+  padding-top: 4px;
+}
+
+.IpynbRawCell__body {
+  padding: 4px 8px 8px;
+}

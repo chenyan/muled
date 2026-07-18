@@ -373,11 +373,24 @@
 }
 
 [data-muled-ui-theme='acme'] .SettingsDialog__header,
+[data-muled-ui-theme='acme'] .SettingsDialog__tabs,
 [data-muled-ui-theme='acme'] .UnsavedChangesDialog__header,
 [data-muled-ui-theme='acme'] .PromptDialog__header,
 [data-muled-ui-theme='acme'] .CommandPalette__inputWrap {
   background: var(--muled-chrome-bg);
   border-bottom: 1px solid #000;
+}
+
+[data-muled-ui-theme='acme'] .SettingsDialog__tab {
+  font-family: var(--muled-chrome-font);
+  font-size: 11px;
+  color: #000;
+  border-bottom-color: transparent;
+}
+
+[data-muled-ui-theme='acme'] .SettingsDialog__tab--active {
+  border-bottom-color: #000;
+  font-weight: bold;
 }
 
 [data-muled-ui-theme='acme'] .SettingsDialog__input,

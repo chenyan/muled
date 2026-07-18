@@ -8,7 +8,7 @@ export type { EditorIndentSettings };
 export type { ResolvedThemeConfig, ThemeConfig, ThemePreference, ResolvedTheme } from './theme';
 
 export type EditorMode = 'vim' | 'normal';
-export type EditorViewMode = 'source' | 'rich-text' | 'preview' | 'agenda';
+export type EditorViewMode = 'source' | 'rich-text' | 'preview' | 'agenda' | 'notebook';
 
 export interface MuledConfig {
   openai: {

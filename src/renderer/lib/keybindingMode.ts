@@ -8,6 +8,7 @@ export default function keybindingModePatch(
     mode === 'vim' &&
     (currentViewMode === 'rich-text' ||
       currentViewMode === 'preview' ||
+      currentViewMode === 'notebook' ||
       currentViewMode === 'agenda')
   ) {
     return { keybindingMode: mode, viewMode: 'source' };
