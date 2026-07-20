@@ -15,6 +15,7 @@ export type TabKind =
   | 'ipynb'
   | 'strudel'
   | 'p5'
+  | 'mermaid'
   | 'image'
   | 'pdf'
   | 'audio'
@@ -82,7 +83,8 @@ export function isEditableTextTab(tab: EditorTab): boolean {
     tab.kind === 'csv' ||
     tab.kind === 'ipynb' ||
     tab.kind === 'strudel' ||
-    tab.kind === 'p5'
+    tab.kind === 'p5' ||
+    tab.kind === 'mermaid'
   );
 }
 
@@ -99,7 +101,8 @@ export function tabUsesSourceCodeEditor(tab: EditorTab): boolean {
     tab.kind === 'csv' ||
     tab.kind === 'ipynb' ||
     tab.kind === 'strudel' ||
-    tab.kind === 'p5'
+    tab.kind === 'p5' ||
+    tab.kind === 'mermaid'
   );
 }
 

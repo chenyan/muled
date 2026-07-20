@@ -11,7 +11,7 @@ import type {
   EditorViewMode,
   PublicConfig,
 } from '../../shared/types/config';
-import { isHtmlPath, isMarkdownPath, isOrgPath, isP5Path, isStrudelPath } from '../lib/fileLanguage';
+import { isHtmlPath, isMarkdownPath, isMermaidPath, isOrgPath, isP5Path, isStrudelPath } from '../lib/fileLanguage';
 import { isMnotePath } from '../lib/mnotePath';
 import { arrayBufferToBase64, arrayBufferToDataUrl } from '../lib/dataUrl';
 import { getDocxEditorBuffer } from '../lib/editorDocxBridge';
@@ -250,6 +250,7 @@ async function loadFileIntoTab(
   const org = isOrgPath(relativePath);
   const strudel = isStrudelPath(relativePath);
   const p5 = isP5Path(relativePath);
+  const mermaid = isMermaidPath(relativePath);
   const content = markdown
     ? exportWikiImagesFromMarkdown(file.content)
     : file.content;
@@ -263,18 +264,20 @@ async function loadFileIntoTab(
           ? 'strudel'
           : p5
             ? 'p5'
-            : markdown
-              ? 'markdown'
-              : org
-                ? 'org'
-                : html
-                  ? 'html'
-                  : 'text';
+            : mermaid
+              ? 'mermaid'
+              : markdown
+                ? 'markdown'
+                : org
+                  ? 'org'
+                  : html
+                    ? 'html'
+                    : 'text';
   const viewMode: EditorViewMode = mnote
     ? 'rich-text'
     : ipynb
       ? 'preview'
-      : csv || html || strudel || p5 || org
+      : csv || html || strudel || p5 || mermaid || org
         ? 'preview'
         : markdown
           ? 'rich-text'
@@ -544,6 +547,7 @@ export function useEditorTabs(
           target.kind === 'ipynb' ||
           target.kind === 'strudel' ||
           target.kind === 'p5' ||
+          target.kind === 'mermaid' ||
           target.kind === 'org'
             ? target.viewMode
             : cfg.editor.default_view,
@@ -925,7 +929,8 @@ export function useEditorTabs(
                   t.kind === 'html' ||
                   t.kind === 'ipynb' ||
                   t.kind === 'strudel' ||
-                  t.kind === 'p5'
+                  t.kind === 'p5' ||
+                  t.kind === 'mermaid'
                     ? { viewMode: 'source' as const }
                     : {}),
                 }
@@ -957,7 +962,8 @@ export function useEditorTabs(
           loaded.kind === 'html' ||
           loaded.kind === 'ipynb' ||
           loaded.kind === 'strudel' ||
-          loaded.kind === 'p5'
+          loaded.kind === 'p5' ||
+          loaded.kind === 'mermaid'
             ? { viewMode: 'source' as const }
             : {}),
         };

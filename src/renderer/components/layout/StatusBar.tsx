@@ -54,7 +54,8 @@ export default function StatusBar({
         tab.kind === 'csv' ||
         tab.kind === 'ipynb' ||
         tab.kind === 'strudel' ||
-        tab.kind === 'p5'
+        tab.kind === 'p5' ||
+        tab.kind === 'mermaid'
       ) {
         viewMode = tab.viewMode;
       }

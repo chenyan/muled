@@ -4,6 +4,7 @@ import {
   getSourceLanguageLabel,
   isHtmlPath,
   isMarkdownPath,
+  isMermaidPath,
   isOrgPath,
   isP5Path,
   isStrudelPath,
@@ -46,12 +47,22 @@ describe('fileLanguage', () => {
     expect(isP5Path(null)).toBe(false);
   });
 
+  it('detects mermaid paths', () => {
+    expect(isMermaidPath('diagrams/flow.mermaid')).toBe(true);
+    expect(isMermaidPath('FLOW.MERMAID')).toBe(true);
+    expect(isMermaidPath('diagrams/flow.mmd')).toBe(true);
+    expect(isMermaidPath('notes.md')).toBe(false);
+    expect(isMermaidPath(null)).toBe(false);
+  });
+
   it('maps extensions to source languages', () => {
     expect(getSourceLanguageId('app.ts')).toBe('typescript');
     expect(getSourceLanguageId('data.json')).toBe('json');
     expect(getSourceLanguageId('notebook.ipynb')).toBe('json');
     expect(getSourceLanguageId('beat.strudel')).toBe('javascript');
     expect(getSourceLanguageId('sketch.p5')).toBe('javascript');
+    expect(getSourceLanguageId('flow.mermaid')).toBe('mermaid');
+    expect(getSourceLanguageId('flow.mmd')).toBe('mermaid');
     expect(getSourceLanguageId('readme.md')).toBe('markdown');
     expect(getSourceLanguageId('page.xhtml')).toBe('html');
     expect(getSourceLanguageId('paper.tex')).toBe('latex');
@@ -67,6 +78,7 @@ describe('fileLanguage', () => {
     expect(getSourceLanguageLabel('org')).toBe('Org Mode');
     expect(getSourceLanguageLabel('scheme')).toBe('Scheme');
     expect(getSourceLanguageLabel('scala')).toBe('Scala');
+    expect(getSourceLanguageLabel('mermaid')).toBe('Mermaid');
     expect(getSourceLanguageLabel('plain')).toBe('Plain Text');
   });
 

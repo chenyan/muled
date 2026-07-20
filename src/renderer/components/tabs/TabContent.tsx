@@ -53,6 +53,8 @@ import StrudelReplPreview, {
 import StrudelViewSwitch from '../editor/StrudelViewSwitch';
 import P5Preview from '../editor/P5Preview';
 import P5ViewSwitch from '../editor/P5ViewSwitch';
+import MermaidPreview from '../editor/MermaidPreview';
+import MermaidViewSwitch from '../editor/MermaidViewSwitch';
 import MarkdownTabNavigation from './MarkdownTabNavigation';
 import AudioPreview from '../editor/AudioPreview';
 import VideoPreview from '../editor/VideoPreview';
@@ -625,6 +627,9 @@ export default function TabContent({
     if (tab.kind === 'p5' && tab.viewMode === 'source') {
       return sourceRef.current?.getValue() ?? tab.content;
     }
+    if (tab.kind === 'mermaid' && tab.viewMode === 'source') {
+      return sourceRef.current?.getValue() ?? tab.content;
+    }
     if (tab.kind === 'strudel' && tab.viewMode === 'preview') {
       return strudelReplRef.current?.getCode() ?? tab.content;
     }
@@ -786,7 +791,8 @@ export default function TabContent({
         tab.kind === 'csv' ||
         tab.kind === 'ipynb' ||
         tab.kind === 'strudel' ||
-        tab.kind === 'p5'
+        tab.kind === 'p5' ||
+        tab.kind === 'mermaid'
       ) {
         let content = tab.content;
         if (tab.viewMode === 'source') {
@@ -1130,6 +1136,7 @@ export default function TabContent({
       (tab.kind === 'html' && tab.viewMode === 'preview'));
   const showStrudelRepl = tab.kind === 'strudel' && tab.viewMode === 'preview';
   const showP5Preview = tab.kind === 'p5' && tab.viewMode === 'preview';
+  const showMermaidPreview = tab.kind === 'mermaid' && tab.viewMode === 'preview';
   const showCsvSpreadsheet = tab.kind === 'csv' && tab.viewMode === 'preview';
   const showIpynbPreview = tab.kind === 'ipynb' && tab.viewMode === 'preview';
   const showIpynbNotebook = tab.kind === 'ipynb' && tab.viewMode === 'notebook';
@@ -1141,6 +1148,7 @@ export default function TabContent({
     (tab.kind === 'ipynb' && tab.viewMode === 'source') ||
     (tab.kind === 'strudel' && tab.viewMode === 'source') ||
     (tab.kind === 'p5' && tab.viewMode === 'source') ||
+    (tab.kind === 'mermaid' && tab.viewMode === 'source') ||
     (tab.kind === 'markdown' && tab.viewMode === 'source');
 
   const canSave =
@@ -1287,6 +1295,13 @@ export default function TabContent({
           )}
           {tab.kind === 'p5' && (
             <P5ViewSwitch
+              viewMode={tab.viewMode}
+              disabled={tab.truncated}
+              onChange={handleViewModeChange}
+            />
+          )}
+          {tab.kind === 'mermaid' && (
+            <MermaidViewSwitch
               viewMode={tab.viewMode}
               disabled={tab.truncated}
               onChange={handleViewModeChange}
@@ -1495,6 +1510,8 @@ export default function TabContent({
           />
         ) : showP5Preview ? (
           <P5Preview tab={tab} />
+        ) : showMermaidPreview ? (
+          <MermaidPreview tab={tab} />
         ) : showCsvSpreadsheet ? (
           <CsvTabView tab={tab}>
             <CsvSpreadsheetView tab={tab} onChange={onContentChange} />

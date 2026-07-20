@@ -45,6 +45,11 @@ describe('editorViewMode', () => {
     expect(nextViewModeForTab('p5', 'source')).toBe('preview');
   });
 
+  it('cycles mermaid preview ↔ source', () => {
+    expect(nextViewModeForTab('mermaid', 'preview')).toBe('source');
+    expect(nextViewModeForTab('mermaid', 'source')).toBe('preview');
+  });
+
   it('cycles docx rich-text ↔ preview', () => {
     expect(nextViewModeForTab('docx', 'rich-text')).toBe('preview');
     expect(nextViewModeForTab('docx', 'preview')).toBe('rich-text');

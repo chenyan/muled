@@ -19,6 +19,7 @@ import { StreamLanguage } from '@codemirror/language';
 import { scala } from '@codemirror/legacy-modes/mode/clike';
 import { stex } from '@codemirror/legacy-modes/mode/stex';
 import type { Extension } from '@codemirror/state';
+import { mermaid } from 'codemirror-lang-mermaid';
 import orgMode from './codemirrorOrgMode';
 import schemeLanguage from './scheme/schemeLanguage';
 import type { SourceLanguageId } from './fileLanguage';
@@ -75,6 +76,8 @@ export default function languageExtensionForId(
       return schemeLanguage();
     case 'scala':
       return StreamLanguage.define(scala);
+    case 'mermaid':
+      return mermaid();
     case 'plain':
     default:
       return null;

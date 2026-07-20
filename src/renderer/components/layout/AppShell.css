@@ -1695,6 +1695,46 @@
   overflow: hidden;
 }
 
+.MermaidPreview {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: auto;
+  padding: 24px;
+  background: var(--muled-editor-bg, var(--muled-bg));
+}
+
+.MermaidPreview__error {
+  flex-shrink: 0;
+  align-self: stretch;
+  margin: 0 0 16px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: var(--muled-danger-bg, #c0392b);
+  color: var(--muled-danger, #fff);
+  font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: pre-wrap;
+}
+
+.MermaidPreview__empty {
+  margin: 0;
+  color: var(--muled-subtle-fg);
+  font-size: 14px;
+}
+
+.MermaidPreview__diagram {
+  max-width: 100%;
+}
+
+.MermaidPreview__diagram svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
 .StrudelReplPreview {
   flex: 1;
   min-height: 0;

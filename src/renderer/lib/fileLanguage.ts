@@ -24,6 +24,7 @@ export type SourceLanguageId =
   | 'org'
   | 'scheme'
   | 'scala'
+  | 'mermaid'
   | 'plain';
 
 const EXT_TO_LANGUAGE: Record<string, SourceLanguageId> = {
@@ -80,6 +81,8 @@ const EXT_TO_LANGUAGE: Record<string, SourceLanguageId> = {
   ipynb: 'json',
   strudel: 'javascript',
   p5: 'javascript',
+  mermaid: 'mermaid',
+  mmd: 'mermaid',
 };
 
 const LANGUAGE_LABELS: Record<SourceLanguageId, string> = {
@@ -107,6 +110,7 @@ const LANGUAGE_LABELS: Record<SourceLanguageId, string> = {
   org: 'Org Mode',
   scheme: 'Scheme',
   scala: 'Scala',
+  mermaid: 'Mermaid',
   plain: 'Plain Text',
 };
 
@@ -138,6 +142,12 @@ export function isP5Path(relativePath: string | null): boolean {
   if (!relativePath) return false;
   const base = relativePath.replace(/\/$/, '');
   return /\.p5$/i.test(base);
+}
+
+export function isMermaidPath(relativePath: string | null): boolean {
+  if (!relativePath) return false;
+  const base = relativePath.replace(/\/$/, '');
+  return /\.(mermaid|mmd)$/i.test(base);
 }
 
 export function getSourceLanguageId(
@@ -217,6 +227,8 @@ const CODE_BLOCK_LANG: Record<string, SourceLanguageId> = {
   rkt: 'scheme',
   scala: 'scala',
   sc: 'scala',
+  mermaid: 'mermaid',
+  mmd: 'mermaid',
 };
 
 export function codeBlockLanguageId(language: string): SourceLanguageId {
